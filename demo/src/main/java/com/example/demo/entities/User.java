@@ -1,33 +1,47 @@
 package com.example.demo.entities;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
+// Clase base abstracta para la jerarquia de usuarios.
+/**
+ * Aclaracion sobre uso de Herencia JOINED:
+ * Crea una tabla base ('users') con atributos comunes
+ * y tablas separadas para cada rol ('students', 'instructors', 'administrators')
+ * vinculadas por ID (FK). Evita campos nulos (NULL) innecesarios y mantiene
+ * la base de datos normalizada según los requerimientos del DER.
+ */
 
 @Entity
 @Table(name = "users")
-public class User {
+@Inheritance(strategy = InheritanceType.JOINED)
+public abstract class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    protected Long id;
 
-    private String nombre;
-    private String apellido;
+    @Column(name = "first_name", nullable = false)
+    protected String firstName;
 
-    // Constructor vacío obligatorio para JPA
+    @Column(name = "last_name", nullable = false)
+    protected String lastName;
+
+    @Column(nullable = false, unique = true)
+    protected String email;
+
+    @Column(nullable = false)
+    protected String password;
+
     public User() {
+    }    //Constructo vacio que exige JPA
+
+    public User(String firstName, String lastName, String email, String password) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+        this.password = password;
     }
 
-    // Constructor con parámetros
-    public User(String nombre, String apellido) {
-        this.nombre = nombre;
-        this.apellido = apellido;
-    }
-
-    // Getters y Setters
     public Long getId() {
         return id;
     }
@@ -36,21 +50,35 @@ public class User {
         this.id = id;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
 
-    public String getApellido() {
-        return apellido;
+    public String getLastName() {
+        return lastName;
     }
 
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 }
-
-

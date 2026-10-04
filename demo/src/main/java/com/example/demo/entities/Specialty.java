@@ -1,4 +1,11 @@
 package com.example.demo.entities;
 
-public class Specialty {
+//Especialidades de instructores y cursos.
+
+public enum Specialty {
+    PROGRAMMING,
+    DESIGN,
+    MARKETING,
+    LANGUAGES,
+    BUSINESS
 }
