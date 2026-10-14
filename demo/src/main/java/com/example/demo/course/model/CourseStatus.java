@@ -1,4 +1,4 @@
-package com.example.demo.entities;
+package com.example.demo.course.model;
 
 public enum CourseStatus {
     DRAFT,                      // Borador inicial

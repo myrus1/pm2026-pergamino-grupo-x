@@ -1,5 +1,8 @@
-package com.example.demo.entities;
+package com.example.demo.course.model;
 
+import com.example.demo.enrollment.model.Enrollment;
+import com.example.demo.user.model.Instructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -8,6 +11,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "courses")
@@ -18,20 +22,26 @@ public class Course {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
     @Column(nullable = false)
     private String title;
 
+    @Setter
     private String description;
 
+    @Setter
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal basePrice;
 
+    @Setter
     @Column(nullable = false)
     private LocalDate startDate;
 
+    @Setter
     @Column(nullable = false)
     private LocalDate endDate;
 
+    @Setter
     @Column(nullable = false)
     private Integer maxCapacity;
 
@@ -45,31 +55,42 @@ public class Course {
     @JoinColumn(name = "specialty_id", nullable = false)
     private Specialty specialty;
 
-    // Relación en la qe muchos cursos pertenecen a un instructor
+    // Relacion en la que muchos cursos pertenecen a un instructor
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_id", nullable = false)
     private Instructor instructor;
 
+    // Lado inverso de la relacion: lo ignoramos para evitar ciclos al serializar a JSON
+    @JsonIgnore
     @OneToMany(mappedBy = "course")
     private Set<Enrollment> enrollments = new HashSet<>();
 
     protected Course() {
     }
 
-    Course(String title, String description, BigDecimal basePrice,
-           LocalDate startDate, LocalDate endDate, Integer maxCapacity,
-           Specialty specialty, Instructor instructor) {
-        this.title = title;
+    public Course(String title, String description, BigDecimal basePrice,
+                  LocalDate startDate, LocalDate endDate, Integer maxCapacity,
+                  Specialty specialty, Instructor instructor) {
+        this.title = Objects.requireNonNull(title, "El titulo no puede ser nulo");
         this.description = description;
-        this.basePrice = basePrice;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.maxCapacity = maxCapacity;
+        this.basePrice = Objects.requireNonNull(basePrice, "El precio base no puede ser nulo");
+        if (basePrice.signum() < 0) {
+            throw new IllegalArgumentException("El precio base no puede ser negativo");
+        }
+        this.startDate = Objects.requireNonNull(startDate, "La fecha de inicio no puede ser nula");
+        this.endDate = Objects.requireNonNull(endDate, "La fecha de fin no puede ser nula");
+        if (!endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException("La fecha de fin debe ser posterior a la de inicio");
+        }
+        this.maxCapacity = Objects.requireNonNull(maxCapacity, "La capacidad no puede ser nula");
+        if (maxCapacity <= 0) {
+            throw new IllegalArgumentException("La capacidad debe ser mayor a cero");
+        }
         setSpecialty(specialty);
         setInstructor(instructor);
     }
 
-    void setSpecialty(Specialty specialty) {
+    public void setSpecialty(Specialty specialty) {
         if (this.specialty == specialty) {
             return;
         }
@@ -82,17 +103,21 @@ public class Course {
         specialty.addCourse(this);
     }
 
-    void setInstructor(Instructor instructor) {
+    public void setInstructor(Instructor instructor) {
         if (this.instructor == instructor) {
             return;
         }
-        Objects.requireNonNull(instructor, "Instructor n puede ser nulo");
+        Objects.requireNonNull(instructor, "Instructor no puede ser nulo");
         Instructor previousInstructor = this.instructor;
         this.instructor = instructor;
         if (previousInstructor != null) {
             previousInstructor.removeCourse(this);
         }
         instructor.addCourse(this);
+    }
+
+    public void setStatus(CourseStatus status) {
+        this.status = Objects.requireNonNull(status, "Estado no puede ser nulo");
     }
 
     public Set<Enrollment> getEnrollments() {
@@ -103,17 +128,13 @@ public class Course {
         return maxCapacity != null && enrollments.size() < maxCapacity;
     }
 
-    void setStatus(CourseStatus status) {
-        this.status = Objects.requireNonNull(status, "Estado no pede ser nulo");
-    }
-
-    void addEnrollment(Enrollment enrollment) {
+    public void addEnrollment(Enrollment enrollment) {
         if (enrollment != null && enrollments.add(enrollment) && enrollment.getCourse() != this) {
             enrollment.setCourse(this);
         }
     }
 
-    void removeEnrollment(Enrollment enrollment) {
+    public void removeEnrollment(Enrollment enrollment) {
         enrollments.remove(enrollment);
     }
 }

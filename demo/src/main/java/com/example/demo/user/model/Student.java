@@ -1,5 +1,11 @@
-package com.example.demo.entities;
+package com.example.demo.user.model;
 
+import com.example.demo.course.model.Course;
+import com.example.demo.course.model.CourseStatus;
+import com.example.demo.course.model.Specialty;
+import com.example.demo.enrollment.model.CourseEnrollmentException;
+import com.example.demo.enrollment.model.Enrollment;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
@@ -26,6 +32,8 @@ public class Student extends User {
     @Column(nullable = false, unique = true)
     private String dni;
 
+    // Lado inverso de la relacion: lo ignoramos para evitar ciclos al serializar a JSON
+    @JsonIgnore
     @OneToMany(mappedBy = "student")
     private Set<Enrollment> enrollments = new HashSet<>();
 
@@ -52,21 +60,21 @@ public class Student extends User {
         Objects.requireNonNull(enrollmentDate, "La fecha de inscripcion no puede ser nula");
 
         if (course.getStatus() != CourseStatus.PUBLISHED) {
-            throw new CourseEnrollmentException("Course is not published");
+            throw new CourseEnrollmentException("El curso no esta publicado");
         }
         if (course.getStartDate() == null || !enrollmentDate.isBefore(course.getStartDate())) {
-            throw new CourseEnrollmentException("La inscripcion debe ser antes de que comince el curso");
+            throw new CourseEnrollmentException("La inscripcion debe ser antes de que comience el curso");
         }
         if (!course.hasAvailableCapacity()) {
             throw new CourseEnrollmentException("El curso esta lleno");
         }
         if (course.getSpecialty() == null) {
-            throw new CourseEnrollmentException("Especialidad del curso n definda");
+            throw new CourseEnrollmentException("Especialidad del curso no definida");
         }
         if (enrollments.stream().anyMatch(enrollment -> enrollment.getCourse() == course
                 || (enrollment.getCourse().getId() != null
                 && enrollment.getCourse().getId().equals(course.getId())))) {
-            throw new CourseEnrollmentException("Estudiante incripto en el curso");
+            throw new CourseEnrollmentException("Estudiante inscripto en el curso");
         }
 
         BigDecimal finalAmount = course.getBasePrice();
@@ -98,13 +106,13 @@ public class Student extends User {
                 && first.getId().equals(second.getId());
     }
 
-    void addEnrollment(Enrollment enrollment) {
+    public void addEnrollment(Enrollment enrollment) {
         if (enrollment != null && this.enrollments.add(enrollment) && enrollment.getStudent() != this) {
             enrollment.setStudent(this);
         }
     }
 
-    void removeEnrollment(Enrollment enrollment) {
+    public void removeEnrollment(Enrollment enrollment) {
         this.enrollments.remove(enrollment);
     }
 }

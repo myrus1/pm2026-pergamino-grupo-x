@@ -1,4 +1,4 @@
-package com.example.demo.entities;
+package com.example.demo.enrollment.model;
 
 public class CourseEnrollmentException extends RuntimeException {
 

@@ -1,10 +1,13 @@
-package com.example.demo.entities;
+package com.example.demo.enrollment.model;
 
+import com.example.demo.course.model.Course;
+import com.example.demo.user.model.Student;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "enrollments", uniqueConstraints = {
@@ -17,9 +20,11 @@ public class Enrollment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
     @Column(nullable = false)
     private LocalDateTime enrollmentDate = LocalDateTime.now();
 
+    @Setter
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal finalAmount;
 
@@ -28,7 +33,7 @@ public class Enrollment {
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    // Relcion con el curso al que se inscribe un estudiante
+    // Relacion con el curso al que se inscribe un estudiante
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
@@ -36,22 +41,22 @@ public class Enrollment {
     protected Enrollment() {
     }
 
-    Enrollment(Student student, Course course, BigDecimal finalAmount) {
+    public Enrollment(Student student, Course course, BigDecimal finalAmount) {
         this(student, course, finalAmount, LocalDateTime.now());
     }
 
-    Enrollment(Student student, Course course, BigDecimal finalAmount, LocalDateTime enrollmentDate) {
+    public Enrollment(Student student, Course course, BigDecimal finalAmount, LocalDateTime enrollmentDate) {
         setStudent(student);
         setCourse(course);
         this.finalAmount = finalAmount;
         this.enrollmentDate = enrollmentDate;
     }
 
-    void setStudent(Student student) {
+    public void setStudent(Student student) {
         if (this.student == student) {
             return;
         }
-        Objects.requireNonNull(student, "Estdiante no puede ser nulo");
+        Objects.requireNonNull(student, "Estudiante no puede ser nulo");
         Student previousStudent = this.student;
         this.student = student;
         if (previousStudent != null) {
@@ -60,7 +65,7 @@ public class Enrollment {
         student.addEnrollment(this);
     }
 
-    void setCourse(Course course) {
+    public void setCourse(Course course) {
         if (this.course == course) {
             return;
         }
