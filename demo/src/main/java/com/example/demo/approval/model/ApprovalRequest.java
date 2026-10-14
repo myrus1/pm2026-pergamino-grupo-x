@@ -1,5 +1,7 @@
-package com.example.demo.entities;
+package com.example.demo.approval.model;
 
+import com.example.demo.course.model.Course;
+import com.example.demo.user.model.Administrator;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.Getter;
