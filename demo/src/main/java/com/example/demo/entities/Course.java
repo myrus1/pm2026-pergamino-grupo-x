@@ -1,10 +1,17 @@
 package com.example.demo.entities;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
+import lombok.Getter;
 
 @Entity
 @Table(name = "courses")
+@Getter
 public class Course {
 
     @Id
@@ -14,19 +21,18 @@ public class Course {
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "base_price", nullable = false)
-    private Double basePrice;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal basePrice;
 
-    @Column(name = "start_date")
+    @Column(nullable = false)
     private LocalDate startDate;
 
-    @Column(name = "end_date")
+    @Column(nullable = false)
     private LocalDate endDate;
 
-    @Column(name = "max_capacity")
+    @Column(nullable = false)
     private Integer maxCapacity;
 
     // Estado del curso guardado como String en la base de datos
@@ -35,112 +41,79 @@ public class Course {
     private CourseStatus status = CourseStatus.DRAFT;
 
     // Especialidad del curso
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "specialty_id", nullable = false)
     private Specialty specialty;
 
-    // Relación Many-to-One: Muchos cursos pertenecen a un instructor
+    // Relación en la qe muchos cursos pertenecen a un instructor
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instructor_id", nullable = false)
     private Instructor instructor;
 
-    // Constructor vacío obligatorio para JPA
-    public Course() {
+    @OneToMany(mappedBy = "course")
+    private Set<Enrollment> enrollments = new HashSet<>();
+
+    protected Course() {
     }
 
-    // Constructor para instanciación rápida
-    public Course(String title, String description, Double basePrice,
-                  LocalDate startDate, LocalDate endDate, Integer maxCapacity,
-                  Specialty specialty, Instructor instructor) {
+    Course(String title, String description, BigDecimal basePrice,
+           LocalDate startDate, LocalDate endDate, Integer maxCapacity,
+           Specialty specialty, Instructor instructor) {
         this.title = title;
         this.description = description;
         this.basePrice = basePrice;
         this.startDate = startDate;
         this.endDate = endDate;
         this.maxCapacity = maxCapacity;
+        setSpecialty(specialty);
+        setInstructor(instructor);
+    }
+
+    void setSpecialty(Specialty specialty) {
+        if (this.specialty == specialty) {
+            return;
+        }
+        Objects.requireNonNull(specialty, "La especialidad no puede ser nula");
+        Specialty previousSpecialty = this.specialty;
         this.specialty = specialty;
+        if (previousSpecialty != null) {
+            previousSpecialty.removeCourse(this);
+        }
+        specialty.addCourse(this);
+    }
+
+    void setInstructor(Instructor instructor) {
+        if (this.instructor == instructor) {
+            return;
+        }
+        Objects.requireNonNull(instructor, "Instructor n puede ser nulo");
+        Instructor previousInstructor = this.instructor;
         this.instructor = instructor;
-        this.status = CourseStatus.DRAFT;
+        if (previousInstructor != null) {
+            previousInstructor.removeCourse(this);
+        }
+        instructor.addCourse(this);
     }
 
-    // Getters y Setters
-    public Long getId() {
-        return id;
+    public Set<Enrollment> getEnrollments() {
+        return Collections.unmodifiableSet(enrollments);
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public boolean hasAvailableCapacity() {
+        return maxCapacity != null && enrollments.size() < maxCapacity;
     }
 
-    public String getTitle() {
-        return title;
+    void setStatus(CourseStatus status) {
+        this.status = Objects.requireNonNull(status, "Estado no pede ser nulo");
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    void addEnrollment(Enrollment enrollment) {
+        if (enrollment != null && enrollments.add(enrollment) && enrollment.getCourse() != this) {
+            enrollment.setCourse(this);
+        }
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Double getBasePrice() {
-        return basePrice;
-    }
-
-    public void setBasePrice(Double basePrice) {
-        this.basePrice = basePrice;
-    }
-
-    public LocalDate getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
-    }
-
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
-    }
-
-    public Integer getMaxCapacity() {
-        return maxCapacity;
-    }
-
-    public void setMaxCapacity(Integer maxCapacity) {
-        this.maxCapacity = maxCapacity;
-    }
-
-    public CourseStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(CourseStatus status) {
-        this.status = status;
-    }
-
-    public Specialty getSpecialty() {
-        return specialty;
-    }
-
-    public void setSpecialty(Specialty specialty) {
-        this.specialty = specialty;
-    }
-
-    public Instructor getInstructor() {
-        return instructor;
-    }
-
-    public void setInstructor(Instructor instructor) {
-        this.instructor = instructor;
+    void removeEnrollment(Enrollment enrollment) {
+        enrollments.remove(enrollment);
     }
 }
