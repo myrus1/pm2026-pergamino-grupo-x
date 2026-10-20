@@ -1,84 +1,76 @@
 package com.example.demo.entities;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
-//Entidad para la inscripcion de un estudiante a un curso.
+import java.util.Objects;
+import lombok.Getter;
 
 @Entity
-@Table(name = "enrollments")
+@Table(name = "enrollments", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_enrollment_student_course", columnNames = {"student_id", "course_id"})
+})
+@Getter
 public class Enrollment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "enrollment_date", nullable = false)
+    @Column(nullable = false)
     private LocalDateTime enrollmentDate = LocalDateTime.now();
 
-    @Column(name = "final_amount", nullable = false)
-    private Double finalAmount;
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal finalAmount;
 
-    // Relacion con el Estudiante que realiza la inscripcion
+    // Relacion con el estudiante que realiza la inscripcion
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    // Relacion con el Curso al que se inscribe
+    // Relcion con el curso al que se inscribe un estudiante
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
     private Course course;
 
-    // Constructor vacío obligatorio para JPA
-    public Enrollment() {
+    protected Enrollment() {
     }
 
-    // Constructor completo para crear inscripciones
-    public Enrollment(Student student, Course course, Double finalAmount) {
-        this.student = student;
-        this.course = course;
+    Enrollment(Student student, Course course, BigDecimal finalAmount) {
+        this(student, course, finalAmount, LocalDateTime.now());
+    }
+
+    Enrollment(Student student, Course course, BigDecimal finalAmount, LocalDateTime enrollmentDate) {
+        setStudent(student);
+        setCourse(course);
         this.finalAmount = finalAmount;
-        this.enrollmentDate = LocalDateTime.now();
-    }
-
-    // Getters y Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public LocalDateTime getEnrollmentDate() {
-        return enrollmentDate;
-    }
-
-    public void setEnrollmentDate(LocalDateTime enrollmentDate) {
         this.enrollmentDate = enrollmentDate;
     }
 
-    public Double getFinalAmount() {
-        return finalAmount;
-    }
-
-    public void setFinalAmount(Double finalAmount) {
-        this.finalAmount = finalAmount;
-    }
-
-    public Student getStudent() {
-        return student;
-    }
-
-    public void setStudent(Student student) {
+    void setStudent(Student student) {
+        if (this.student == student) {
+            return;
+        }
+        Objects.requireNonNull(student, "Estdiante no puede ser nulo");
+        Student previousStudent = this.student;
         this.student = student;
+        if (previousStudent != null) {
+            previousStudent.removeEnrollment(this);
+        }
+        student.addEnrollment(this);
     }
 
-    public Course getCourse() {
-        return course;
-    }
-
-    public void setCourse(Course course) {
+    void setCourse(Course course) {
+        if (this.course == course) {
+            return;
+        }
+        Objects.requireNonNull(course, "Curso no puede ser nulo");
+        Course previousCourse = this.course;
         this.course = course;
+        if (previousCourse != null) {
+            previousCourse.removeEnrollment(this);
+        }
+        course.addEnrollment(this);
     }
+
 }
