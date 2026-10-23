@@ -37,8 +37,8 @@ dominio.
 │   │   │   └── repositories/
 │   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus (solo modelo)
 │   │   │   └── model/
-│   │   ├── controllers/          # vacío (placeholder, sin implementar)
-│   │   └── dto/                  # vacío (placeholder, sin implementar)
+│   │   ├── controllers/          # API REST: 1 controlador por feature + ApiExceptionHandler
+│   │   └── dto/                  # DTOs request/response de la API (sin password, relaciones por id)
 │   ├── src/main/resources/application.properties
 │   ├── src/main/Docs/UML/Diagrama UML.pdf   # diagrama de clases (modelo de dominio)
 │   └── src/test/java/com/example/demo/DemoApplicationTests.java  # solo contextLoads
@@ -128,13 +128,17 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 
 ## Pendiente / state actual
 
-- Modelos, repositorios y servicios implementados por feature; **faltan `controllers/` y
-  `dto/`** (la API REST todavía no existe).
+- Modelos, repositorios y servicios implementados por feature.
+- API REST implementada (`controllers/` + `dto/`): CRUD bajo `/api/students`,
+  `/api/instructors`, `/api/administrators`, `/api/courses`, `/api/specialties` y
+  `/api/enrollments`. `POST /api/enrollments` valida las reglas de negocio via
+  `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
+  400/404/409 con cuerpo `{"mensaje": ...}`.
 - `approval/` solo tiene `model`: `ApprovalRequest`/`ApprovalStatus` no tienen servicio ni
   repositorio todavía.
 - Tests unitarios del dominio (`CourseTest`, `StudentTest`, `InstructorTest`,
-  `SpecialtyTest`, `EnrollmentTest`) y de los servicios (contrato de `getById`),
-  todos sin contexto Spring salvo `contextLoads`. Todavia no hay tests
-  de persistencia (JPA) ni de la futura API REST.
+  `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`) y de los
+  controladores (`*ControllerTest`, slice `@WebMvcTest`), todos sin BD salvo `contextLoads`.
+  Todavia no hay tests de persistencia (JPA).
 - El `README.md` tiene comandos desactualizados (`cd proyecto-pm-2026`, `./mvnw` desde la
   raíz); los comandos válidos son los de la sección "Comandos".

@@ -8,7 +8,7 @@ import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.enrollment.model.CourseEnrollmentException;
 import com.example.demo.enrollment.model.Enrollment;
-import java.lang.reflect.Field;
+import com.example.demo.testutil.TestIds;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.stream.Stream;
@@ -37,24 +37,6 @@ class StudentTest {
 
     private Course cursoPublicadoPorDefecto() {
         return cursoPublicado(especialidad, PRECIO, HOY.plusWeeks(2), 5);
-    }
-
-    // Simula el id que JPA asignaria al persistir (el overload con fecha es package-private)
-    private static void fijarId(Object objeto, Long id) {
-        Class<?> tipo = objeto.getClass();
-        while (tipo != null) {
-            try {
-                Field campo = tipo.getDeclaredField("id");
-                campo.setAccessible(true);
-                campo.set(objeto, id);
-                return;
-            } catch (NoSuchFieldException e) {
-                tipo = tipo.getSuperclass();
-            } catch (IllegalAccessException e) {
-                throw new IllegalStateException("No se pudo asignar el id en el test", e);
-            }
-        }
-        throw new IllegalStateException("El objeto no tiene campo id");
     }
 
     @Test
@@ -119,8 +101,8 @@ class StudentTest {
     void applyCourseRechazaInscripcionEnOtraInstanciaDelMismoCurso() {
         Course cursoGuardado = cursoPublicadoPorDefecto();
         Course cursoVueltoACargar = cursoPublicadoPorDefecto();
-        fijarId(cursoGuardado, 42L);
-        fijarId(cursoVueltoACargar, 42L);
+        TestIds.fijarId(cursoGuardado, 42L);
+        TestIds.fijarId(cursoVueltoACargar, 42L);
         estudiante.applyCourse(cursoGuardado, HOY);
 
         assertThatThrownBy(() -> estudiante.applyCourse(cursoVueltoACargar, HOY))
@@ -174,8 +156,8 @@ class StudentTest {
     void applyCourseReconoceLaMismaEspecialidadPorId() {
         // Dos instancias de la especialidad como las que devuelve JPA tras recargar la BD
         Specialty especialidadRecargada = new Specialty("Programacion");
-        fijarId(especialidad, 7L);
-        fijarId(especialidadRecargada, 7L);
+        TestIds.fijarId(especialidad, 7L);
+        TestIds.fijarId(especialidadRecargada, 7L);
         Course primerCurso = cursoPublicado(especialidad, PRECIO, LocalDate.of(2026, 5, 15), 5);
         Course segundoCurso = cursoPublicado(especialidadRecargada, new BigDecimal("80.00"), LocalDate.of(2026, 5, 25), 5);
         estudiante.applyCourse(primerCurso, LocalDate.of(2026, 5, 3));
