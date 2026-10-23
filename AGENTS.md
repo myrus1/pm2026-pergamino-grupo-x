@@ -132,6 +132,9 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `dto/`** (la API REST todavía no existe).
 - `approval/` solo tiene `model`: `ApprovalRequest`/`ApprovalStatus` no tienen servicio ni
   repositorio todavía.
-- Un solo test (`contextLoads`); no hay cobertura de la lógica de dominio.
+- Tests unitarios del dominio (`CourseTest`, `StudentTest`, `InstructorTest`,
+  `SpecialtyTest`, `EnrollmentTest`) y de los servicios (contrato de `getById`),
+  todos sin contexto Spring salvo `contextLoads`. Todavia no hay tests
+  de persistencia (JPA) ni de la futura API REST.
 - El `README.md` tiene comandos desactualizados (`cd proyecto-pm-2026`, `./mvnw` desde la
   raíz); los comandos válidos son los de la sección "Comandos".
