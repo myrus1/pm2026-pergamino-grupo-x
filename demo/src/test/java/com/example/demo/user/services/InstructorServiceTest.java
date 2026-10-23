@@ -2,8 +2,12 @@ package com.example.demo.user.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.demo.common.PasswordEncoder;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.repositories.InstructorRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,11 +24,14 @@ class InstructorServiceTest {
     @Mock
     private InstructorRepository instructorRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     private InstructorService instructorService;
 
     @BeforeEach
     void setUp() {
-        instructorService = new InstructorService(instructorRepository);
+        instructorService = new InstructorService(instructorRepository, passwordEncoder);
     }
 
     @Test
@@ -42,5 +49,33 @@ class InstructorServiceTest {
         assertThatThrownBy(() -> instructorService.getById(99L))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Instructor no encontrado con id 99");
+    }
+
+    @Test
+    void createCodificaLaContrasenaAntesDeGuardar() {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        when(instructorRepository.findByEmail("iris@example.com")).thenReturn(null);
+        when(passwordEncoder.encode("secret")).thenReturn("bcrypt-hash");
+        when(instructorRepository.save(instructor)).thenReturn(instructor);
+
+        Instructor created = instructorService.create(instructor);
+
+        assertThat(created).isSameAs(instructor);
+        assertThat(created.getPassword()).isEqualTo("bcrypt-hash");
+        verify(instructorRepository).save(instructor);
+    }
+
+    @Test
+    void createRechazaEmailExistenteSinCodificarNiGuardar() {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        when(instructorRepository.findByEmail("iris@example.com"))
+                .thenReturn(new Instructor("Otra", "Persona", "iris@example.com", "existing-hash"));
+
+        assertThatThrownBy(() -> instructorService.create(instructor))
+                .isInstanceOf(InstructorEmailAlreadyExistsException.class)
+                .hasMessage("Ya existe un instructor con el email iris@example.com");
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(instructorRepository, never()).save(any());
     }
 }

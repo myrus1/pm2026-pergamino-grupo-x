@@ -16,6 +16,7 @@ import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
+import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import com.example.demo.user.services.InstructorService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
@@ -78,7 +79,7 @@ class InstructorControllerTest {
 
     @Test
     void createValidoResponde201ConElInstructorCreado() throws Exception {
-        when(instructorService.save(any(Instructor.class))).thenAnswer(invocation -> {
+        when(instructorService.create(any(Instructor.class))).thenAnswer(invocation -> {
             Instructor guardado = invocation.getArgument(0);
             TestIds.fijarId(guardado, 7L);
             return guardado;
@@ -92,6 +93,17 @@ class InstructorControllerTest {
     }
 
     @Test
+    void createConEmailExistenteResponde409() throws Exception {
+        when(instructorService.create(any(Instructor.class)))
+                .thenThrow(new InstructorEmailAlreadyExistsException("iris@example.com"));
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+                {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value("Ya existe un instructor con el email iris@example.com"));
+    }
+
+    @Test
     void createSinCamposObligatoriosResponde400() throws Exception {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
                 {"lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
@@ -102,7 +114,7 @@ class InstructorControllerTest {
     @Test
     void updateModificaElInstructorExistente() throws Exception {
         when(instructorService.getById(1L)).thenReturn(instructor());
-        when(instructorService.save(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(instructorService.update(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris Maria","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))

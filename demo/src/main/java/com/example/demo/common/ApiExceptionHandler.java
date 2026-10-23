@@ -1,6 +1,7 @@
 package com.example.demo.common;
 
 import com.example.demo.enrollment.model.CourseEnrollmentException;
+import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +16,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> recursoNoEncontrado(EntityNotFoundException excepcion) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(excepcion.getMessage()));
+    }
+
+    @ExceptionHandler(InstructorEmailAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> emailDeInstructorDuplicado(
+            InstructorEmailAlreadyExistsException excepcion) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(excepcion.getMessage()));
     }
 
     // Reglas de negocio de inscripciones: curso no publicado, lleno, duplicado, etc.
