@@ -1,4 +1,4 @@
-package com.example.demo.controllers;
+package com.example.demo.course.controllers;
 
 import static com.example.demo.controllers.Validaciones.exigir;
 
@@ -6,8 +6,8 @@ import com.example.demo.course.model.Course;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.CourseService;
 import com.example.demo.course.services.SpecialtyService;
-import com.example.demo.dto.CourseRequest;
-import com.example.demo.dto.CourseResponse;
+import com.example.demo.course.dto.CourseRequest;
+import com.example.demo.course.dto.CourseResponse;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.services.InstructorService;
 import java.util.List;

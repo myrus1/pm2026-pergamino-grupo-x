@@ -1,4 +1,4 @@
-package com.example.demo.controllers;
+package com.example.demo.user.controllers;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
@@ -12,8 +12,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.demo.testutil.TestIds;
-import com.example.demo.user.model.Student;
-import com.example.demo.user.services.StudentService;
+import com.example.demo.user.model.Administrator;
+import com.example.demo.user.services.AdministratorService;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -23,102 +23,99 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-// Contrato HTTP de StudentController (slice web, sin contexto completo ni BD)
-@WebMvcTest(StudentController.class)
-class StudentControllerTest {
+// Contrato HTTP de AdministratorController (slice web, sin contexto completo ni BD)
+@WebMvcTest(AdministratorController.class)
+class AdministratorControllerTest {
 
-    private static final String RUTA = "/api/students";
+    private static final String RUTA = "/api/administrators";
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private StudentService studentService;
+    private AdministratorService administratorService;
 
-    private Student alumno() {
-        Student alumno = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
-        TestIds.fijarId(alumno, 1L);
-        return alumno;
+    private Administrator administrador() {
+        Administrator administrador = new Administrator("Eva", "Sosa", "eva@example.com", "secret");
+        TestIds.fijarId(administrador, 1L);
+        return administrador;
     }
 
     @Test
-    void getAllDevuelveLaListaDeAlumnosSinPassword() throws Exception {
-        when(studentService.getAll()).thenReturn(List.of(alumno()));
+    void getAllDevuelveLaListaDeAdministradoresSinPassword() throws Exception {
+        when(administratorService.getAll()).thenReturn(List.of(administrador()));
 
         mockMvc.perform(get(RUTA))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].dni").value("11111111"))
                 .andExpect(jsonPath("$[0].password").doesNotExist());
     }
 
     @Test
-    void getByIdDevuelveElAlumno() throws Exception {
-        when(studentService.getById(1L)).thenReturn(alumno());
+    void getByIdDevuelveElAdministrador() throws Exception {
+        when(administratorService.getById(1L)).thenReturn(administrador());
 
         mockMvc.perform(get(RUTA + "/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("ana@example.com"));
+                .andExpect(jsonPath("$.email").value("eva@example.com"));
     }
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(administratorService.getById(99L)).thenThrow(new EntityNotFoundException("Administrador no encontrado con id 99"));
 
         mockMvc.perform(get(RUTA + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Estudiante no encontrado con id 99"));
+                .andExpect(jsonPath("$.mensaje").value("Administrador no encontrado con id 99"));
     }
 
     @Test
-    void createValidoResponde201ConElAlumnoCreado() throws Exception {
-        when(studentService.save(any(Student.class))).thenAnswer(invocation -> {
-            Student guardado = invocation.getArgument(0);
+    void createValidoResponde201ConElAdministradorCreado() throws Exception {
+        when(administratorService.save(any(Administrator.class))).thenAnswer(invocation -> {
+            Administrator guardado = invocation.getArgument(0);
             TestIds.fijarId(guardado, 7L);
             return guardado;
         });
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
-                {"firstName":"Ana","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"11111111"}"""))
+                {"firstName":"Eva","lastName":"Sosa","email":"eva@example.com","password":"secret"}"""))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(7))
-                .andExpect(jsonPath("$.dni").value("11111111"))
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
 
     @Test
     void createSinCamposObligatoriosResponde400() throws Exception {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
-                {"lastName":"Perez","email":"ana@example.com","password":"secret","dni":"11111111"}"""))
+                {"lastName":"Sosa","email":"eva@example.com","password":"secret"}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensaje", containsString("firstName")));
     }
 
     @Test
-    void updateModificaElAlumnoExistente() throws Exception {
-        when(studentService.getById(1L)).thenReturn(alumno());
-        when(studentService.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void updateModificaElAdministradorExistente() throws Exception {
+        when(administratorService.getById(1L)).thenReturn(administrador());
+        when(administratorService.save(any(Administrator.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content("""
-                {"firstName":"Ana Maria","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"11111111"}"""))
+                {"firstName":"Eva Maria","lastName":"Sosa","email":"eva@example.com","password":"secret"}"""))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.firstName").value("Ana Maria"));
+                .andExpect(jsonPath("$.firstName").value("Eva Maria"));
     }
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(administratorService.getById(99L)).thenThrow(new EntityNotFoundException("Administrador no encontrado con id 99"));
 
         mockMvc.perform(put(RUTA + "/99").contentType(MediaType.APPLICATION_JSON).content("""
-                {"firstName":"Ana","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"11111111"}"""))
+                {"firstName":"Eva","lastName":"Sosa","email":"eva@example.com","password":"secret"}"""))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Estudiante no encontrado con id 99"));
+                .andExpect(jsonPath("$.mensaje").value("Administrador no encontrado con id 99"));
     }
 
     @Test
     void deleteResponde204() throws Exception {
-        when(studentService.getById(1L)).thenReturn(alumno());
+        when(administratorService.getById(1L)).thenReturn(administrador());
 
         mockMvc.perform(delete(RUTA + "/1"))
                 .andExpect(status().isNoContent());
@@ -126,10 +123,10 @@ class StudentControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(administratorService.getById(99L)).thenThrow(new EntityNotFoundException("Administrador no encontrado con id 99"));
 
         mockMvc.perform(delete(RUTA + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Estudiante no encontrado con id 99"));
+                .andExpect(jsonPath("$.mensaje").value("Administrador no encontrado con id 99"));
     }
 }

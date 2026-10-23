@@ -1,11 +1,11 @@
-package com.example.demo.controllers;
+package com.example.demo.course.controllers;
 
 import static com.example.demo.controllers.Validaciones.exigir;
 
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.SpecialtyService;
-import com.example.demo.dto.SpecialtyRequest;
-import com.example.demo.dto.SpecialtyResponse;
+import com.example.demo.course.dto.SpecialtyRequest;
+import com.example.demo.course.dto.SpecialtyResponse;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;

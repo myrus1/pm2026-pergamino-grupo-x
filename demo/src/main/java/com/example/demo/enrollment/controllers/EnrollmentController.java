@@ -1,11 +1,11 @@
-package com.example.demo.controllers;
+package com.example.demo.enrollment.controllers;
 
 import static com.example.demo.controllers.Validaciones.exigir;
 
 import com.example.demo.course.model.Course;
 import com.example.demo.course.services.CourseService;
-import com.example.demo.dto.EnrollmentRequest;
-import com.example.demo.dto.EnrollmentResponse;
+import com.example.demo.enrollment.dto.EnrollmentRequest;
+import com.example.demo.enrollment.dto.EnrollmentResponse;
 import com.example.demo.enrollment.model.Enrollment;
 import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.user.model.Student;

@@ -1,16 +1,15 @@
-package com.example.demo.dto;
+package com.example.demo.user.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-// Salida publica del alumno: sin password
-@Getter
+// Salida publica del administrador: sin password
 @AllArgsConstructor
-public class StudentResponse {
+@Getter
+public class AdministratorResponse {
 
     private Long id;
     private String firstName;
     private String lastName;
     private String email;
-    private String dni;
 }

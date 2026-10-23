@@ -1,12 +1,12 @@
-package com.example.demo.dto;
+package com.example.demo.user.dto;
 
 import lombok.Getter;
 import lombok.Setter;
 
-// Datos de entrada para crear o actualizar un instructor
+// Datos de entrada para crear o actualizar un administrador
 @Getter
 @Setter
-public class InstructorRequest {
+public class AdministratorRequest {
 
     private String firstName;
     private String lastName;

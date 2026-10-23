@@ -1,9 +1,9 @@
-package com.example.demo.controllers;
+package com.example.demo.user.controllers;
 
 import static com.example.demo.controllers.Validaciones.exigir;
 
-import com.example.demo.dto.AdministratorRequest;
-import com.example.demo.dto.AdministratorResponse;
+import com.example.demo.user.dto.AdministratorRequest;
+import com.example.demo.user.dto.AdministratorResponse;
 import com.example.demo.user.model.Administrator;
 import com.example.demo.user.services.AdministratorService;
 import java.util.List;

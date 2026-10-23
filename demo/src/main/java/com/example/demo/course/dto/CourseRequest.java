@@ -1,4 +1,4 @@
-package com.example.demo.dto;
+package com.example.demo.course.dto;
 
 import com.example.demo.course.model.CourseStatus;
 import java.math.BigDecimal;

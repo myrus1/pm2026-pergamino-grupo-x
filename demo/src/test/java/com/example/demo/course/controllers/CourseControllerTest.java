@@ -1,4 +1,4 @@
-package com.example.demo.controllers;
+package com.example.demo.course.controllers;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;

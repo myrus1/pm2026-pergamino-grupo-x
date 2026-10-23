@@ -14,8 +14,8 @@ Backend en **Spring Boot** con **JPA/Hibernate** y **PostgreSQL**.
 ## Estructura del repositorio
 
 Arquitectura **por features** (*screaming architecture*): cada feature agrupa sus modelos,
-servicios y repositorios. No hay paquetes por capa (`entities/`, `services/`, ...) sino por
-dominio.
+servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entities/`,
+`services/`, ...) sino por dominio.
 
 ```
 .
@@ -26,19 +26,25 @@ dominio.
 │   │   ├── user/                 # feature: User, Student, Instructor, Administrator
 │   │   │   ├── model/
 │   │   │   ├── services/         # StudentService, InstructorService, AdministratorService
-│   │   │   └── repositories/
+│   │   │   ├── repositories/
+│   │   │   ├── controllers/      # StudentController, InstructorController, AdministratorController
+│   │   │   └── dto/              # StudentRequest/Response, Instructor..., Administrator...
 │   │   ├── course/               # feature: Course, CourseStatus, Specialty
 │   │   │   ├── model/
 │   │   │   ├── services/         # CourseService, SpecialtyService
-│   │   │   └── repositories/
+│   │   │   ├── repositories/
+│   │   │   ├── controllers/      # CourseController, SpecialtyController
+│   │   │   └── dto/              # CourseRequest/Response, SpecialtyRequest/Response
 │   │   ├── enrollment/           # feature: Enrollment, CourseEnrollmentException
 │   │   │   ├── model/
 │   │   │   ├── services/         # EnrollmentService
-│   │   │   └── repositories/
+│   │   │   ├── repositories/
+│   │   │   ├── controllers/      # EnrollmentController
+│   │   │   └── dto/              # EnrollmentRequest/Response
 │   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus (solo modelo)
 │   │   │   └── model/
-│   │   ├── controllers/          # API REST: 1 controlador por feature + ApiExceptionHandler
-│   │   └── dto/                  # DTOs request/response de la API (sin password, relaciones por id)
+│   │   ├── controllers/          # transversal: ApiExceptionHandler y Validaciones
+│   │   └── dto/                  # transversal: ErrorResponse (cuerpo de errores de la API)
 │   ├── src/main/resources/application.properties
 │   ├── src/main/Docs/UML/Diagrama UML.pdf   # diagrama de clases (modelo de dominio)
 │   └── src/test/java/com/example/demo/DemoApplicationTests.java  # solo contextLoads
@@ -47,8 +53,10 @@ dominio.
 
 Importante: **el directorio Maven es `demo/`, no la raíz**. No existe `mvnw` en la raíz.
 
-Al agregar una feature nueva: crear `<feature>/model`, `<feature>/services` y
-`<feature>/repositories` bajo `com.example.demo`.
+Al agregar una feature nueva: crear `<feature>/model`, `<feature>/services`,
+`<feature>/repositories`, `<feature>/controllers` y `<feature>/dto` bajo
+`com.example.demo`. Lo transversal (manejo de errores, validación) vive en
+`controllers/` y `dto/` de primer nivel.
 
 ## Comandos
 
@@ -129,9 +137,11 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 ## Pendiente / state actual
 
 - Modelos, repositorios y servicios implementados por feature.
-- API REST implementada (`controllers/` + `dto/`): CRUD bajo `/api/students`,
-  `/api/instructors`, `/api/administrators`, `/api/courses`, `/api/specialties` y
-  `/api/enrollments`. `POST /api/enrollments` valida las reglas de negocio via
+- API REST implementada: CRUD bajo `/api/students`, `/api/instructors`,
+  `/api/administrators`, `/api/courses`, `/api/specialties` y `/api/enrollments`.
+  Los controladores y DTOs viven en `<feature>/controllers` y `<feature>/dto`;
+  `ApiExceptionHandler` y `Validaciones` son transversales (`controllers/` raíz).
+  `POST /api/enrollments` valida las reglas de negocio via
   `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
   400/404/409 con cuerpo `{"mensaje": ...}`.
 - `approval/` solo tiene `model`: `ApprovalRequest`/`ApprovalStatus` no tienen servicio ni
