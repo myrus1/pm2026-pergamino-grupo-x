@@ -1,4 +1,4 @@
-package com.example.demo.controllers;
+package com.example.demo.common;
 
 // Validacion manual de campos obligatorios de los requests
 // (el proyecto no usa jakarta.validation). Es transversal a todas las features.

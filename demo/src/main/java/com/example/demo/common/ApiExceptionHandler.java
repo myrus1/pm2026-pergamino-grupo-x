@@ -1,6 +1,5 @@
-package com.example.demo.controllers;
+package com.example.demo.common;
 
-import com.example.demo.dto.ErrorResponse;
 import com.example.demo.enrollment.model.CourseEnrollmentException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;

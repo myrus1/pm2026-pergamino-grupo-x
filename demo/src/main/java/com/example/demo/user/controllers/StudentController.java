@@ -1,6 +1,6 @@
 package com.example.demo.user.controllers;
 
-import static com.example.demo.controllers.Validaciones.exigir;
+import static com.example.demo.common.Validaciones.exigir;
 
 import com.example.demo.user.dto.StudentRequest;
 import com.example.demo.user.dto.StudentResponse;

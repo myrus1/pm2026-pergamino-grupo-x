@@ -43,8 +43,7 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   │   └── dto/              # EnrollmentRequest/Response
 │   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus (solo modelo)
 │   │   │   └── model/
-│   │   ├── controllers/          # transversal: ApiExceptionHandler y Validaciones
-│   │   └── dto/                  # transversal: ErrorResponse (cuerpo de errores de la API)
+│   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse
 │   ├── src/main/resources/application.properties
 │   ├── src/main/Docs/UML/Diagrama UML.pdf   # diagrama de clases (modelo de dominio)
 │   └── src/test/java/com/example/demo/DemoApplicationTests.java  # solo contextLoads
@@ -55,8 +54,8 @@ Importante: **el directorio Maven es `demo/`, no la raíz**. No existe `mvnw` en
 
 Al agregar una feature nueva: crear `<feature>/model`, `<feature>/services`,
 `<feature>/repositories`, `<feature>/controllers` y `<feature>/dto` bajo
-`com.example.demo`. Lo transversal (manejo de errores, validación) vive en
-`controllers/` y `dto/` de primer nivel.
+`com.example.demo`. Lo transversal a todas las features (manejo de errores,
+validación de requests) vive en `common/`.
 
 ## Comandos
 
@@ -140,7 +139,8 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 - API REST implementada: CRUD bajo `/api/students`, `/api/instructors`,
   `/api/administrators`, `/api/courses`, `/api/specialties` y `/api/enrollments`.
   Los controladores y DTOs viven en `<feature>/controllers` y `<feature>/dto`;
-  `ApiExceptionHandler` y `Validaciones` son transversales (`controllers/` raíz).
+  `ApiExceptionHandler`, `Validaciones` y `ErrorResponse` son transversales
+  (paquete `common/`).
   `POST /api/enrollments` valida las reglas de negocio via
   `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
   400/404/409 con cuerpo `{"mensaje": ...}`.

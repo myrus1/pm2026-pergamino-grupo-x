@@ -1,6 +1,6 @@
 package com.example.demo.course.controllers;
 
-import static com.example.demo.controllers.Validaciones.exigir;
+import static com.example.demo.common.Validaciones.exigir;
 
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.Specialty;
