@@ -31,9 +31,6 @@ public class CourseService {
         Instructor instructor = instructorService.getById(request.getInstructorId());
         Course course = new Course(request.getTitle(), request.getDescription(), request.getBasePrice(),
                 request.getStartDate(), request.getEndDate(), request.getMaxCapacity(), specialty, instructor);
-        if (request.getStatus() != null) {
-            course.setStatus(request.getStatus());
-        }
         return courseRepository.save(course);
     }
 
@@ -47,9 +44,6 @@ public class CourseService {
         course.setMaxCapacity(request.getMaxCapacity());
         course.setSpecialty(specialtyService.getById(request.getSpecialtyId()));
         course.setInstructor(instructorService.getById(request.getInstructorId()));
-        if (request.getStatus() != null) {
-            course.setStatus(request.getStatus());
-        }
         return courseRepository.save(course);
     }
 

@@ -43,7 +43,7 @@ class CourseServiceTest {
         courseService = new CourseService(courseRepository, specialtyService, instructorService);
     }
 
-    private CourseRequest solicitud(Long specialtyId, Long instructorId, CourseStatus estado) {
+    private CourseRequest solicitud(Long specialtyId, Long instructorId) {
         CourseRequest solicitud = new CourseRequest();
         solicitud.setTitle("Java");
         solicitud.setDescription("Desc");
@@ -53,7 +53,6 @@ class CourseServiceTest {
         solicitud.setMaxCapacity(5);
         solicitud.setSpecialtyId(specialtyId);
         solicitud.setInstructorId(instructorId);
-        solicitud.setStatus(estado);
         return solicitud;
     }
 
@@ -65,10 +64,10 @@ class CourseServiceTest {
         when(instructorService.getById(2L)).thenReturn(instructor);
         when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Course curso = courseService.create(solicitud(1L, 2L, CourseStatus.PUBLISHED));
+        Course curso = courseService.create(solicitud(1L, 2L));
 
         assertThat(curso.getTitle()).isEqualTo("Java");
-        assertThat(curso.getStatus()).isEqualTo(CourseStatus.PUBLISHED);
+        assertThat(curso.getStatus()).isEqualTo(CourseStatus.DRAFT);
         assertThat(curso.getSpecialty()).isSameAs(especialidad);
         assertThat(curso.getInstructor()).isSameAs(instructor);
         assertThat(especialidad.getCourses()).containsExactly(curso);
@@ -76,21 +75,10 @@ class CourseServiceTest {
     }
 
     @Test
-    void createSinEstadoDejaElCursoEnBorrador() {
-        when(specialtyService.getById(1L)).thenReturn(new Specialty("Programacion"));
-        when(instructorService.getById(2L)).thenReturn(new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
-        when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Course curso = courseService.create(solicitud(1L, 2L, null));
-
-        assertThat(curso.getStatus()).isEqualTo(CourseStatus.DRAFT);
-    }
-
-    @Test
     void createConEspecialidadInexistenteNoGuardaNada() {
         when(specialtyService.getById(99L)).thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"));
 
-        assertThatThrownBy(() -> courseService.create(solicitud(99L, 2L, null)))
+        assertThatThrownBy(() -> courseService.create(solicitud(99L, 2L)))
                 .isInstanceOf(EntityNotFoundException.class);
         verify(courseRepository, never()).save(any());
     }
@@ -107,7 +95,7 @@ class CourseServiceTest {
         when(instructorService.getById(2L)).thenReturn(instructor);
         when(courseRepository.save(curso)).thenReturn(curso);
 
-        Course actualizado = courseService.update(7L, solicitud(1L, 2L, null));
+        Course actualizado = courseService.update(7L, solicitud(1L, 2L));
 
         assertThat(actualizado.getTitle()).isEqualTo("Java");
         assertThat(actualizado.getBasePrice()).isEqualByComparingTo("100.00");
@@ -117,10 +105,25 @@ class CourseServiceTest {
     }
 
     @Test
+    void updateNoCambiaElEstadoDelCurso() {
+        Specialty especialidad = new Specialty("Programacion");
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        Course curso = new Course("Viejo", "Desc", new BigDecimal("50.00"), LocalDate.of(2026, 5, 1),
+                LocalDate.of(2026, 5, 20), 3, especialidad, instructor);
+        curso.setStatus(CourseStatus.PENDING_APPROVAL);
+        when(courseRepository.findById(7L)).thenReturn(Optional.of(curso));
+        when(specialtyService.getById(1L)).thenReturn(especialidad);
+        when(instructorService.getById(2L)).thenReturn(instructor);
+        when(courseRepository.save(curso)).thenReturn(curso);
+
+        assertThat(courseService.update(7L, solicitud(1L, 2L)).getStatus()).isEqualTo(CourseStatus.PENDING_APPROVAL);
+    }
+
+    @Test
     void updateDeCursoInexistenteLanzaExcepcion() {
         when(courseRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> courseService.update(99L, solicitud(1L, 2L, null)))
+        assertThatThrownBy(() -> courseService.update(99L, solicitud(1L, 2L)))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Curso no encontrado con id 99");
     }

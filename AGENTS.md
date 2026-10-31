@@ -41,8 +41,12 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   │   ├── repositories/
 │   │   │   ├── controllers/      # EnrollmentController
 │   │   │   └── dto/              # EnrollmentRequest/Response
-│   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus (solo modelo)
-│   │   │   └── model/
+│   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus, ApprovalRequestException
+│   │   │   ├── model/
+│   │   │   ├── services/         # ApprovalRequestService
+│   │   │   ├── repositories/
+│   │   │   ├── controllers/      # ApprovalRequestController
+│   │   │   └── dto/              # ApprovalSubmitRequest, ApprovalResolveRequest, ApprovalRequestResponse
 │   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse
 │   ├── src/main/resources/application.properties
 │   ├── src/main/Docs/UML/Diagrama UML.pdf   # diagrama de clases (modelo de dominio)
@@ -95,8 +99,7 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 ## Convenciones de dominio (seguir el patrón de `<feature>/model`)
 
 - **Paquetes por feature, no por capa**: `com.example.demo.<feature>.model` /
-  `.services` / `.repositories`. Cada feature tiene sus tres subpaquetes (hoy `approval`
-  solo tiene `model`).
+  `.services` / `.repositories`. Cada feature tiene sus tres subpaquetes.
 - JPA: `@Entity` + `@Table(name = "plural_snake")` (`students`, `courses`), `@Id`
   `@GeneratedValue(strategy = IDENTITY)`, **todas las entidades tienen constructor sin
   argumentos** (lo exige JPA) y constructores de conveniencia explícitos.
@@ -139,15 +142,19 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 
 - Modelos, repositorios y servicios implementados por feature.
 - API REST implementada: CRUD bajo `/api/students`, `/api/instructors`,
-  `/api/administrators`, `/api/courses`, `/api/specialties` y `/api/enrollments`.
+  `/api/administrators`, `/api/courses`, `/api/specialties`, `/api/enrollments` y
+  `/api/approval-requests`.
   Los controladores y DTOs viven en `<feature>/controllers` y `<feature>/dto`;
   `ApiExceptionHandler`, `Validaciones` y `ErrorResponse` son transversales
   (paquete `common/`).
   `POST /api/enrollments` valida las reglas de negocio via
   `EnrollmentService.enroll` → `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
   400/404/409 con cuerpo `{"mensaje": ...}`.
-- `approval/` solo tiene `model`: `ApprovalRequest`/`ApprovalStatus` no tienen servicio ni
-  repositorio todavía.
+- Flujo de aprobación: `POST /api/approval-requests` (curso en DRAFT → PENDING_APPROVAL),
+  `POST /api/approval-requests/{id}/approve` (→ PUBLISHED) y `/{id}/reject` (→ DRAFT);
+  `GET /api/approval-requests?status=&instructorId=` para listar. Las reglas viven en
+  `ApprovalRequest` y responden 409. El estado del curso no se recibe en `CourseRequest`:
+  solo cambia por este flujo.
 - Tests unitarios del dominio (`CourseTest`, `StudentTest`, `InstructorTest`,
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`) y de los
   controladores (`*ControllerTest`, slice `@WebMvcTest`), todos sin BD salvo `contextLoads`.

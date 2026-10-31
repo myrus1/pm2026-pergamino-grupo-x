@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.demo.course.dto.CourseRequest;
 import com.example.demo.course.model.Course;
-import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.CourseService;
 import com.example.demo.testutil.TestIds;
@@ -131,21 +130,20 @@ class CourseControllerTest {
     }
 
     @Test
-    void updateModificaElCursoYPermiteCambiarElEstado() throws Exception {
+    void updateModificaElCurso() throws Exception {
         Course actualizado = new Course("Curso de Java Avanzado", "Desc", new BigDecimal("100.00"),
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 20), 5, especialidad(), instructor());
-        actualizado.setStatus(CourseStatus.PUBLISHED);
         TestIds.fijarId(actualizado, 5L);
         when(courseService.update(eq(5L), any(CourseRequest.class))).thenReturn(actualizado);
 
         mockMvc.perform(put(RUTA + "/5").contentType(MediaType.APPLICATION_JSON).content("""
                 {"title":"Curso de Java Avanzado","description":"Desc","basePrice":100.00,
                  "startDate":"2026-06-01","endDate":"2026-06-20","maxCapacity":5,
-                 "specialtyId":1,"instructorId":2,"status":"PUBLISHED"}"""))
+                 "specialtyId":1,"instructorId":2}"""))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.title").value("Curso de Java Avanzado"))
-                .andExpect(jsonPath("$.status").value("PUBLISHED"));
+                .andExpect(jsonPath("$.status").value("DRAFT"));
     }
 
     @Test
