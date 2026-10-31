@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "PM2026 - Reglas de negocio",
-    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba. La carpeta 6 muestra reglas que todavia no estan implementadas.",
+    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba. La carpeta 7 muestra reglas que todavia no estan implementadas.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -1871,7 +1871,103 @@
       ]
     },
     {
-      "name": "4 - Validaciones y errores",
+      "name": "4 - Recaudacion",
+      "item": [
+        {
+          "name": "El instructor recibe el 65% del precio base de cada inscripcion (sin descuentos)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"total 208\", () => pm.expect(pm.response.json().total).to.eql(208));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/instructors/{{instructorId}}/revenue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "instructors",
+                "{{instructorId}}",
+                "revenue"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Recaudacion de un instructor inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/instructors/999999/revenue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "instructors",
+                "999999",
+                "revenue"
+              ]
+            }
+          }
+        },
+        {
+          "name": "El admin consulta el total recaudado por la plataforma",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"total de al menos 300\", () => pm.expect(pm.response.json().total).to.be.at.least(300));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments/revenue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments",
+                "revenue"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Validaciones y errores",
       "item": [
         {
           "name": "Instructor con email repetido",
@@ -2242,7 +2338,7 @@
       ]
     },
     {
-      "name": "5 - Listados",
+      "name": "6 - Listados",
       "item": [
         {
           "name": "Listar cursos",
@@ -2415,7 +2511,7 @@
       ]
     },
     {
-      "name": "6 - Pendientes (hoy fallan)",
+      "name": "7 - Pendientes (hoy fallan)",
       "item": [
         {
           "name": "Curso con una especialidad que el instructor no tiene: deberia rechazarse",
