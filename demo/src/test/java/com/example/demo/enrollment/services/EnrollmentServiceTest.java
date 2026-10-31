@@ -84,6 +84,40 @@ class EnrollmentServiceTest {
     }
 
     @Test
+    void getStudentsOfCourseDevuelveLosInscriptosDelCurso() {
+        Student alumno = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
+        when(enrollmentRepository.findStudentsByCourseId(3L)).thenReturn(List.of(alumno));
+
+        assertThat(enrollmentService.getStudentsOfCourse(3L)).containsExactly(alumno);
+        verify(courseService).getById(3L);
+    }
+
+    @Test
+    void getStudentsOfCourseConCursoInexistenteLanzaExcepcion() {
+        when(courseService.getById(99L)).thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.getStudentsOfCourse(99L))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
+    void getCoursesOfStudentDevuelveLosCursosDelAlumno() {
+        Course curso = cursoFuturo(CourseStatus.PUBLISHED);
+        when(enrollmentRepository.findCoursesByStudentId(8L)).thenReturn(List.of(curso));
+
+        assertThat(enrollmentService.getCoursesOfStudent(8L)).containsExactly(curso);
+        verify(studentService).getById(8L);
+    }
+
+    @Test
+    void getCoursesOfStudentConAlumnoInexistenteLanzaExcepcion() {
+        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.getCoursesOfStudent(99L))
+                .isInstanceOf(EntityNotFoundException.class);
+    }
+
+    @Test
     void instructorRevenueDeInstructorInexistenteLanzaExcepcion() {
         when(instructorService.getById(99L)).thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
 

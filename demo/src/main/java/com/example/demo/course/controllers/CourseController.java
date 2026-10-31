@@ -6,6 +6,7 @@ import com.example.demo.course.model.Course;
 import com.example.demo.course.services.CourseService;
 import com.example.demo.course.dto.CourseRequest;
 import com.example.demo.course.dto.CourseResponse;
+import com.example.demo.enrollment.services.EnrollmentService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,14 +26,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class CourseController {
 
     private final CourseService courseService;
+    private final EnrollmentService enrollmentService;
 
-    public CourseController(CourseService courseService) {
+    public CourseController(CourseService courseService, EnrollmentService enrollmentService) {
         this.courseService = courseService;
+        this.enrollmentService = enrollmentService;
     }
 
     @GetMapping
-    public List<CourseResponse> getAll() {
-        return courseService.getAll().stream().map(this::respuesta).toList();
+    public List<CourseResponse> getAll(@RequestParam(required = false) Long studentId) {
+        List<Course> cursos = studentId == null
+                ? courseService.getAll()
+                : enrollmentService.getCoursesOfStudent(studentId);
+        return cursos.stream().map(this::respuesta).toList();
     }
 
     @GetMapping("/{id}")

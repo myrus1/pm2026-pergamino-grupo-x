@@ -31,6 +31,18 @@ public class EnrollmentService {
     }
 
     @Transactional(readOnly = true)
+    public List<Student> getStudentsOfCourse(Long courseId) {
+        courseService.getById(courseId);
+        return enrollmentRepository.findStudentsByCourseId(courseId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Course> getCoursesOfStudent(Long studentId) {
+        studentService.getById(studentId);
+        return enrollmentRepository.findCoursesByStudentId(studentId);
+    }
+
+    @Transactional(readOnly = true)
     public BigDecimal totalRevenue() {
         return enrollmentRepository.findAll().stream()
                 .map(Enrollment::getFinalAmount)
@@ -61,13 +73,5 @@ public class EnrollmentService {
     public Enrollment getById(Long id) {
         return enrollmentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Inscripcion no encontrada con id " + id));
-    }
-
-    public Enrollment save(Enrollment enrollment) {
-        return enrollmentRepository.save(enrollment);
-    }
-
-    public void delete(Long id) {
-        enrollmentRepository.deleteById(id);
     }
 }

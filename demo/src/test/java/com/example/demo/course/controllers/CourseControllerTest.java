@@ -3,6 +3,8 @@ package com.example.demo.course.controllers;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,6 +18,7 @@ import com.example.demo.course.dto.CourseRequest;
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.CourseService;
+import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
 import jakarta.persistence.EntityNotFoundException;
@@ -44,6 +47,9 @@ class CourseControllerTest {
 
     @MockitoBean
     private CourseService courseService;
+
+    @MockitoBean
+    private EnrollmentService enrollmentService;
 
     private Specialty especialidad() {
         Specialty especialidad = new Specialty("Programacion");
@@ -74,6 +80,27 @@ class CourseControllerTest {
                 .andExpect(jsonPath("$[0].status").value("DRAFT"))
                 .andExpect(jsonPath("$[0].specialtyId").value(1))
                 .andExpect(jsonPath("$[0].instructorId").value(2));
+    }
+
+    @Test
+    void getAllConAlumnoDevuelveSusCursos() throws Exception {
+        when(enrollmentService.getCoursesOfStudent(8L)).thenReturn(List.of(curso()));
+
+        mockMvc.perform(get(RUTA).param("studentId", "8"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(5));
+        verify(courseService, never()).getAll();
+    }
+
+    @Test
+    void getAllConAlumnoInexistenteResponde404() throws Exception {
+        when(enrollmentService.getCoursesOfStudent(99L))
+                .thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+
+        mockMvc.perform(get(RUTA).param("studentId", "99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value("Estudiante no encontrado con id 99"));
     }
 
     @Test
