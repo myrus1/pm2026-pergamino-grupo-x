@@ -2,14 +2,10 @@ package com.example.demo.enrollment.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
-import com.example.demo.course.model.Course;
-import com.example.demo.course.services.CourseService;
 import com.example.demo.enrollment.dto.EnrollmentRequest;
 import com.example.demo.enrollment.dto.EnrollmentResponse;
 import com.example.demo.enrollment.model.Enrollment;
 import com.example.demo.enrollment.services.EnrollmentService;
-import com.example.demo.user.model.Student;
-import com.example.demo.user.services.StudentService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,14 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/enrollments")
 public class EnrollmentController {
 
-    private final StudentService studentService;
-    private final CourseService courseService;
     private final EnrollmentService enrollmentService;
 
-    public EnrollmentController(StudentService studentService, CourseService courseService,
-            EnrollmentService enrollmentService) {
-        this.studentService = studentService;
-        this.courseService = courseService;
+    public EnrollmentController(EnrollmentService enrollmentService) {
         this.enrollmentService = enrollmentService;
     }
 
@@ -52,10 +43,7 @@ public class EnrollmentController {
     @ResponseStatus(HttpStatus.CREATED)
     public EnrollmentResponse create(@RequestBody EnrollmentRequest solicitud) {
         validar(solicitud);
-        Student alumno = studentService.getById(solicitud.getStudentId());
-        Course curso = courseService.getById(solicitud.getCourseId());
-        Enrollment inscripcion = alumno.applyCourse(curso);
-        return respuesta(enrollmentService.save(inscripcion));
+        return respuesta(enrollmentService.enroll(solicitud.getStudentId(), solicitud.getCourseId()));
     }
 
     @DeleteMapping("/{id}")

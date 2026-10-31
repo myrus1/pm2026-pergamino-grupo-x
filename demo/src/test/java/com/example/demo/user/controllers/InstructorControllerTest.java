@@ -1,8 +1,9 @@
 package com.example.demo.user.controllers;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,8 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.demo.course.model.Specialty;
-import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
@@ -38,9 +37,6 @@ class InstructorControllerTest {
 
     @MockitoBean
     private InstructorService instructorService;
-
-    @MockitoBean
-    private SpecialtyService specialtyService;
 
     private Instructor instructor() {
         Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
@@ -140,34 +136,29 @@ class InstructorControllerTest {
     }
 
     @Test
-    void asignarEspecialidadSeReflejaEnElInstructor() throws Exception {
-        Instructor instructor = instructor();
-        Specialty especialidad = new Specialty("Bases de datos");
-        TestIds.fijarId(especialidad, 2L);
-        when(instructorService.getById(1L)).thenReturn(instructor);
-        when(specialtyService.getById(2L)).thenReturn(especialidad);
-        when(instructorService.save(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
+    void asignarEspecialidadDelegaEnElServicioYResponde204() throws Exception {
         mockMvc.perform(put(RUTA + "/1/specialties/2"))
                 .andExpect(status().isNoContent());
 
-        assertThat(instructor.getSpecialties()).containsExactly(especialidad);
+        verify(instructorService).addSpecialty(1L, 2L);
     }
 
     @Test
-    void quitarEspecialidadSeReflejaEnElInstructor() throws Exception {
-        Instructor instructor = instructor();
-        Specialty especialidad = new Specialty("Bases de datos");
-        TestIds.fijarId(especialidad, 2L);
-        instructor.addSpecialty(especialidad);
-        when(instructorService.getById(1L)).thenReturn(instructor);
-        when(specialtyService.getById(2L)).thenReturn(especialidad);
-        when(instructorService.save(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void asignarEspecialidadInexistenteResponde404() throws Exception {
+        doThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"))
+                .when(instructorService).addSpecialty(1L, 99L);
 
+        mockMvc.perform(put(RUTA + "/1/specialties/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 99"));
+    }
+
+    @Test
+    void quitarEspecialidadDelegaEnElServicioYResponde204() throws Exception {
         mockMvc.perform(delete(RUTA + "/1/specialties/2"))
                 .andExpect(status().isNoContent());
 
-        assertThat(instructor.getSpecialties()).isEmpty();
+        verify(instructorService).removeSpecialty(1L, 2L);
     }
 
     @Test

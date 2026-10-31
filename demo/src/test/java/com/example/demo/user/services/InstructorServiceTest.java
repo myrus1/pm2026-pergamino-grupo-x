@@ -8,6 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.common.PasswordEncoder;
+import com.example.demo.course.model.Specialty;
+import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.repositories.InstructorRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -27,11 +29,14 @@ class InstructorServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private SpecialtyService specialtyService;
+
     private InstructorService instructorService;
 
     @BeforeEach
     void setUp() {
-        instructorService = new InstructorService(instructorRepository, passwordEncoder);
+        instructorService = new InstructorService(instructorRepository, passwordEncoder, specialtyService);
     }
 
     @Test
@@ -76,6 +81,47 @@ class InstructorServiceTest {
                 .hasMessage("Ya existe un instructor con el email iris@example.com");
 
         verify(passwordEncoder, never()).encode(any());
+        verify(instructorRepository, never()).save(any());
+    }
+
+    @Test
+    void addSpecialtyVinculaLaEspecialidadDeLosDosLados() {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        Specialty especialidad = new Specialty("Programacion");
+        when(instructorRepository.findById(1L)).thenReturn(Optional.of(instructor));
+        when(specialtyService.getById(3L)).thenReturn(especialidad);
+
+        instructorService.addSpecialty(1L, 3L);
+
+        assertThat(instructor.getSpecialties()).containsExactly(especialidad);
+        assertThat(especialidad.getInstructors()).containsExactly(instructor);
+        verify(instructorRepository).save(instructor);
+    }
+
+    @Test
+    void removeSpecialtyDesvinculaLaEspecialidadDeLosDosLados() {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        Specialty especialidad = new Specialty("Programacion");
+        instructor.addSpecialty(especialidad);
+        when(instructorRepository.findById(1L)).thenReturn(Optional.of(instructor));
+        when(specialtyService.getById(3L)).thenReturn(especialidad);
+
+        instructorService.removeSpecialty(1L, 3L);
+
+        assertThat(instructor.getSpecialties()).isEmpty();
+        assertThat(especialidad.getInstructors()).isEmpty();
+        verify(instructorRepository).save(instructor);
+    }
+
+    @Test
+    void addSpecialtyConEspecialidadInexistenteNoGuardaNada() {
+        when(instructorRepository.findById(1L))
+                .thenReturn(Optional.of(new Instructor("Iris", "Ruiz", "iris@example.com", "secret")));
+        when(specialtyService.getById(99L)).thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"));
+
+        assertThatThrownBy(() -> instructorService.addSpecialty(1L, 99L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Especialidad no encontrada con id 99");
         verify(instructorRepository, never()).save(any());
     }
 }

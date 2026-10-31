@@ -1,7 +1,6 @@
 package com.example.demo.enrollment.controllers;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -14,13 +13,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
-import com.example.demo.course.services.CourseService;
+import com.example.demo.enrollment.model.CourseEnrollmentException;
 import com.example.demo.enrollment.model.Enrollment;
 import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.model.Student;
-import com.example.demo.user.services.StudentService;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -40,12 +38,6 @@ class EnrollmentControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @MockitoBean
-    private StudentService studentService;
-
-    @MockitoBean
-    private CourseService courseService;
 
     @MockitoBean
     private EnrollmentService enrollmentService;
@@ -103,13 +95,7 @@ class EnrollmentControllerTest {
 
     @Test
     void createValidoResponde201ConLaInscripcionGenerada() throws Exception {
-        when(studentService.getById(1L)).thenReturn(alumno());
-        when(courseService.getById(2L)).thenReturn(cursoPublicado());
-        when(enrollmentService.save(any(Enrollment.class))).thenAnswer(invocation -> {
-            Enrollment guardada = invocation.getArgument(0);
-            TestIds.fijarId(guardada, 9L);
-            return guardada;
-        });
+        when(enrollmentService.enroll(1L, 2L)).thenReturn(inscripcion());
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))
@@ -123,12 +109,7 @@ class EnrollmentControllerTest {
 
     @Test
     void createConCursoNoPublicadoResponde409() throws Exception {
-        Course cursoEnBorrador = new Course("Curso", "Desc", new BigDecimal("100.00"), LocalDate.now().plusWeeks(2),
-                LocalDate.now().plusWeeks(6), 5, new Specialty("Programacion"),
-                new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
-        TestIds.fijarId(cursoEnBorrador, 2L);
-        when(studentService.getById(1L)).thenReturn(alumno());
-        when(courseService.getById(2L)).thenReturn(cursoEnBorrador);
+        when(enrollmentService.enroll(1L, 2L)).thenThrow(new CourseEnrollmentException("El curso no esta publicado"));
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))
@@ -138,7 +119,8 @@ class EnrollmentControllerTest {
 
     @Test
     void createConAlumnoInexistenteResponde404() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(enrollmentService.enroll(99L, 2L))
+                .thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":99,"courseId":2}"""))

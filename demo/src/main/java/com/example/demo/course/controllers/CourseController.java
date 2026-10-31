@@ -3,13 +3,9 @@ package com.example.demo.course.controllers;
 import static com.example.demo.common.Validaciones.exigir;
 
 import com.example.demo.course.model.Course;
-import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.CourseService;
-import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.course.dto.CourseRequest;
 import com.example.demo.course.dto.CourseResponse;
-import com.example.demo.user.model.Instructor;
-import com.example.demo.user.services.InstructorService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,14 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class CourseController {
 
     private final CourseService courseService;
-    private final SpecialtyService specialtyService;
-    private final InstructorService instructorService;
 
-    public CourseController(CourseService courseService, SpecialtyService specialtyService,
-            InstructorService instructorService) {
+    public CourseController(CourseService courseService) {
         this.courseService = courseService;
-        this.specialtyService = specialtyService;
-        this.instructorService = instructorService;
     }
 
     @GetMapping
@@ -52,32 +43,13 @@ public class CourseController {
     @ResponseStatus(HttpStatus.CREATED)
     public CourseResponse create(@RequestBody CourseRequest solicitud) {
         validar(solicitud);
-        Specialty especialidad = specialtyService.getById(solicitud.getSpecialtyId());
-        Instructor instructor = instructorService.getById(solicitud.getInstructorId());
-        Course curso = new Course(solicitud.getTitle(), solicitud.getDescription(), solicitud.getBasePrice(),
-                solicitud.getStartDate(), solicitud.getEndDate(), solicitud.getMaxCapacity(), especialidad, instructor);
-        if (solicitud.getStatus() != null) {
-            curso.setStatus(solicitud.getStatus());
-        }
-        return respuesta(courseService.save(curso));
+        return respuesta(courseService.create(solicitud));
     }
 
     @PutMapping("/{id}")
     public CourseResponse update(@PathVariable Long id, @RequestBody CourseRequest solicitud) {
         validar(solicitud);
-        Course curso = courseService.getById(id);
-        curso.setTitle(solicitud.getTitle());
-        curso.setDescription(solicitud.getDescription());
-        curso.setBasePrice(solicitud.getBasePrice());
-        curso.setStartDate(solicitud.getStartDate());
-        curso.setEndDate(solicitud.getEndDate());
-        curso.setMaxCapacity(solicitud.getMaxCapacity());
-        curso.setSpecialty(specialtyService.getById(solicitud.getSpecialtyId()));
-        curso.setInstructor(instructorService.getById(solicitud.getInstructorId()));
-        if (solicitud.getStatus() != null) {
-            curso.setStatus(solicitud.getStatus());
-        }
-        return respuesta(courseService.save(curso));
+        return respuesta(courseService.update(id, solicitud));
     }
 
     @DeleteMapping("/{id}")

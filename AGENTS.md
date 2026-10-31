@@ -83,9 +83,10 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `${DB_PASSWORD}`. Plantilla en `.env.example`; `.env` está en `.gitignore`.
 - `spring.jpa.hibernate.ddl-auto=update` → el esquema se actualiza solo; **no hay
   migraciones (Flyway/Liquibase)**. Cambios de esquema se generan desde las entidades.
-- `spring.jpa.open-in-view=true` → la sesión JPA queda abierta durante la respuesta para
-  poder serializar relaciones `@ManyToOne(LAZY)` a JSON. No cambiar a `false` sin antes
-  usar DTOs.
+- `spring.jpa.open-in-view=false` → la sesión JPA se cierra al salir del servicio. Todo lo
+  que recorra o modifique relaciones LAZY (inscribir, crear/editar cursos, asignar
+  especialidades) se hace dentro de un método `@Transactional` del servicio, nunca en el
+  controlador.
 - Stack: Spring Boot parent **4.1.1**, `spring-boot-starter-data-jpa`,
   `spring-boot-starter-data-jdbc`, `spring-boot-starter-webmvc`, Lombok, PostgreSQL driver,
   DevTools. `java.version` en `pom.xml` = **17** (el README dice Java 21+; el POM manda
@@ -119,7 +120,8 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   Relaciones `@ManyToOne(fetch = LAZY)` con `@JoinColumn(nullable = false)`; en
   `Instructor.specialties` también `LAZY`.
 - **Servicios**: `@Service` + `@Transactional` en la clase, `@Transactional(readOnly = true)`
-  en los métodos de lectura, constructor único con el repositorio inyectado. CRUD básico:
+  en los métodos de lectura, constructor único con el repositorio (y los servicios de otras
+  features que necesite) inyectado. CRUD básico:
   `getAll()`, `getById(id)`, `save(x)`, `delete(id)`. `getById` lanza
   `jakarta.persistence.EntityNotFoundException` si no existe.
 
@@ -142,7 +144,7 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `ApiExceptionHandler`, `Validaciones` y `ErrorResponse` son transversales
   (paquete `common/`).
   `POST /api/enrollments` valida las reglas de negocio via
-  `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
+  `EnrollmentService.enroll` → `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
   400/404/409 con cuerpo `{"mensaje": ...}`.
 - `approval/` solo tiene `model`: `ApprovalRequest`/`ApprovalStatus` no tienen servicio ni
   repositorio todavía.

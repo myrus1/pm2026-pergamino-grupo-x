@@ -2,8 +2,6 @@ package com.example.demo.user.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
-import com.example.demo.course.model.Specialty;
-import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.user.dto.InstructorRequest;
 import com.example.demo.user.dto.InstructorResponse;
 import com.example.demo.user.model.Instructor;
@@ -26,11 +24,9 @@ import org.springframework.web.bind.annotation.RestController;
 public class InstructorController {
 
     private final InstructorService instructorService;
-    private final SpecialtyService specialtyService;
 
-    public InstructorController(InstructorService instructorService, SpecialtyService specialtyService) {
+    public InstructorController(InstructorService instructorService) {
         this.instructorService = instructorService;
-        this.specialtyService = specialtyService;
     }
 
     @GetMapping
@@ -73,19 +69,13 @@ public class InstructorController {
     @PutMapping("/{id}/specialties/{specialtyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void asignarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId) {
-        Instructor instructor = instructorService.getById(id);
-        Specialty especialidad = specialtyService.getById(specialtyId);
-        instructor.addSpecialty(especialidad);
-        instructorService.save(instructor);
+        instructorService.addSpecialty(id, specialtyId);
     }
 
     @DeleteMapping("/{id}/specialties/{specialtyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void quitarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId) {
-        Instructor instructor = instructorService.getById(id);
-        Specialty especialidad = specialtyService.getById(specialtyId);
-        instructor.removeSpecialty(especialidad);
-        instructorService.save(instructor);
+        instructorService.removeSpecialty(id, specialtyId);
     }
 
     private void validar(InstructorRequest solicitud) {

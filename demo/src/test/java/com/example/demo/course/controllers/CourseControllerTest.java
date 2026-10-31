@@ -2,6 +2,7 @@ package com.example.demo.course.controllers;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -11,13 +12,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.demo.course.dto.CourseRequest;
 import com.example.demo.course.model.Course;
+import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.CourseService;
-import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
-import com.example.demo.user.services.InstructorService;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -44,12 +45,6 @@ class CourseControllerTest {
 
     @MockitoBean
     private CourseService courseService;
-
-    @MockitoBean
-    private SpecialtyService specialtyService;
-
-    @MockitoBean
-    private InstructorService instructorService;
 
     private Specialty especialidad() {
         Specialty especialidad = new Specialty("Programacion");
@@ -103,13 +98,10 @@ class CourseControllerTest {
 
     @Test
     void createValidoResponde201ConElCursoCreado() throws Exception {
-        when(specialtyService.getById(1L)).thenReturn(especialidad());
-        when(instructorService.getById(2L)).thenReturn(instructor());
-        when(courseService.save(any(Course.class))).thenAnswer(invocation -> {
-            Course guardado = invocation.getArgument(0);
-            TestIds.fijarId(guardado, 7L);
-            return guardado;
-        });
+        Course creado = new Course("Curso de Java", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, especialidad(), instructor());
+        TestIds.fijarId(creado, 7L);
+        when(courseService.create(any(CourseRequest.class))).thenReturn(creado);
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
                 .andExpect(status().isCreated())
@@ -130,7 +122,8 @@ class CourseControllerTest {
 
     @Test
     void createConEspecialidadInexistenteResponde404() throws Exception {
-        when(specialtyService.getById(1L)).thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 1"));
+        when(courseService.create(any(CourseRequest.class)))
+                .thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 1"));
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
                 .andExpect(status().isNotFound())
@@ -139,15 +132,11 @@ class CourseControllerTest {
 
     @Test
     void updateModificaElCursoYPermiteCambiarElEstado() throws Exception {
-        Specialty especialidad = especialidad();
-        Instructor instructor = instructor();
-        Course curso = new Course("Curso de Java", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
-                LocalDate.of(2026, 6, 20), 5, especialidad, instructor);
-        TestIds.fijarId(curso, 5L);
-        when(courseService.getById(5L)).thenReturn(curso);
-        when(specialtyService.getById(1L)).thenReturn(especialidad);
-        when(instructorService.getById(2L)).thenReturn(instructor);
-        when(courseService.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Course actualizado = new Course("Curso de Java Avanzado", "Desc", new BigDecimal("100.00"),
+                LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 20), 5, especialidad(), instructor());
+        actualizado.setStatus(CourseStatus.PUBLISHED);
+        TestIds.fijarId(actualizado, 5L);
+        when(courseService.update(eq(5L), any(CourseRequest.class))).thenReturn(actualizado);
 
         mockMvc.perform(put(RUTA + "/5").contentType(MediaType.APPLICATION_JSON).content("""
                 {"title":"Curso de Java Avanzado","description":"Desc","basePrice":100.00,
@@ -161,7 +150,8 @@ class CourseControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(courseService.getById(99L)).thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+        when(courseService.update(eq(99L), any(CourseRequest.class)))
+                .thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
 
         mockMvc.perform(put(RUTA + "/99").contentType(MediaType.APPLICATION_JSON).content(CUERPO))
                 .andExpect(status().isNotFound())
