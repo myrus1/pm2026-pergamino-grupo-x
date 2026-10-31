@@ -158,6 +158,11 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 - Recaudación: `GET /api/instructors/{id}/revenue` (65% del precio base por inscripción,
   sin importar descuentos; regla en `Enrollment.instructorRevenue`) y
   `GET /api/enrollments/revenue` (total pagado por los alumnos).
+- Listados: `GET /api/students?courseId=` (alumnos inscriptos en un curso) y
+  `GET /api/courses?studentId=` (cursos del alumno, por fecha de inicio descendente).
+- Las inscripciones no tienen `DELETE` (no se pueden cancelar). Un curso solo se crea o
+  edita con una especialidad de su instructor (`Instructor.validateSpecialty`).
+  `DataIntegrityViolationException` (DNI/email duplicado, borrar algo en uso) responde 409.
 - Tests unitarios del dominio (`CourseTest`, `StudentTest`, `InstructorTest`,
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`) y de los
   controladores (`*ControllerTest`, slice `@WebMvcTest`), todos sin BD salvo `contextLoads`.
