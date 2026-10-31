@@ -2,8 +2,8 @@ package com.example.demo.user.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
-import com.example.demo.course.model.Specialty;
-import com.example.demo.course.services.SpecialtyService;
+import com.example.demo.enrollment.dto.RevenueResponse;
+import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.user.dto.InstructorRequest;
 import com.example.demo.user.dto.InstructorResponse;
 import com.example.demo.user.model.Instructor;
@@ -26,11 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class InstructorController {
 
     private final InstructorService instructorService;
-    private final SpecialtyService specialtyService;
+    private final EnrollmentService enrollmentService;
 
-    public InstructorController(InstructorService instructorService, SpecialtyService specialtyService) {
+    public InstructorController(InstructorService instructorService, EnrollmentService enrollmentService) {
         this.instructorService = instructorService;
-        this.specialtyService = specialtyService;
+        this.enrollmentService = enrollmentService;
     }
 
     @GetMapping
@@ -43,13 +43,18 @@ public class InstructorController {
         return respuesta(instructorService.getById(id));
     }
 
+    @GetMapping("/{id}/revenue")
+    public RevenueResponse revenue(@PathVariable Long id) {
+        return new RevenueResponse(enrollmentService.instructorRevenue(id));
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public InstructorResponse create(@RequestBody InstructorRequest solicitud) {
         validar(solicitud);
         Instructor instructor = new Instructor(solicitud.getFirstName(), solicitud.getLastName(),
                 solicitud.getEmail(), solicitud.getPassword());
-        return respuesta(instructorService.save(instructor));
+        return respuesta(instructorService.create(instructor));
     }
 
     @PutMapping("/{id}")
@@ -60,7 +65,7 @@ public class InstructorController {
         instructor.setLastName(solicitud.getLastName());
         instructor.setEmail(solicitud.getEmail());
         instructor.setPassword(solicitud.getPassword());
-        return respuesta(instructorService.save(instructor));
+        return respuesta(instructorService.update(instructor));
     }
 
     @DeleteMapping("/{id}")
@@ -73,19 +78,13 @@ public class InstructorController {
     @PutMapping("/{id}/specialties/{specialtyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void asignarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId) {
-        Instructor instructor = instructorService.getById(id);
-        Specialty especialidad = specialtyService.getById(specialtyId);
-        instructor.addSpecialty(especialidad);
-        instructorService.save(instructor);
+        instructorService.addSpecialty(id, specialtyId);
     }
 
     @DeleteMapping("/{id}/specialties/{specialtyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void quitarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId) {
-        Instructor instructor = instructorService.getById(id);
-        Specialty especialidad = specialtyService.getById(specialtyId);
-        instructor.removeSpecialty(especialidad);
-        instructorService.save(instructor);
+        instructorService.removeSpecialty(id, specialtyId);
     }
 
     private void validar(InstructorRequest solicitud) {

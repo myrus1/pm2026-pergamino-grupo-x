@@ -1,8 +1,9 @@
 package com.example.demo.user.controllers;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -12,12 +13,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.example.demo.course.model.Specialty;
-import com.example.demo.course.services.SpecialtyService;
+import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
+import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import com.example.demo.user.services.InstructorService;
 import jakarta.persistence.EntityNotFoundException;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +41,7 @@ class InstructorControllerTest {
     private InstructorService instructorService;
 
     @MockitoBean
-    private SpecialtyService specialtyService;
+    private EnrollmentService enrollmentService;
 
     private Instructor instructor() {
         Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
@@ -78,7 +80,7 @@ class InstructorControllerTest {
 
     @Test
     void createValidoResponde201ConElInstructorCreado() throws Exception {
-        when(instructorService.save(any(Instructor.class))).thenAnswer(invocation -> {
+        when(instructorService.create(any(Instructor.class))).thenAnswer(invocation -> {
             Instructor guardado = invocation.getArgument(0);
             TestIds.fijarId(guardado, 7L);
             return guardado;
@@ -92,6 +94,17 @@ class InstructorControllerTest {
     }
 
     @Test
+    void createConEmailExistenteResponde409() throws Exception {
+        when(instructorService.create(any(Instructor.class)))
+                .thenThrow(new InstructorEmailAlreadyExistsException("iris@example.com"));
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+                {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value("Ya existe un instructor con el email iris@example.com"));
+    }
+
+    @Test
     void createSinCamposObligatoriosResponde400() throws Exception {
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
                 {"lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
@@ -102,7 +115,7 @@ class InstructorControllerTest {
     @Test
     void updateModificaElInstructorExistente() throws Exception {
         when(instructorService.getById(1L)).thenReturn(instructor());
-        when(instructorService.save(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(instructorService.update(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris Maria","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
@@ -128,34 +141,48 @@ class InstructorControllerTest {
     }
 
     @Test
-    void asignarEspecialidadSeReflejaEnElInstructor() throws Exception {
-        Instructor instructor = instructor();
-        Specialty especialidad = new Specialty("Bases de datos");
-        TestIds.fijarId(especialidad, 2L);
-        when(instructorService.getById(1L)).thenReturn(instructor);
-        when(specialtyService.getById(2L)).thenReturn(especialidad);
-        when(instructorService.save(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void revenueDevuelveLoRecaudadoPorElInstructor() throws Exception {
+        when(enrollmentService.instructorRevenue(1L)).thenReturn(new BigDecimal("117.00"));
 
-        mockMvc.perform(put(RUTA + "/1/specialties/2"))
-                .andExpect(status().isNoContent());
-
-        assertThat(instructor.getSpecialties()).containsExactly(especialidad);
+        mockMvc.perform(get(RUTA + "/1/revenue"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"total\":117.00")));
     }
 
     @Test
-    void quitarEspecialidadSeReflejaEnElInstructor() throws Exception {
-        Instructor instructor = instructor();
-        Specialty especialidad = new Specialty("Bases de datos");
-        TestIds.fijarId(especialidad, 2L);
-        instructor.addSpecialty(especialidad);
-        when(instructorService.getById(1L)).thenReturn(instructor);
-        when(specialtyService.getById(2L)).thenReturn(especialidad);
-        when(instructorService.save(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    void revenueDeInstructorInexistenteResponde404() throws Exception {
+        when(enrollmentService.instructorRevenue(99L))
+                .thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
 
+        mockMvc.perform(get(RUTA + "/99/revenue"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+    }
+
+    @Test
+    void asignarEspecialidadDelegaEnElServicioYResponde204() throws Exception {
+        mockMvc.perform(put(RUTA + "/1/specialties/2"))
+                .andExpect(status().isNoContent());
+
+        verify(instructorService).addSpecialty(1L, 2L);
+    }
+
+    @Test
+    void asignarEspecialidadInexistenteResponde404() throws Exception {
+        doThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"))
+                .when(instructorService).addSpecialty(1L, 99L);
+
+        mockMvc.perform(put(RUTA + "/1/specialties/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 99"));
+    }
+
+    @Test
+    void quitarEspecialidadDelegaEnElServicioYResponde204() throws Exception {
         mockMvc.perform(delete(RUTA + "/1/specialties/2"))
                 .andExpect(status().isNoContent());
 
-        assertThat(instructor.getSpecialties()).isEmpty();
+        verify(instructorService).removeSpecialty(1L, 2L);
     }
 
     @Test

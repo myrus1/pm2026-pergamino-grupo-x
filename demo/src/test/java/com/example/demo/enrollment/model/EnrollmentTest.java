@@ -41,6 +41,23 @@ class EnrollmentTest {
     }
 
     @Test
+    void elInstructorRecibeEl65PorCientoDelPrecioBaseAunqueElAlumnoTengaDescuento() {
+        Enrollment conDescuento = new Enrollment(estudiante, curso, new BigDecimal("75.00"));
+
+        assertThat(conDescuento.instructorRevenue()).isEqualByComparingTo("65.00");
+    }
+
+    @Test
+    void laParteDelInstructorSeRedondeaACentavos() {
+        Course cursoImpar = new Course("Curso", "Desc", new BigDecimal("99.99"), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"),
+                new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
+
+        assertThat(new Enrollment(estudiante, cursoImpar, new BigDecimal("99.99")).instructorRevenue())
+                .isEqualByComparingTo("64.99");
+    }
+
+    @Test
     void setStudentMueveLaInscripcionAlNuevoEstudiante() {
         Enrollment inscripcion = new Enrollment(estudiante, curso, IMPORTE);
 
