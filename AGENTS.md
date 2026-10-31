@@ -155,6 +155,9 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `GET /api/approval-requests?status=&instructorId=` para listar. Las reglas viven en
   `ApprovalRequest` y responden 409. El estado del curso no se recibe en `CourseRequest`:
   solo cambia por este flujo.
+- Recaudación: `GET /api/instructors/{id}/revenue` (65% del precio base por inscripción,
+  sin importar descuentos; regla en `Enrollment.instructorRevenue`) y
+  `GET /api/enrollments/revenue` (total pagado por los alumnos).
 - Tests unitarios del dominio (`CourseTest`, `StudentTest`, `InstructorTest`,
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`) y de los
   controladores (`*ControllerTest`, slice `@WebMvcTest`), todos sin BD salvo `contextLoads`.

@@ -137,6 +137,15 @@ class EnrollmentControllerTest {
     }
 
     @Test
+    void revenueDevuelveElTotalRecaudado() throws Exception {
+        when(enrollmentService.totalRevenue()).thenReturn(new BigDecimal("160.00"));
+
+        mockMvc.perform(get(RUTA + "/revenue"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"total\":160.00")));
+    }
+
+    @Test
     void updateNoEstaPermitidoResponde405() throws Exception {
         mockMvc.perform(put(RUTA + "/9").contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))

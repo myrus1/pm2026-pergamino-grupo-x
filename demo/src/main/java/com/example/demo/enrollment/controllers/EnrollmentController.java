@@ -4,6 +4,7 @@ import static com.example.demo.common.Validaciones.exigir;
 
 import com.example.demo.enrollment.dto.EnrollmentRequest;
 import com.example.demo.enrollment.dto.EnrollmentResponse;
+import com.example.demo.enrollment.dto.RevenueResponse;
 import com.example.demo.enrollment.model.Enrollment;
 import com.example.demo.enrollment.services.EnrollmentService;
 import java.util.List;
@@ -32,6 +33,11 @@ public class EnrollmentController {
     @GetMapping
     public List<EnrollmentResponse> getAll() {
         return enrollmentService.getAll().stream().map(this::respuesta).toList();
+    }
+
+    @GetMapping("/revenue")
+    public RevenueResponse totalRevenue() {
+        return new RevenueResponse(enrollmentService.totalRevenue());
     }
 
     @GetMapping("/{id}")

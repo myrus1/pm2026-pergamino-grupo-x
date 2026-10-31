@@ -2,6 +2,8 @@ package com.example.demo.user.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
+import com.example.demo.enrollment.dto.RevenueResponse;
+import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.user.dto.InstructorRequest;
 import com.example.demo.user.dto.InstructorResponse;
 import com.example.demo.user.model.Instructor;
@@ -24,9 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class InstructorController {
 
     private final InstructorService instructorService;
+    private final EnrollmentService enrollmentService;
 
-    public InstructorController(InstructorService instructorService) {
+    public InstructorController(InstructorService instructorService, EnrollmentService enrollmentService) {
         this.instructorService = instructorService;
+        this.enrollmentService = enrollmentService;
     }
 
     @GetMapping
@@ -37,6 +41,11 @@ public class InstructorController {
     @GetMapping("/{id}")
     public InstructorResponse getById(@PathVariable Long id) {
         return respuesta(instructorService.getById(id));
+    }
+
+    @GetMapping("/{id}/revenue")
+    public RevenueResponse revenue(@PathVariable Long id) {
+        return new RevenueResponse(enrollmentService.instructorRevenue(id));
     }
 
     @PostMapping

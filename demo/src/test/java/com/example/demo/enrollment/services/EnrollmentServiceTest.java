@@ -16,10 +16,12 @@ import com.example.demo.enrollment.model.Enrollment;
 import com.example.demo.enrollment.repositories.EnrollmentRepository;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.model.Student;
+import com.example.demo.user.services.InstructorService;
 import com.example.demo.user.services.StudentService;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,11 +41,55 @@ class EnrollmentServiceTest {
     @Mock
     private CourseService courseService;
 
+    @Mock
+    private InstructorService instructorService;
+
     private EnrollmentService enrollmentService;
 
     @BeforeEach
     void setUp() {
-        enrollmentService = new EnrollmentService(enrollmentRepository, studentService, courseService);
+        enrollmentService = new EnrollmentService(enrollmentRepository, studentService, courseService,
+                instructorService);
+    }
+
+    private Enrollment inscripcion(String precioBase, String pagado) {
+        Course curso = new Course("Curso", "Desc", new BigDecimal(precioBase), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"),
+                new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
+        return new Enrollment(new Student("Ana", "Perez", "ana@example.com", "secret", "11111111"), curso,
+                new BigDecimal(pagado));
+    }
+
+    @Test
+    void totalRevenueSumaLoQuePagaronLosAlumnos() {
+        when(enrollmentRepository.findAll()).thenReturn(List.of(inscripcion("100.00", "100.00"),
+                inscripcion("80.00", "60.00")));
+
+        assertThat(enrollmentService.totalRevenue()).isEqualByComparingTo("160.00");
+    }
+
+    @Test
+    void totalRevenueSinInscripcionesEsCero() {
+        when(enrollmentRepository.findAll()).thenReturn(List.of());
+
+        assertThat(enrollmentService.totalRevenue()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void instructorRevenueSumaEl65PorCientoDelPrecioBaseDeCadaInscripcion() {
+        when(enrollmentRepository.findByCourseInstructorId(4L)).thenReturn(List.of(inscripcion("100.00", "100.00"),
+                inscripcion("80.00", "60.00")));
+
+        assertThat(enrollmentService.instructorRevenue(4L)).isEqualByComparingTo("117.00");
+    }
+
+    @Test
+    void instructorRevenueDeInstructorInexistenteLanzaExcepcion() {
+        when(instructorService.getById(99L)).thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.instructorRevenue(99L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Instructor no encontrado con id 99");
     }
 
     private Course cursoFuturo(CourseStatus estado) {

@@ -13,11 +13,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import com.example.demo.user.services.InstructorService;
 import jakarta.persistence.EntityNotFoundException;
+import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,9 @@ class InstructorControllerTest {
 
     @MockitoBean
     private InstructorService instructorService;
+
+    @MockitoBean
+    private EnrollmentService enrollmentService;
 
     private Instructor instructor() {
         Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
@@ -131,6 +136,25 @@ class InstructorControllerTest {
         when(instructorService.getById(99L)).thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
 
         mockMvc.perform(delete(RUTA + "/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+    }
+
+    @Test
+    void revenueDevuelveLoRecaudadoPorElInstructor() throws Exception {
+        when(enrollmentService.instructorRevenue(1L)).thenReturn(new BigDecimal("117.00"));
+
+        mockMvc.perform(get(RUTA + "/1/revenue"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"total\":117.00")));
+    }
+
+    @Test
+    void revenueDeInstructorInexistenteResponde404() throws Exception {
+        when(enrollmentService.instructorRevenue(99L))
+                .thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+
+        mockMvc.perform(get(RUTA + "/99/revenue"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
     }
