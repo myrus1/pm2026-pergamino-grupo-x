@@ -2,6 +2,7 @@ package com.example.demo.course.controllers;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -15,10 +16,12 @@ import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.testutil.TestIds;
 import jakarta.persistence.EntityNotFoundException;
+import java.sql.SQLException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -82,6 +85,39 @@ class SpecialtyControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.name").value("Bases de datos"));
+    }
+
+    private DataIntegrityViolationException errorDeBase(String estadoSql) {
+        return new DataIntegrityViolationException("error", new SQLException("error", estadoSql));
+    }
+
+    @Test
+    void createConNombreRepetidoResponde409() throws Exception {
+        when(specialtyService.save(any(Specialty.class))).thenThrow(errorDeBase("23505"));
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"Programacion"}"""))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensaje").value("Los datos ya existen o estan en uso por otro registro"));
+    }
+
+    @Test
+    void deleteDeUnaEspecialidadEnUsoResponde409() throws Exception {
+        when(specialtyService.getById(1L)).thenReturn(especialidad());
+        doThrow(errorDeBase("23503")).when(specialtyService).delete(1L);
+
+        mockMvc.perform(delete(RUTA + "/1"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void createConUnNombreDemasiadoLargoResponde400() throws Exception {
+        when(specialtyService.save(any(Specialty.class))).thenThrow(errorDeBase("22001"));
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+                {"name":"Programacion"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje").value("Datos invalidos"));
     }
 
     @Test
