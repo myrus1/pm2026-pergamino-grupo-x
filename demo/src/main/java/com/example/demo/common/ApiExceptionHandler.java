@@ -1,5 +1,6 @@
 package com.example.demo.common;
 
+import com.example.demo.approval.model.ApprovalRequestException;
 import com.example.demo.enrollment.model.CourseEnrollmentException;
 import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -21,6 +22,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(InstructorEmailAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> emailDeInstructorDuplicado(
             InstructorEmailAlreadyExistsException excepcion) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(excepcion.getMessage()));
+    }
+
+    @ExceptionHandler(ApprovalRequestException.class)
+    public ResponseEntity<ErrorResponse> aprobacionRechazada(ApprovalRequestException excepcion) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(excepcion.getMessage()));
     }
 
