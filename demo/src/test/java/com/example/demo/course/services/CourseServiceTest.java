@@ -60,6 +60,7 @@ class CourseServiceTest {
     void createArmaElCursoConEspecialidadEInstructorYLoGuarda() {
         Specialty especialidad = new Specialty("Programacion");
         Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        instructor.addSpecialty(especialidad);
         when(specialtyService.getById(1L)).thenReturn(especialidad);
         when(instructorService.getById(2L)).thenReturn(instructor);
         when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -84,12 +85,24 @@ class CourseServiceTest {
     }
 
     @Test
+    void createConUnaEspecialidadQueElInstructorNoTieneNoGuardaNada() {
+        when(specialtyService.getById(1L)).thenReturn(new Specialty("Marketing"));
+        when(instructorService.getById(2L)).thenReturn(new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
+
+        assertThatThrownBy(() -> courseService.create(solicitud(1L, 2L)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("instructor debe tener la especialidad del curso");
+        verify(courseRepository, never()).save(any());
+    }
+
+    @Test
     void updateCambiaLosDatosYMueveElCursoALaNuevaEspecialidad() {
         Specialty anterior = new Specialty("Diseno");
         Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
         Course curso = new Course("Viejo", "Desc", new BigDecimal("50.00"), LocalDate.of(2026, 5, 1),
                 LocalDate.of(2026, 5, 20), 3, anterior, instructor);
         Specialty nueva = new Specialty("Programacion");
+        instructor.addSpecialty(nueva);
         when(courseRepository.findById(7L)).thenReturn(Optional.of(curso));
         when(specialtyService.getById(1L)).thenReturn(nueva);
         when(instructorService.getById(2L)).thenReturn(instructor);
@@ -108,6 +121,7 @@ class CourseServiceTest {
     void updateNoCambiaElEstadoDelCurso() {
         Specialty especialidad = new Specialty("Programacion");
         Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        instructor.addSpecialty(especialidad);
         Course curso = new Course("Viejo", "Desc", new BigDecimal("50.00"), LocalDate.of(2026, 5, 1),
                 LocalDate.of(2026, 5, 20), 3, especialidad, instructor);
         curso.setStatus(CourseStatus.PENDING_APPROVAL);
@@ -117,6 +131,24 @@ class CourseServiceTest {
         when(courseRepository.save(curso)).thenReturn(curso);
 
         assertThat(courseService.update(7L, solicitud(1L, 2L)).getStatus()).isEqualTo(CourseStatus.PENDING_APPROVAL);
+    }
+
+    @Test
+    void updateAUnaEspecialidadQueElInstructorNoTieneNoModificaElCurso() {
+        Specialty especialidad = new Specialty("Programacion");
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        Course curso = new Course("Viejo", "Desc", new BigDecimal("50.00"), LocalDate.of(2026, 5, 1),
+                LocalDate.of(2026, 5, 20), 3, especialidad, instructor);
+        when(courseRepository.findById(7L)).thenReturn(Optional.of(curso));
+        when(specialtyService.getById(1L)).thenReturn(new Specialty("Marketing"));
+        when(instructorService.getById(2L)).thenReturn(instructor);
+
+        assertThatThrownBy(() -> courseService.update(7L, solicitud(1L, 2L)))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("instructor debe tener la especialidad del curso");
+        assertThat(curso.getTitle()).isEqualTo("Viejo");
+        assertThat(curso.getSpecialty()).isSameAs(especialidad);
+        verify(courseRepository, never()).save(any());
     }
 
     @Test

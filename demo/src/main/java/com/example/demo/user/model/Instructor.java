@@ -37,12 +37,16 @@ public class Instructor extends User {
     public Course createCourse(String title, String description, BigDecimal basePrice,
                                LocalDate startDate, LocalDate endDate, Integer maxCapacity,
                                Specialty specialty) {
+        validateSpecialty(specialty);
+        return new Course(title, description, basePrice, startDate, endDate, maxCapacity, specialty, this);
+    }
+
+    public void validateSpecialty(Specialty specialty) {
         Objects.requireNonNull(specialty, "especialidad no puede ser nula");
-        if (!specialties.contains(specialty)) {
+        if (specialties.stream().noneMatch(propia -> propia == specialty
+                || (propia.getId() != null && propia.getId().equals(specialty.getId())))) {
             throw new IllegalArgumentException("instructor debe tener la especialidad del curso");
         }
-
-        return new Course(title, description, basePrice, startDate, endDate, maxCapacity, specialty, this);
     }
 
     public Set<Specialty> getSpecialties() {

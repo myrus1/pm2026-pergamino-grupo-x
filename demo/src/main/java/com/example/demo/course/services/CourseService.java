@@ -29,21 +29,24 @@ public class CourseService {
     public Course create(CourseRequest request) {
         Specialty specialty = specialtyService.getById(request.getSpecialtyId());
         Instructor instructor = instructorService.getById(request.getInstructorId());
-        Course course = new Course(request.getTitle(), request.getDescription(), request.getBasePrice(),
-                request.getStartDate(), request.getEndDate(), request.getMaxCapacity(), specialty, instructor);
+        Course course = instructor.createCourse(request.getTitle(), request.getDescription(), request.getBasePrice(),
+                request.getStartDate(), request.getEndDate(), request.getMaxCapacity(), specialty);
         return courseRepository.save(course);
     }
 
     public Course update(Long id, CourseRequest request) {
         Course course = getById(id);
+        Specialty specialty = specialtyService.getById(request.getSpecialtyId());
+        Instructor instructor = instructorService.getById(request.getInstructorId());
+        instructor.validateSpecialty(specialty);
         course.setTitle(request.getTitle());
         course.setDescription(request.getDescription());
         course.setBasePrice(request.getBasePrice());
         course.setStartDate(request.getStartDate());
         course.setEndDate(request.getEndDate());
         course.setMaxCapacity(request.getMaxCapacity());
-        course.setSpecialty(specialtyService.getById(request.getSpecialtyId()));
-        course.setInstructor(instructorService.getById(request.getInstructorId()));
+        course.setSpecialty(specialty);
+        course.setInstructor(instructor);
         return courseRepository.save(course);
     }
 
