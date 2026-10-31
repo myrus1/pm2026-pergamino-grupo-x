@@ -1,0 +1,1598 @@
+{
+  "info": {
+    "name": "PM2026 - Reglas de negocio",
+    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba. La carpeta 5 muestra reglas que todavia no estan implementadas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ],
+  "item": [
+    {
+      "name": "1 - Datos base",
+      "item": [
+        {
+          "name": "Crear especialidad PROGRAMMING",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const dia = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };",
+                  "pm.collectionVariables.set(\"run\", String(Date.now()).slice(-7));",
+                  "pm.collectionVariables.set(\"inicio\", dia(30));",
+                  "pm.collectionVariables.set(\"fin\", dia(60));",
+                  "pm.collectionVariables.set(\"ayer\", dia(-1));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"espProg\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/specialties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "specialties"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"PROGRAMMING-{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear especialidad DESIGN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"espDis\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/specialties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "specialties"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"DESIGN-{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear especialidad MARKETING (el instructor no la tiene)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"espMkt\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/specialties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "specialties"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"MARKETING-{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear instructor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"instructorId\", pm.response.json().id);",
+                  "pm.test(\"no devuelve la contrasena\", () => pm.expect(pm.response.json()).to.not.have.property(\"password\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/instructors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "instructors"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Laura\",\n  \"lastName\": \"Gomez\",\n  \"email\": \"laura{{run}}@test.com\",\n  \"password\": \"clave123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Asignar PROGRAMMING al instructor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/instructors/{{instructorId}}/specialties/{{espProg}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "instructors",
+                "{{instructorId}}",
+                "specialties",
+                "{{espProg}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Asignar DESIGN al instructor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/instructors/{{instructorId}}/specialties/{{espDis}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "instructors",
+                "{{instructorId}}",
+                "specialties",
+                "{{espDis}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear curso Java (PROGRAMMING, 100)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"cursoJava\", pm.response.json().id);",
+                  "pm.test(\"estado PUBLISHED\", () => pm.expect(pm.response.json().status).to.eql(\"PUBLISHED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Java desde cero\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear curso Spring (PROGRAMMING, 80)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"cursoSpring\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Spring Boot\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 80.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear curso Figma (DESIGN, 90)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"cursoFigma\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Figma\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 90.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espDis}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear curso sin estado (queda en DRAFT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"cursoBorrador\", pm.response.json().id);",
+                  "pm.test(\"estado DRAFT\", () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Borrador\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 50.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear curso con cupo 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"cursoCupo\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Cupo chico\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 50.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 1,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear curso que ya empezo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"cursoEmpezado\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Ya empezado\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 50.0,\n  \"startDate\": \"{{ayer}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear alumna Ana",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"alumnoAna\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Ana\",\n  \"lastName\": \"Prueba\",\n  \"email\": \"ana{{run}}@test.com\",\n  \"password\": \"clave123\",\n  \"dni\": \"1{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear alumno Beto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"alumnoBeto\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Beto\",\n  \"lastName\": \"Prueba\",\n  \"email\": \"beto{{run}}@test.com\",\n  \"password\": \"clave123\",\n  \"dni\": \"2{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear alumna Carla",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"alumnoCarla\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Carla\",\n  \"lastName\": \"Prueba\",\n  \"email\": \"carla{{run}}@test.com\",\n  \"password\": \"clave123\",\n  \"dni\": \"3{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 - Reglas de inscripcion",
+      "item": [
+        {
+          "name": "Ana se inscribe a Java: paga precio completo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"paga 100\", () => pm.expect(pm.response.json().finalAmount).to.eql(100));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoAna}},\n  \"courseId\": {{cursoJava}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ana se inscribe de nuevo a Java: rechazada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"mensaje: Estudiante inscripto en el curso\", () => pm.expect(pm.response.json().mensaje).to.eql(\"Estudiante inscripto en el curso\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoAna}},\n  \"courseId\": {{cursoJava}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ana se inscribe a Spring (misma especialidad, mismo mes): 25% de descuento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"paga 60\", () => pm.expect(pm.response.json().finalAmount).to.eql(60));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoAna}},\n  \"courseId\": {{cursoSpring}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Ana se inscribe a Figma (otra especialidad): sin descuento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"inscripcionFigma\", pm.response.json().id);",
+                  "pm.test(\"paga 90\", () => pm.expect(pm.response.json().finalAmount).to.eql(90));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoAna}},\n  \"courseId\": {{cursoFigma}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Beto se inscribe a un curso en DRAFT: rechazada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"mensaje: El curso no esta publicado\", () => pm.expect(pm.response.json().mensaje).to.eql(\"El curso no esta publicado\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoBeto}},\n  \"courseId\": {{cursoBorrador}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Beto ocupa el unico lugar del curso con cupo 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoBeto}},\n  \"courseId\": {{cursoCupo}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Carla se inscribe al curso lleno: rechazada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"mensaje: El curso esta lleno\", () => pm.expect(pm.response.json().mensaje).to.eql(\"El curso esta lleno\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoCarla}},\n  \"courseId\": {{cursoCupo}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Carla se inscribe a un curso que ya empezo: rechazada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"mensaje: La inscripcion debe ser antes de que comience el curso\", () => pm.expect(pm.response.json().mensaje).to.eql(\"La inscripcion debe ser antes de que comience el curso\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoCarla}},\n  \"courseId\": {{cursoEmpezado}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Validaciones y errores",
+      "item": [
+        {
+          "name": "Instructor con email repetido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/instructors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "instructors"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Otra\",\n  \"lastName\": \"Laura\",\n  \"email\": \"laura{{run}}@test.com\",\n  \"password\": \"x\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Inscripcion con alumno inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": 999999,\n  \"courseId\": {{cursoJava}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Curso inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/999999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "999999"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Curso sin titulo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Curso con fecha de fin antes del inicio",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Fechas al reves\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{fin}}\",\n  \"endDate\": \"{{inicio}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Curso con precio negativo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Negativo\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": -10,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "JSON mal formado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"title\": ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 - Listados",
+      "item": [
+        {
+          "name": "Listar cursos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar inscripciones",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar alumnos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar instructores",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/instructors",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "instructors"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar especialidades",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/specialties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "specialties"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 - Pendientes (hoy fallan)",
+      "item": [
+        {
+          "name": "Curso con una especialidad que el instructor no tiene: deberia rechazarse",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Marketing\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espMkt}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Curso creado como PUBLISHED sin aprobacion: deberia quedar en DRAFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"estado DRAFT\", () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sin aprobar\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Alumno con DNI repetido: deberia responder 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Ana2\",\n  \"lastName\": \"Prueba\",\n  \"email\": \"ana2{{run}}@test.com\",\n  \"password\": \"x\",\n  \"dni\": \"1{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Cancelar una inscripcion: no deberia estar permitido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 405\", () => pm.response.to.have.status(405));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments/{{inscripcionFigma}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments",
+                "{{inscripcionFigma}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
