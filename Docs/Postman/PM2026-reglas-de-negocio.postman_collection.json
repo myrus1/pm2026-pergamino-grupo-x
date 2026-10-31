@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "PM2026 - Reglas de negocio",
-    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba. La carpeta 5 muestra reglas que todavia no estan implementadas.",
+    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba. La carpeta 6 muestra reglas que todavia no estan implementadas.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -263,7 +263,50 @@
           }
         },
         {
-          "name": "Crear curso Java (PROGRAMMING, 100)",
+          "name": "Crear administrador",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"adminId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/administrators",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "administrators"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Ada\",\n  \"lastName\": \"Admin\",\n  \"email\": \"ada{{run}}@test.com\",\n  \"password\": \"clave123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear curso Java (PROGRAMMING, 100): nace en DRAFT",
           "event": [
             {
               "listen": "test",
@@ -272,7 +315,7 @@
                 "exec": [
                   "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
                   "pm.collectionVariables.set(\"cursoJava\", pm.response.json().id);",
-                  "pm.test(\"estado PUBLISHED\", () => pm.expect(pm.response.json().status).to.eql(\"PUBLISHED\"));"
+                  "pm.test(\"estado DRAFT\", () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));"
                 ]
               }
             }
@@ -297,7 +340,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Java desde cero\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"Java desde cero\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -340,7 +383,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Spring Boot\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 80.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"Spring Boot\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 80.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -383,7 +426,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Figma\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 90.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espDis}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"Figma\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 90.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espDis}},\n  \"instructorId\": {{instructorId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -393,7 +436,7 @@
           }
         },
         {
-          "name": "Crear curso sin estado (queda en DRAFT)",
+          "name": "Crear curso que queda en borrador",
           "event": [
             {
               "listen": "test",
@@ -401,8 +444,7 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set(\"cursoBorrador\", pm.response.json().id);",
-                  "pm.test(\"estado DRAFT\", () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));"
+                  "pm.collectionVariables.set(\"cursoBorrador\", pm.response.json().id);"
                 ]
               }
             }
@@ -470,7 +512,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Cupo chico\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 50.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 1,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"Cupo chico\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 50.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 1,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -513,7 +555,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Ya empezado\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 50.0,\n  \"startDate\": \"{{ayer}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"Ya empezado\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 50.0,\n  \"startDate\": \"{{ayer}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -654,7 +696,833 @@
       ]
     },
     {
-      "name": "2 - Reglas de inscripcion",
+      "name": "2 - Flujo de aprobacion",
+      "item": [
+        {
+          "name": "Java: el instructor solicita la aprobacion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"aprobCursoJava\", pm.response.json().id);",
+                  "pm.test(\"estado SUBMITTED\", () => pm.expect(pm.response.json().status).to.eql(\"SUBMITTED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{cursoJava}},\n  \"instructorComment\": \"Listo para revisar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Java: el curso queda PENDING_APPROVAL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado PENDING_APPROVAL\", () => pm.expect(pm.response.json().status).to.eql(\"PENDING_APPROVAL\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{cursoJava}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{cursoJava}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Java: solicitar de nuevo con el curso pendiente: rechazada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"mensaje: Solo se puede solicitar la aprobacion de un curso en borrador\", () => pm.expect(pm.response.json().mensaje).to.eql(\"Solo se puede solicitar la aprobacion de un curso en borrador\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{cursoJava}},\n  \"instructorComment\": \"Listo para revisar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "El admin lista las solicitudes pendientes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests?status=SUBMITTED",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "SUBMITTED"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Java: el admin aprueba",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado APPROVED\", () => pm.expect(pm.response.json().status).to.eql(\"APPROVED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/{{aprobCursoJava}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "{{aprobCursoJava}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorId\": {{adminId}},\n  \"administratorComment\": \"Ok\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Java: el curso queda PUBLISHED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado PUBLISHED\", () => pm.expect(pm.response.json().status).to.eql(\"PUBLISHED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{cursoJava}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{cursoJava}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Java: aprobar una solicitud ya resuelta: rechazada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));",
+                  "pm.test(\"mensaje: La solicitud ya fue resuelta\", () => pm.expect(pm.response.json().mensaje).to.eql(\"La solicitud ya fue resuelta\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/{{aprobCursoJava}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "{{aprobCursoJava}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorId\": {{adminId}},\n  \"administratorComment\": \"Ok\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Figma: el instructor solicita la aprobacion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"aprobFigma1\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{cursoFigma}},\n  \"instructorComment\": \"Listo para revisar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Figma: el admin rechaza con un comentario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado REJECTED\", () => pm.expect(pm.response.json().status).to.eql(\"REJECTED\"));",
+                  "pm.test(\"guarda el comentario\", () => pm.expect(pm.response.json().administratorComment).to.eql(\"Falta el temario\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/{{aprobFigma1}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "{{aprobFigma1}}",
+                "reject"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorId\": {{adminId}},\n  \"administratorComment\": \"Falta el temario\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Figma: el curso vuelve a DRAFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado DRAFT\", () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{cursoFigma}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{cursoFigma}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Figma: el instructor vuelve a solicitar",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"aprobFigma2\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{cursoFigma}},\n  \"instructorComment\": \"Listo para revisar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Figma: el admin aprueba",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado APPROVED\", () => pm.expect(pm.response.json().status).to.eql(\"APPROVED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/{{aprobFigma2}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "{{aprobFigma2}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorId\": {{adminId}},\n  \"administratorComment\": \"Ok\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "El instructor consulta sus solicitudes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"trae 3\", () => pm.expect(pm.response.json().length).to.eql(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests?instructorId={{instructorId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ],
+              "query": [
+                {
+                  "key": "instructorId",
+                  "value": "{{instructorId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Aprobar una solicitud inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/999999/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "999999",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorId\": {{adminId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Solicitar aprobacion de Spring",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"aprobCursoSpring\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{cursoSpring}},\n  \"instructorComment\": \"Listo para revisar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Aprobar Spring",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado APPROVED\", () => pm.expect(pm.response.json().status).to.eql(\"APPROVED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/{{aprobCursoSpring}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "{{aprobCursoSpring}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorId\": {{adminId}},\n  \"administratorComment\": \"Ok\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Solicitar aprobacion de Cupo chico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"aprobCursoCupo\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{cursoCupo}},\n  \"instructorComment\": \"Listo para revisar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Aprobar Cupo chico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado APPROVED\", () => pm.expect(pm.response.json().status).to.eql(\"APPROVED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/{{aprobCursoCupo}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "{{aprobCursoCupo}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorId\": {{adminId}},\n  \"administratorComment\": \"Ok\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Solicitar aprobacion de Ya empezado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set(\"aprobCursoEmpezado\", pm.response.json().id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"courseId\": {{cursoEmpezado}},\n  \"instructorComment\": \"Listo para revisar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Aprobar Ya empezado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"estado APPROVED\", () => pm.expect(pm.response.json().status).to.eql(\"APPROVED\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/{{aprobCursoEmpezado}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "{{aprobCursoEmpezado}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorId\": {{adminId}},\n  \"administratorComment\": \"Ok\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 - Reglas de inscripcion",
       "item": [
         {
           "name": "Ana se inscribe a Java: paga precio completo",
@@ -1003,7 +1871,7 @@
       ]
     },
     {
-      "name": "3 - Validaciones y errores",
+      "name": "4 - Validaciones y errores",
       "item": [
         {
           "name": "Instructor con email repetido",
@@ -1151,7 +2019,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1193,7 +2061,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Fechas al reves\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{fin}}\",\n  \"endDate\": \"{{inicio}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"Fechas al reves\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{fin}}\",\n  \"endDate\": \"{{inicio}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1235,7 +2103,92 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Negativo\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": -10,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"Negativo\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": -10,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear un curso mandando status PUBLISHED: se ignora y queda en DRAFT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"estado DRAFT\", () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Sin aprobar\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Solicitud de aprobacion sin curso",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1289,7 +2242,7 @@
       ]
     },
     {
-      "name": "4 - Listados",
+      "name": "5 - Listados",
       "item": [
         {
           "name": "Listar cursos",
@@ -1430,11 +2383,39 @@
               ]
             }
           }
+        },
+        {
+          "name": "Listar solicitudes de aprobacion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            }
+          }
         }
       ]
     },
     {
-      "name": "5 - Pendientes (hoy fallan)",
+      "name": "6 - Pendientes (hoy fallan)",
       "item": [
         {
           "name": "Curso con una especialidad que el instructor no tiene: deberia rechazarse",
@@ -1469,50 +2450,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Marketing\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espMkt}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          }
-        },
-        {
-          "name": "Curso creado como PUBLISHED sin aprobacion: deberia quedar en DRAFT",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));",
-                  "pm.test(\"estado DRAFT\", () => pm.expect(pm.response.json().status).to.eql(\"DRAFT\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/courses",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "courses"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Sin aprobar\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espProg}},\n  \"instructorId\": {{instructorId}},\n  \"status\": \"PUBLISHED\"\n}",
+              "raw": "{\n  \"title\": \"Marketing\",\n  \"description\": \"Curso de prueba\",\n  \"basePrice\": 100.0,\n  \"startDate\": \"{{inicio}}\",\n  \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5,\n  \"specialtyId\": {{espMkt}},\n  \"instructorId\": {{instructorId}}\n}",
               "options": {
                 "raw": {
                   "language": "json"
