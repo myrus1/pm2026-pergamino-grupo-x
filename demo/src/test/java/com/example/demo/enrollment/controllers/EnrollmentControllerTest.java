@@ -153,19 +153,8 @@ class EnrollmentControllerTest {
     }
 
     @Test
-    void deleteResponde204() throws Exception {
-        when(enrollmentService.getById(9L)).thenReturn(inscripcion());
-
+    void cancelarUnaInscripcionNoEstaPermitidoResponde405() throws Exception {
         mockMvc.perform(delete(RUTA + "/9"))
-                .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void deleteInexistenteResponde404() throws Exception {
-        when(enrollmentService.getById(99L)).thenThrow(new EntityNotFoundException("Inscripcion no encontrada con id 99"));
-
-        mockMvc.perform(delete(RUTA + "/99"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Inscripcion no encontrada con id 99"));
+                .andExpect(status().isMethodNotAllowed());
     }
 }

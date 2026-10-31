@@ -9,7 +9,6 @@ import com.example.demo.enrollment.model.Enrollment;
 import com.example.demo.enrollment.services.EnrollmentService;
 import java.util.List;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,7 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 // API REST de inscripciones: /api/enrollments.
-// No tiene PUT: una inscripcion se crea (con las reglas de Student.applyCourse) y se elimina.
+// No tiene PUT ni DELETE: una inscripcion se crea (con las reglas de Student.applyCourse) y no se cancela.
 @RestController
 @RequestMapping("/api/enrollments")
 public class EnrollmentController {
@@ -50,13 +49,6 @@ public class EnrollmentController {
     public EnrollmentResponse create(@RequestBody EnrollmentRequest solicitud) {
         validar(solicitud);
         return respuesta(enrollmentService.enroll(solicitud.getStudentId(), solicitud.getCourseId()));
-    }
-
-    @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
-        enrollmentService.getById(id);
-        enrollmentService.delete(id);
     }
 
     private void validar(EnrollmentRequest solicitud) {
