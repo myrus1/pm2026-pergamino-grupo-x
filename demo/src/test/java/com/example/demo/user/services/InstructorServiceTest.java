@@ -18,6 +18,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+// Estas pruebas verifican que, al crear un instructor, el servicio compruebe
+// que el email esté disponible y codifique la contraseña antes de guardarla.
+// Si el email ya existe, debe rechazar la operación sin codificar ni guardar.
+
 @ExtendWith(MockitoExtension.class)
 class InstructorServiceTest {
 
