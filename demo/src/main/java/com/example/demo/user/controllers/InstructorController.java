@@ -49,7 +49,7 @@ public class InstructorController {
         validar(solicitud);
         Instructor instructor = new Instructor(solicitud.getFirstName(), solicitud.getLastName(),
                 solicitud.getEmail(), solicitud.getPassword());
-        return respuesta(instructorService.save(instructor));
+        return respuesta(instructorService.create(instructor));
     }
 
     @PutMapping("/{id}")
@@ -60,7 +60,7 @@ public class InstructorController {
         instructor.setLastName(solicitud.getLastName());
         instructor.setEmail(solicitud.getEmail());
         instructor.setPassword(solicitud.getPassword());
-        return respuesta(instructorService.save(instructor));
+        return respuesta(instructorService.update(instructor));
     }
 
     @DeleteMapping("/{id}")
