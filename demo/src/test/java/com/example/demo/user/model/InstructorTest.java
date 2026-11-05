@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.Specialty;
+import com.example.demo.testutil.TestIds;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Set;
@@ -49,6 +50,21 @@ class InstructorTest {
                         .isInstanceOf(IllegalArgumentException.class)
                         .hasMessage("instructor debe tener la especialidad del curso");
         assertThat(instructor.getCourses()).isEmpty();
+    }
+
+    @Test
+    void validateSpecialtyReconoceLaMismaEspecialidadPorId() {
+        Specialty propia = new Specialty("Programacion");
+        TestIds.fijarId(propia, 1L);
+        instructor.addSpecialty(propia);
+        Specialty mismaPorId = new Specialty("Programacion");
+        TestIds.fijarId(mismaPorId, 1L);
+        Specialty otra = new Specialty("Diseno");
+        TestIds.fijarId(otra, 2L);
+
+        instructor.validateSpecialty(mismaPorId);
+        assertThatThrownBy(() -> instructor.validateSpecialty(otra))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

@@ -41,8 +41,12 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   │   ├── repositories/
 │   │   │   ├── controllers/      # EnrollmentController
 │   │   │   └── dto/              # EnrollmentRequest/Response
-│   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus (solo modelo)
-│   │   │   └── model/
+│   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus, ApprovalRequestException
+│   │   │   ├── model/
+│   │   │   ├── services/         # ApprovalRequestService
+│   │   │   ├── repositories/
+│   │   │   ├── controllers/      # ApprovalRequestController
+│   │   │   └── dto/              # ApprovalSubmitRequest, ApprovalResolveRequest, ApprovalRequestResponse
 │   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse
 │   ├── src/main/resources/application.properties
 │   ├── src/main/Docs/UML/Diagrama UML.pdf   # diagrama de clases (modelo de dominio)
@@ -83,9 +87,10 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `${DB_PASSWORD}`. Plantilla en `.env.example`; `.env` está en `.gitignore`.
 - `spring.jpa.hibernate.ddl-auto=update` → el esquema se actualiza solo; **no hay
   migraciones (Flyway/Liquibase)**. Cambios de esquema se generan desde las entidades.
-- `spring.jpa.open-in-view=true` → la sesión JPA queda abierta durante la respuesta para
-  poder serializar relaciones `@ManyToOne(LAZY)` a JSON. No cambiar a `false` sin antes
-  usar DTOs.
+- `spring.jpa.open-in-view=false` → la sesión JPA se cierra al salir del servicio. Todo lo
+  que recorra o modifique relaciones LAZY (inscribir, crear/editar cursos, asignar
+  especialidades) se hace dentro de un método `@Transactional` del servicio, nunca en el
+  controlador.
 - Stack: Spring Boot parent **4.1.1**, `spring-boot-starter-data-jpa`,
   `spring-boot-starter-data-jdbc`, `spring-boot-starter-webmvc`, Lombok, PostgreSQL driver,
   DevTools. `java.version` en `pom.xml` = **17** (el README dice Java 21+; el POM manda
@@ -94,8 +99,7 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 ## Convenciones de dominio (seguir el patrón de `<feature>/model`)
 
 - **Paquetes por feature, no por capa**: `com.example.demo.<feature>.model` /
-  `.services` / `.repositories`. Cada feature tiene sus tres subpaquetes (hoy `approval`
-  solo tiene `model`).
+  `.services` / `.repositories`. Cada feature tiene sus tres subpaquetes.
 - JPA: `@Entity` + `@Table(name = "plural_snake")` (`students`, `courses`), `@Id`
   `@GeneratedValue(strategy = IDENTITY)`, **todas las entidades tienen constructor sin
   argumentos** (lo exige JPA) y constructores de conveniencia explícitos.
@@ -119,7 +123,8 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   Relaciones `@ManyToOne(fetch = LAZY)` con `@JoinColumn(nullable = false)`; en
   `Instructor.specialties` también `LAZY`.
 - **Servicios**: `@Service` + `@Transactional` en la clase, `@Transactional(readOnly = true)`
-  en los métodos de lectura, constructor único con el repositorio inyectado. CRUD básico:
+  en los métodos de lectura, constructor único con el repositorio (y los servicios de otras
+  features que necesite) inyectado. CRUD básico:
   `getAll()`, `getById(id)`, `save(x)`, `delete(id)`. `getById` lanza
   `jakarta.persistence.EntityNotFoundException` si no existe.
 
@@ -137,15 +142,27 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 
 - Modelos, repositorios y servicios implementados por feature.
 - API REST implementada: CRUD bajo `/api/students`, `/api/instructors`,
-  `/api/administrators`, `/api/courses`, `/api/specialties` y `/api/enrollments`.
+  `/api/administrators`, `/api/courses`, `/api/specialties`, `/api/enrollments` y
+  `/api/approval-requests`.
   Los controladores y DTOs viven en `<feature>/controllers` y `<feature>/dto`;
   `ApiExceptionHandler`, `Validaciones` y `ErrorResponse` son transversales
   (paquete `common/`).
   `POST /api/enrollments` valida las reglas de negocio via
-  `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
+  `EnrollmentService.enroll` → `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
   400/404/409 con cuerpo `{"mensaje": ...}`.
-- `approval/` solo tiene `model`: `ApprovalRequest`/`ApprovalStatus` no tienen servicio ni
-  repositorio todavía.
+- Flujo de aprobación: `POST /api/approval-requests` (curso en DRAFT → PENDING_APPROVAL),
+  `POST /api/approval-requests/{id}/approve` (→ PUBLISHED) y `/{id}/reject` (→ DRAFT);
+  `GET /api/approval-requests?status=&instructorId=` para listar. Las reglas viven en
+  `ApprovalRequest` y responden 409. El estado del curso no se recibe en `CourseRequest`:
+  solo cambia por este flujo.
+- Recaudación: `GET /api/instructors/{id}/revenue` (65% del precio base por inscripción,
+  sin importar descuentos; regla en `Enrollment.instructorRevenue`) y
+  `GET /api/enrollments/revenue` (total pagado por los alumnos).
+- Listados: `GET /api/students?courseId=` (alumnos inscriptos en un curso) y
+  `GET /api/courses?studentId=` (cursos del alumno, por fecha de inicio descendente).
+- Las inscripciones no tienen `DELETE` (no se pueden cancelar). Un curso solo se crea o
+  edita con una especialidad de su instructor (`Instructor.validateSpecialty`).
+  `DataIntegrityViolationException` (DNI/email duplicado, borrar algo en uso) responde 409.
 - Tests unitarios del dominio (`CourseTest`, `StudentTest`, `InstructorTest`,
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`) y de los
   controladores (`*ControllerTest`, slice `@WebMvcTest`), todos sin BD salvo `contextLoads`.
