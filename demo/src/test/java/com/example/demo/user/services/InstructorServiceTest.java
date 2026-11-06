@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.example.demo.common.PasswordEncoder;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.SpecialtyService;
+import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.repositories.InstructorRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -82,6 +83,17 @@ class InstructorServiceTest {
 
         verify(passwordEncoder, never()).encode(any());
         verify(instructorRepository, never()).save(any());
+    }
+
+    @Test
+    void updateConSuPropioEmailHasheaYGuarda() {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "nueva");
+        TestIds.fijarId(instructor, 5L);
+        when(instructorRepository.findByEmail("iris@example.com")).thenReturn(instructor);
+        when(passwordEncoder.encode("nueva")).thenReturn("bcrypt-nueva");
+        when(instructorRepository.save(instructor)).thenReturn(instructor);
+
+        assertThat(instructorService.update(instructor).getPassword()).isEqualTo("bcrypt-nueva");
     }
 
     @Test

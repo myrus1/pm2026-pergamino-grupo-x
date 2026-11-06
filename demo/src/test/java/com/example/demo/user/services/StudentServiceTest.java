@@ -2,8 +2,10 @@ package com.example.demo.user.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.demo.common.PasswordEncoder;
 import com.example.demo.user.model.Student;
 import com.example.demo.user.repositories.StudentRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,11 +22,36 @@ class StudentServiceTest {
     @Mock
     private StudentRepository studentRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     private StudentService studentService;
 
     @BeforeEach
     void setUp() {
-        studentService = new StudentService(studentRepository);
+        studentService = new StudentService(studentRepository, passwordEncoder);
+    }
+
+    @Test
+    void createHasheaLaContrasenaAntesDeGuardar() {
+        Student estudiante = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
+        when(passwordEncoder.encode("secret")).thenReturn("bcrypt-hash");
+        when(studentRepository.save(estudiante)).thenAnswer(invocation -> {
+            assertThat(estudiante.getPassword()).isEqualTo("bcrypt-hash");
+            return estudiante;
+        });
+
+        assertThat(studentService.create(estudiante).getPassword()).isEqualTo("bcrypt-hash");
+        verify(studentRepository).save(estudiante);
+    }
+
+    @Test
+    void updateHasheaLaNuevaContrasena() {
+        Student estudiante = new Student("Ana", "Perez", "ana@example.com", "nueva", "11111111");
+        when(passwordEncoder.encode("nueva")).thenReturn("bcrypt-nueva");
+        when(studentRepository.save(estudiante)).thenReturn(estudiante);
+
+        assertThat(studentService.update(estudiante).getPassword()).isEqualTo("bcrypt-nueva");
     }
 
     @Test

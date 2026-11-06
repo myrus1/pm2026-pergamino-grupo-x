@@ -1,5 +1,6 @@
 package com.example.demo.user.services;
 
+import com.example.demo.common.PasswordEncoder;
 import com.example.demo.user.model.Student;
 import com.example.demo.user.repositories.StudentRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -9,11 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-public class StudentService {
+public class StudentService extends UserService<Student> {
 
     private final StudentRepository studentRepository;
 
-    public StudentService(StudentRepository studentRepository) {
+    public StudentService(StudentRepository studentRepository, PasswordEncoder passwordEncoder) {
+        super(studentRepository, passwordEncoder);
         this.studentRepository = studentRepository;
     }
 
@@ -26,10 +28,6 @@ public class StudentService {
     public Student getById(Long id) {
         return studentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Estudiante no encontrado con id " + id));
-    }
-
-    public Student save(Student student) {
-        return studentRepository.save(student);
     }
 
     public void delete(Long id) {
