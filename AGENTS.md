@@ -27,8 +27,8 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   │   ├── model/
 │   │   │   ├── services/         # StudentService, InstructorService, AdministratorService
 │   │   │   ├── repositories/
-│   │   │   ├── controllers/      # StudentController, InstructorController, AdministratorController
-│   │   │   └── dto/              # StudentRequest/Response, Instructor..., Administrator...
+│   │   │   ├── controllers/      # StudentController, InstructorController, AdministratorController, InstructorResource (TP4)
+│   │   │   └── dto/              # StudentRequest/Response, Instructor..., Administrator..., CreateInstructorRequestDTO
 │   │   ├── course/               # feature: Course, CourseStatus, Specialty
 │   │   │   ├── model/
 │   │   │   ├── services/         # CourseService, SpecialtyService
@@ -49,9 +49,8 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   │   └── dto/              # ApprovalSubmitRequest, ApprovalResolveRequest, ApprovalRequestResponse
 │   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse
 │   ├── src/main/resources/application.properties
-│   ├── src/main/Docs/UML/Diagrama UML.pdf   # diagrama de clases (modelo de dominio)
-│   └── src/test/java/com/example/demo/DemoApplicationTests.java  # solo contextLoads
-└── .github/modernize/      # hooks de una extensión externa; no modificar ni usar
+│   └── src/test/java/com/example/demo/   # tests por feature (dominio, servicios, controladores)
+└── Docs/                     # UML/ (diagrama de clases), SQL/ (DER y esquema), Postman/ (coleccion)
 ```
 
 Importante: **el directorio Maven es `demo/`, no la raíz**. No existe `mvnw` en la raíz.
@@ -154,6 +153,10 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `GET /api/approval-requests?status=&instructorId=` para listar. Las reglas viven en
   `ApprovalRequest` y responden 409. El estado del curso no se recibe en `CourseRequest`:
   solo cambia por este flujo.
+- TP4: `POST /instructor` (`user/controllers/InstructorResource`) recibe
+  `CreateInstructorRequestDTO` (record con email, password, firstName y lastName), delega en
+  `InstructorService.create` (email unico + BCrypt) y responde con `ResponseEntity` 201, o 409
+  si la creacion falla. Convive con el CRUD de `/api/instructors`.
 - Recaudación: `GET /api/instructors/{id}/revenue` (65% del precio base por inscripción,
   sin importar descuentos; regla en `Enrollment.instructorRevenue`) y
   `GET /api/enrollments/revenue` (total pagado por los alumnos).
