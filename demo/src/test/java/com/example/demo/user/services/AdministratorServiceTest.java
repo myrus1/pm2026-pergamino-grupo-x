@@ -2,8 +2,10 @@ package com.example.demo.user.services;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.demo.common.PasswordEncoder;
 import com.example.demo.user.model.Administrator;
 import com.example.demo.user.repositories.AdministratorRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -20,11 +22,36 @@ class AdministratorServiceTest {
     @Mock
     private AdministratorRepository administratorRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     private AdministratorService administratorService;
 
     @BeforeEach
     void setUp() {
-        administratorService = new AdministratorService(administratorRepository);
+        administratorService = new AdministratorService(administratorRepository, passwordEncoder);
+    }
+
+    @Test
+    void createHasheaLaContrasenaAntesDeGuardar() {
+        Administrator admin = new Administrator("Ada", "Lopez", "ada@example.com", "secret");
+        when(passwordEncoder.encode("secret")).thenReturn("bcrypt-hash");
+        when(administratorRepository.save(admin)).thenAnswer(invocation -> {
+            assertThat(admin.getPassword()).isEqualTo("bcrypt-hash");
+            return admin;
+        });
+
+        assertThat(administratorService.create(admin).getPassword()).isEqualTo("bcrypt-hash");
+        verify(administratorRepository).save(admin);
+    }
+
+    @Test
+    void updateHasheaLaNuevaContrasena() {
+        Administrator admin = new Administrator("Ada", "Lopez", "ada@example.com", "nueva");
+        when(passwordEncoder.encode("nueva")).thenReturn("bcrypt-nueva");
+        when(administratorRepository.save(admin)).thenReturn(admin);
+
+        assertThat(administratorService.update(admin).getPassword()).isEqualTo("bcrypt-nueva");
     }
 
     @Test

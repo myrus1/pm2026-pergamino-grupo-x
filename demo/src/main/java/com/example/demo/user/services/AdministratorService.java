@@ -1,5 +1,6 @@
 package com.example.demo.user.services;
 
+import com.example.demo.common.PasswordEncoder;
 import com.example.demo.user.model.Administrator;
 import com.example.demo.user.repositories.AdministratorRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -9,11 +10,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-public class AdministratorService {
+public class AdministratorService extends UserService<Administrator> {
 
     private final AdministratorRepository administratorRepository;
 
-    public AdministratorService(AdministratorRepository administratorRepository) {
+    public AdministratorService(AdministratorRepository administratorRepository, PasswordEncoder passwordEncoder) {
+        super(administratorRepository, passwordEncoder);
         this.administratorRepository = administratorRepository;
     }
 
@@ -26,10 +28,6 @@ public class AdministratorService {
     public Administrator getById(Long id) {
         return administratorRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Administrador no encontrado con id " + id));
-    }
-
-    public Administrator save(Administrator administrator) {
-        return administratorRepository.save(administrator);
     }
 
     public void delete(Long id) {

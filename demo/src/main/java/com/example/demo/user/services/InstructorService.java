@@ -13,16 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-public class InstructorService {
+public class InstructorService extends UserService<Instructor> {
 
     private final InstructorRepository instructorRepository;
-    private final PasswordEncoder passwordEncoder;
     private final SpecialtyService specialtyService;
 
     public InstructorService(InstructorRepository instructorRepository, PasswordEncoder passwordEncoder,
             SpecialtyService specialtyService) {
+        super(instructorRepository, passwordEncoder);
         this.instructorRepository = instructorRepository;
-        this.passwordEncoder = passwordEncoder;
         this.specialtyService = specialtyService;
     }
 
@@ -35,24 +34,6 @@ public class InstructorService {
     public Instructor getById(Long id) {
         return instructorRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Instructor no encontrado con id " + id));
-    }
-
-    public Instructor save(Instructor instructor) {
-        return instructorRepository.save(instructor);
-    }
-
-    public Instructor create(Instructor instructor) {
-        Objects.requireNonNull(instructor, "El instructor no puede ser nulo");
-        validarEmailDisponible(instructor.getEmail(), null);
-        instructor.setPassword(passwordEncoder.encode(instructor.getPassword()));
-        return instructorRepository.save(instructor);
-    }
-
-    public Instructor update(Instructor instructor) {
-        Objects.requireNonNull(instructor, "El instructor no puede ser nulo");
-        validarEmailDisponible(instructor.getEmail(), instructor.getId());
-        instructor.setPassword(passwordEncoder.encode(instructor.getPassword()));
-        return instructorRepository.save(instructor);
     }
 
     public void delete(Long id) {
@@ -73,7 +54,8 @@ public class InstructorService {
         instructorRepository.save(instructor);
     }
 
-    private void validarEmailDisponible(String email, Long instructorId) {
+    @Override
+    protected void validarEmailDisponible(String email, Long instructorId) {
         Instructor existente = instructorRepository.findByEmail(email);
         if (existente != null && (instructorId == null || !Objects.equals(existente.getId(), instructorId))) {
             throw new InstructorEmailAlreadyExistsException(email);

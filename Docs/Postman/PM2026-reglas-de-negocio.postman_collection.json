@@ -2870,6 +2870,134 @@
           }
         }
       ]
+    },
+    {
+      "name": "7 - TP4: POST /instructor",
+      "item": [
+        {
+          "name": "Crear instructor por POST /instructor (TP4): 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/instructor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "instructor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"lucas{{run}}@test.com\",\n  \"password\": \"clave123\",\n  \"firstName\": \"Lucas\",\n  \"lastName\": \"Vera\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Mismo email por POST /instructor: 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/instructor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "instructor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"lucas{{run}}@test.com\",\n  \"password\": \"otra\",\n  \"firstName\": \"Lucas\",\n  \"lastName\": \"Vera\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST /instructor sin password: 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 400\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/instructor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "instructor"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sinclave{{run}}@test.com\",\n  \"firstName\": \"Sin\",\n  \"lastName\": \"Clave\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
     }
   ]
 }
