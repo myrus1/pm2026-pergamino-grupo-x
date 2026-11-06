@@ -27,6 +27,8 @@ DB_PASSWORD=pass
 
 Para la base del grupo en Aiven, pedí los datos al grupo y agregá `?sslmode=require` al final de `DB_URL`. El `.env` no se sube al repositorio.
 
+`JWT_SECRET` (opcional) es la clave con la que se firman los tokens de login; si no está, se usa una de desarrollo.
+
 Las tablas se crean y actualizan solas al levantar la app (`spring.jpa.hibernate.ddl-auto=update`).
 
 ## Ejecución

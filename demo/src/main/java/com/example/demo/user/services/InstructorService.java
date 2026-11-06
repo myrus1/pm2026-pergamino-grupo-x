@@ -36,6 +36,11 @@ public class InstructorService extends UserService<Instructor> {
                 .orElseThrow(() -> new EntityNotFoundException("Instructor no encontrado con id " + id));
     }
 
+    @Transactional(readOnly = true)
+    public Instructor findByEmail(String email) {
+        return instructorRepository.findByEmail(email);
+    }
+
     public void delete(Long id) {
         instructorRepository.deleteById(id);
     }
