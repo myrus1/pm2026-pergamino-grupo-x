@@ -17,6 +17,7 @@ import com.example.demo.user.services.InstructorService;
 import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -158,6 +159,16 @@ class CourseServiceTest {
         assertThatThrownBy(() -> courseService.update(99L, solicitud(1L, 2L)))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Curso no encontrado con id 99");
+    }
+
+    @Test
+    void getCoursesByInstructorIdDevuelveLosCursosDelInstructor() {
+        Course curso = new Course("Curso", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"),
+                new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
+        when(courseRepository.findByInstructorId(4L)).thenReturn(List.of(curso));
+
+        assertThat(courseService.getCoursesByInstructorId(4L)).containsExactly(curso);
     }
 
     @Test
