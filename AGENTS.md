@@ -25,7 +25,7 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   ├── DemoApplication.java
 │   │   ├── user/                 # feature: User, Student, Instructor, Administrator
 │   │   │   ├── model/
-│   │   │   ├── services/         # StudentService, InstructorService, AdministratorService
+│   │   │   ├── services/         # UserService (base) y StudentService, InstructorService, AdministratorService
 │   │   │   ├── repositories/
 │   │   │   ├── controllers/      # StudentController, InstructorController, AdministratorController, InstructorResource (TP4)
 │   │   │   └── dto/              # StudentRequest/Response, Instructor..., Administrator..., CreateInstructorRequestDTO
@@ -125,6 +125,11 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   features que necesite) inyectado. CRUD básico:
   `getAll()`, `getById(id)`, `save(x)`, `delete(id)`. `getById` lanza
   `jakarta.persistence.EntityNotFoundException` si no existe.
+- **Usuarios**: `StudentService`, `InstructorService` y `AdministratorService` heredan de
+  `UserService<T extends User>`, que da `create(x)` y `update(x)` guardando la contraseña con
+  BCrypt (`PasswordEncoder`). Los servicios de usuarios **no tienen `save`**: para no guardar
+  nunca una contraseña sin hash, se usa siempre `create`/`update`.
+  Una subclase puede sobreescribir `validarEmailDisponible` (lo hace `InstructorService`).
 
 ## Flujo git
 

@@ -71,7 +71,7 @@ class AdministratorControllerTest {
 
     @Test
     void createValidoResponde201ConElAdministradorCreado() throws Exception {
-        when(administratorService.save(any(Administrator.class))).thenAnswer(invocation -> {
+        when(administratorService.create(any(Administrator.class))).thenAnswer(invocation -> {
             Administrator guardado = invocation.getArgument(0);
             TestIds.fijarId(guardado, 7L);
             return guardado;
@@ -95,7 +95,7 @@ class AdministratorControllerTest {
     @Test
     void updateModificaElAdministradorExistente() throws Exception {
         when(administratorService.getById(1L)).thenReturn(administrador());
-        when(administratorService.save(any(Administrator.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(administratorService.update(any(Administrator.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Eva Maria","lastName":"Sosa","email":"eva@example.com","password":"secret"}"""))

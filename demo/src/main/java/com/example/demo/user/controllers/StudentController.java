@@ -52,7 +52,7 @@ public class StudentController {
         validar(solicitud);
         Student alumno = new Student(solicitud.getFirstName(), solicitud.getLastName(), solicitud.getEmail(),
                 solicitud.getPassword(), solicitud.getDni());
-        return respuesta(studentService.save(alumno));
+        return respuesta(studentService.create(alumno));
     }
 
     @PutMapping("/{id}")
@@ -64,7 +64,7 @@ public class StudentController {
         alumno.setEmail(solicitud.getEmail());
         alumno.setPassword(solicitud.getPassword());
         alumno.setDni(solicitud.getDni());
-        return respuesta(studentService.save(alumno));
+        return respuesta(studentService.update(alumno));
     }
 
     @DeleteMapping("/{id}")

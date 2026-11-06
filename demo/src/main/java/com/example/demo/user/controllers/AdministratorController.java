@@ -45,7 +45,7 @@ public class AdministratorController {
         validar(solicitud);
         Administrator administrador = new Administrator(solicitud.getFirstName(), solicitud.getLastName(),
                 solicitud.getEmail(), solicitud.getPassword());
-        return respuesta(administratorService.save(administrador));
+        return respuesta(administratorService.create(administrador));
     }
 
     @PutMapping("/{id}")
@@ -56,7 +56,7 @@ public class AdministratorController {
         administrador.setLastName(solicitud.getLastName());
         administrador.setEmail(solicitud.getEmail());
         administrador.setPassword(solicitud.getPassword());
-        return respuesta(administratorService.save(administrador));
+        return respuesta(administratorService.update(administrador));
     }
 
     @DeleteMapping("/{id}")

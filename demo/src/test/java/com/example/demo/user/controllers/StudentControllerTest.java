@@ -98,7 +98,7 @@ class StudentControllerTest {
 
     @Test
     void createValidoResponde201ConElAlumnoCreado() throws Exception {
-        when(studentService.save(any(Student.class))).thenAnswer(invocation -> {
+        when(studentService.create(any(Student.class))).thenAnswer(invocation -> {
             Student guardado = invocation.getArgument(0);
             TestIds.fijarId(guardado, 7L);
             return guardado;
@@ -123,7 +123,7 @@ class StudentControllerTest {
     @Test
     void updateModificaElAlumnoExistente() throws Exception {
         when(studentService.getById(1L)).thenReturn(alumno());
-        when(studentService.save(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(studentService.update(any(Student.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Ana Maria","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"11111111"}"""))
