@@ -92,9 +92,8 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   especialidades) se hace dentro de un método `@Transactional` del servicio, nunca en el
   controlador.
 - Stack: Spring Boot parent **4.1.1**, `spring-boot-starter-data-jpa`,
-  `spring-boot-starter-data-jdbc`, `spring-boot-starter-webmvc`, Lombok, PostgreSQL driver,
-  DevTools. `java.version` en `pom.xml` = **17** (el README dice Java 21+; el POM manda
-  para compilar).
+  `spring-boot-starter-webmvc`, Lombok, PostgreSQL driver, Password4j (BCrypt en
+  `common/PasswordEncoder`), DevTools. `java.version` en `pom.xml` = **17**.
 
 ## Convenciones de dominio (seguir el patrón de `<feature>/model`)
 
@@ -167,5 +166,3 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`) y de los
   controladores (`*ControllerTest`, slice `@WebMvcTest`), todos sin BD salvo `contextLoads`.
   Todavia no hay tests de persistencia (JPA).
-- El `README.md` tiene comandos desactualizados (`cd proyecto-pm-2026`, `./mvnw` desde la
-  raíz); los comandos válidos son los de la sección "Comandos".
