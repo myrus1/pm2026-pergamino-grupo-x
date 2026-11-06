@@ -4,6 +4,7 @@ import com.example.demo.course.model.Course;
 import com.example.demo.user.model.Student;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import lombok.Getter;
@@ -15,6 +16,8 @@ import lombok.Setter;
 })
 @Getter
 public class Enrollment {
+
+    private static final BigDecimal INSTRUCTOR_SHARE = new BigDecimal("0.65");
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,6 +53,10 @@ public class Enrollment {
         setCourse(course);
         this.finalAmount = finalAmount;
         this.enrollmentDate = enrollmentDate;
+    }
+
+    public BigDecimal instructorRevenue() {
+        return course.getBasePrice().multiply(INSTRUCTOR_SHARE).setScale(2, RoundingMode.HALF_UP);
     }
 
     public void setStudent(Student student) {
