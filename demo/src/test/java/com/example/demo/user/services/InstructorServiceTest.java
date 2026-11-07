@@ -41,6 +41,14 @@ class InstructorServiceTest {
     }
 
     @Test
+    void findByEmailUsaElRepositorio() {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        when(instructorRepository.findByEmail("iris@example.com")).thenReturn(instructor);
+
+        assertThat(instructorService.findByEmail("iris@example.com")).isSameAs(instructor);
+    }
+
+    @Test
     void getByIdDevuelveElInstructorExistente() {
         Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
         when(instructorRepository.findById(1L)).thenReturn(Optional.of(instructor));

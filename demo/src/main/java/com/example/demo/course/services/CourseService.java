@@ -56,6 +56,11 @@ public class CourseService {
     }
 
     @Transactional(readOnly = true)
+    public List<Course> getCoursesByInstructorId(Long instructorId) {
+        return courseRepository.findByInstructorId(instructorId);
+    }
+
+    @Transactional(readOnly = true)
     public Course getById(Long id) {
         return courseRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Curso no encontrado con id " + id));

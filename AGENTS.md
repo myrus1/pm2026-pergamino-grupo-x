@@ -47,7 +47,10 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   │   ├── repositories/
 │   │   │   ├── controllers/      # ApprovalRequestController
 │   │   │   └── dto/              # ApprovalSubmitRequest, ApprovalResolveRequest, ApprovalRequestResponse
-│   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse
+│   │   ├── auth/                 # feature TP5: AuthenticationException, AuthorizationException
+│   │   │   ├── model/
+│   │   │   └── services/         # AuthenticationService(Imp), AuthorizationService(Imp)
+│   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse, PasswordEncoder, JwtTokenUtil
 │   ├── src/main/resources/application.properties
 │   └── src/test/java/com/example/demo/   # tests por feature (dominio, servicios, controladores)
 └── Docs/                     # UML/ (diagrama de clases), SQL/ (DER y esquema), Postman/ (coleccion)
@@ -84,6 +87,8 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 - Las credenciales de BD **no van en el código ni en el repo**: se leen de variables de
   entorno definidas en `application.properties` como `${DB_URL}`, `${DB_USERNAME}`,
   `${DB_PASSWORD}`. Plantilla en `.env.example`; `.env` está en `.gitignore`.
+- `jwt.secret=${JWT_SECRET:...}`: clave HMAC512 de los tokens. Si no hay `JWT_SECRET` en el
+  `.env` se usa un valor por defecto de desarrollo.
 - `spring.jpa.hibernate.ddl-auto=update` → el esquema se actualiza solo; **no hay
   migraciones (Flyway/Liquibase)**. Cambios de esquema se generan desde las entidades.
 - `spring.jpa.open-in-view=false` → la sesión JPA se cierra al salir del servicio. Todo lo
@@ -162,6 +167,13 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `CreateInstructorRequestDTO` (record con email, password, firstName y lastName), delega en
   `InstructorService.create` (email unico + BCrypt) y responde con `ResponseEntity` 201, o 409
   si la creacion falla. Convive con el CRUD de `/api/instructors`.
+- TP5: `POST /instructor/auth` recibe `InstructorAuthenticationRequestDTO` (email, password) y
+  devuelve `{"token": "Bearer ..."}` (JWT HMAC512, vence en 10 dias, subject = email), o 401.
+  `GET /instructor` y `GET /instructor/courses` leen el header `Authorization`, validan el token
+  con `AuthorizationService` y devuelven solo los cursos de ese instructor
+  (`InstructorCoursesResponseDTO`: id, name, description), o 403. Los servicios de `auth/` lanzan
+  `AuthenticationException`/`AuthorizationException`, que son las que el recurso convierte en
+  401/403.
 - Recaudación: `GET /api/instructors/{id}/revenue` (65% del precio base por inscripción,
   sin importar descuentos; regla en `Enrollment.instructorRevenue`) y
   `GET /api/enrollments/revenue` (total pagado por los alumnos).
