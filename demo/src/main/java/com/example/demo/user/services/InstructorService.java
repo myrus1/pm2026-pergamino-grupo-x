@@ -1,6 +1,7 @@
 package com.example.demo.user.services;
 
 import com.example.demo.common.PasswordEncoder;
+import com.example.demo.course.dto.SpecialtyResponse;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.user.model.Instructor;
@@ -34,6 +35,13 @@ public class InstructorService extends UserService<Instructor> {
     public Instructor getById(Long id) {
         return instructorRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Instructor no encontrado con id " + id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<SpecialtyResponse> getSpecialties(Long instructorId) {
+        return getById(instructorId).getSpecialties().stream()
+                .map(specialty -> new SpecialtyResponse(specialty.getId(), specialty.getName()))
+                .toList();
     }
 
     @Transactional(readOnly = true)

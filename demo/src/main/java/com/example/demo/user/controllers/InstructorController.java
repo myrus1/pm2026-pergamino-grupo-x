@@ -2,6 +2,7 @@ package com.example.demo.user.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
+import com.example.demo.course.dto.SpecialtyResponse;
 import com.example.demo.enrollment.dto.RevenueResponse;
 import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.user.dto.InstructorRequest;
@@ -41,6 +42,11 @@ public class InstructorController {
     @GetMapping("/{id}")
     public InstructorResponse getById(@PathVariable Long id) {
         return respuesta(instructorService.getById(id));
+    }
+
+    @GetMapping("/{id}/specialties")
+    public List<SpecialtyResponse> getSpecialties(@PathVariable Long id) {
+        return instructorService.getSpecialties(id);
     }
 
     @GetMapping("/{id}/revenue")
