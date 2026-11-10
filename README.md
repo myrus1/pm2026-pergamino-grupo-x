@@ -43,6 +43,40 @@ cd demo
 
 La aplicación se inicia en [http://localhost:8080](http://localhost:8080). Los endpoints están bajo `/api` (por ejemplo `/api/courses`).
 
+## Docker
+
+La imagen se construye desde la **raíz** del repositorio (el `Dockerfile` es multi-stage: la
+etapa de build usa Maven + JDK y la imagen final solo lleva el JRE y el jar).
+
+```bash
+docker build -t pm2026-backend .
+docker run --rm -p 8080:8080 --env-file .env pm2026-backend
+```
+
+Queda disponible en [http://localhost:8080](http://localhost:8080). `--env-file .env` le pasa
+las mismas variables que usa la app en local; el `.env` **no** se copia a la imagen (está en
+`.dockerignore`).
+
+La memoria de la JVM se ajusta sola al límite del contenedor, así que para acotar la RAM
+alcanza con `-m`:
+
+```bash
+docker run --rm -p 8080:8080 --env-file .env -m 512m pm2026-backend
+```
+
+Para cambiar parámetros puntuales de la JVM se usa `JAVA_OPTS`:
+
+```bash
+docker run --rm -p 8080:8080 --env-file .env -e JAVA_OPTS="-Xmx256m" pm2026-backend
+```
+
+Si en lugar de la base de Aiven usás una PostgreSQL en el host y `DB_URL` apunta a
+`localhost`, en Linux hay que compartir la red del host:
+
+```bash
+docker run --rm --network host --env-file .env pm2026-backend
+```
+
 ## Tests
 
 ```bash

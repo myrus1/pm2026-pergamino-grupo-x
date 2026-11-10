@@ -20,6 +20,7 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 ```
 .
 ├── AGENTS.md / README.md / .env.example   # raíz del repo (no es un proyecto Maven)
+├── Dockerfile / .dockerignore             # imagen del backend (contexto de build: la raíz)
 ├── demo/                                  # <- maven root (acá está pom.xml y ./mvnw)
 │   ├── src/main/java/com/example/demo/
 │   │   ├── DemoApplication.java
@@ -75,6 +76,10 @@ cd demo && ./mvnw spring-boot:run
 # Compilar / testear
 cd demo && ./mvnw -q compile
 cd demo && ./mvnw test
+
+# Imagen Docker (se construye desde la RAÍZ del repo, no desde demo/)
+docker build -t pm2026-backend .
+docker run --rm -p 8080:8080 --env-file .env pm2026-backend
 ```
 
 La app levanta en `http://localhost:8080`.
@@ -149,6 +154,10 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 ## Pendiente / state actual
 
 - Modelos, repositorios y servicios implementados por feature.
+- Docker: `Dockerfile` multi-stage en la raíz (build con Maven + JDK 17, runtime JRE 17
+  alpine con usuario no-root) y `.dockerignore` que excluye `.env`. Las variables se pasan
+  en runtime con `--env-file .env`; no se hornean en la imagen. El heap sigue el límite de
+  memoria del contenedor (`-XX:MaxRAMPercentage=60`) y se puede ajustar con `JAVA_OPTS`.
 - API REST implementada: CRUD bajo `/api/students`, `/api/instructors`,
   `/api/administrators`, `/api/courses`, `/api/specialties`, `/api/enrollments` y
   `/api/approval-requests`.

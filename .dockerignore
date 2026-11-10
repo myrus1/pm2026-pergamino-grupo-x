@@ -1,0 +1,26 @@
+# El .env nunca entra al contexto de build (tiene credenciales).
+.env
+.env.*
+!.env.example
+
+# Control de versiones y metadatos del repo
+.git
+.github
+.gitignore
+
+# Documentación, colecciones y artefactos que la imagen no necesita
+**/*.md
+Docs
+postman
+.agents
+.postman
+skills-lock.json
+proyecto-pm-2026
+
+# Configuración de editores
+.idea
+.vscode
+
+# Salidas de builds locales
+demo/target
+target
