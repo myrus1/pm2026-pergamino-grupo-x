@@ -17,11 +17,9 @@ ENV MAVEN_OPTS="-Xms256m -Xmx1024m -XX:MaxMetaspaceSize=384m"
 WORKDIR /build
 
 # Primero solo el pom: si no cambia, esta capa se reutiliza y no se vuelven a
-# resolver las dependencias. El cache mount guarda ~/.m2 entre builds sin
-# dejarlo dentro de la imagen.
+# resolver las dependencias.
 COPY demo/pom.xml ./
-RUN --mount=type=cache,target=/root/.m2,id=maven-cache \
-    mvn -B -ntp -DskipTests dependency:go-offline
+RUN mvn -B -ntp -DskipTests dependency:go-offline
 
 # Recién ahora el código: un cambio en src/ no invalida la descarga anterior.
 COPY demo/src ./src
@@ -29,8 +27,7 @@ COPY demo/src ./src
 # -Dmaven.test.skip: DemoApplicationTests es @SpringBootTest y necesita una
 # PostgreSQL accesible; además así no se compilan las 28 clases de test (menos
 # tiempo y menos RAM de build).
-RUN --mount=type=cache,target=/root/.m2,id=maven-cache \
-    mvn -B -ntp -Dmaven.test.skip=true package
+RUN mvn -B -ntp -Dmaven.test.skip=true package
 
 # ---------------------------------------------------------------------------
 # Etapa 2: runtime (solo JRE + jar, sin Maven ni fuentes)
