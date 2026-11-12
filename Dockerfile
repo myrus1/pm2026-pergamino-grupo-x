@@ -20,7 +20,7 @@ WORKDIR /build
 # resolver las dependencias. El cache mount guarda ~/.m2 entre builds sin
 # dejarlo dentro de la imagen.
 COPY demo/pom.xml ./
-RUN --mount=type=cache,target=/root/.m2 \
+RUN --mount=type=cache,target=/root/.m2,id=maven-cache \
     mvn -B -ntp -DskipTests dependency:go-offline
 
 # Recién ahora el código: un cambio en src/ no invalida la descarga anterior.
@@ -29,7 +29,7 @@ COPY demo/src ./src
 # -Dmaven.test.skip: DemoApplicationTests es @SpringBootTest y necesita una
 # PostgreSQL accesible; además así no se compilan las 28 clases de test (menos
 # tiempo y menos RAM de build).
-RUN --mount=type=cache,target=/root/.m2 \
+RUN --mount=type=cache,target=/root/.m2,id=maven-cache \
     mvn -B -ntp -Dmaven.test.skip=true package
 
 # ---------------------------------------------------------------------------
