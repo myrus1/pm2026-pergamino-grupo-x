@@ -8,12 +8,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.example.demo.common.PasswordEncoder;
+import com.example.demo.course.dto.SpecialtyResponse;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.repositories.InstructorRepository;
 import jakarta.persistence.EntityNotFoundException;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,32 @@ class InstructorServiceTest {
     @BeforeEach
     void setUp() {
         instructorService = new InstructorService(instructorRepository, passwordEncoder, specialtyService);
+    }
+
+    @Test
+    void getSpecialtiesDevuelveLosDtoDelInstructor() {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        Specialty programacion = new Specialty("Programacion");
+        Specialty diseno = new Specialty("Diseno");
+        TestIds.fijarId(programacion, 4L);
+        TestIds.fijarId(diseno, 5L);
+        instructor.addSpecialty(programacion);
+        instructor.addSpecialty(diseno);
+        when(instructorRepository.findById(1L)).thenReturn(Optional.of(instructor));
+
+        List<SpecialtyResponse> result = instructorService.getSpecialties(1L);
+
+        assertThat(result).extracting("id").containsExactlyInAnyOrder(4L, 5L);
+        assertThat(result).extracting("name").containsExactlyInAnyOrder("Programacion", "Diseno");
+    }
+
+    @Test
+    void getSpecialtiesDeInstructorInexistenteLanzaNotFound() {
+        when(instructorRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> instructorService.getSpecialties(99L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessage("Instructor no encontrado con id 99");
     }
 
     @Test

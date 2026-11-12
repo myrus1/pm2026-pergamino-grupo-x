@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.example.demo.course.dto.SpecialtyResponse;
 import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
@@ -136,6 +137,39 @@ class InstructorControllerTest {
         when(instructorService.getById(99L)).thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
 
         mockMvc.perform(delete(RUTA + "/99"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+    }
+
+    @Test
+    void getSpecialtiesDevuelveLasEspecialidadesDelInstructor() throws Exception {
+        when(instructorService.getSpecialties(1L)).thenReturn(List.of(
+                new SpecialtyResponse(4L, "Programacion"),
+                new SpecialtyResponse(5L, "Diseno")));
+
+        mockMvc.perform(get(RUTA + "/1/specialties"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(4))
+                .andExpect(jsonPath("$[0].name").value("Programacion"))
+                .andExpect(jsonPath("$[1].id").value(5))
+                .andExpect(jsonPath("$[1].name").value("Diseno"));
+    }
+
+    @Test
+    void getSpecialtiesSinEspecialidadesDevuelveListaVacia() throws Exception {
+        when(instructorService.getSpecialties(1L)).thenReturn(List.of());
+
+        mockMvc.perform(get(RUTA + "/1/specialties"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
+    }
+
+    @Test
+    void getSpecialtiesDeInstructorInexistenteResponde404() throws Exception {
+        when(instructorService.getSpecialties(99L))
+                .thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+
+        mockMvc.perform(get(RUTA + "/99/specialties"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
     }
