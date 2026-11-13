@@ -2,11 +2,11 @@ package com.example.demo.user.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
-import com.example.demo.auth.model.AuthenticationException;
-import com.example.demo.auth.model.AuthorizationException;
+import com.example.demo.auth.model.UsuarioAutenticado;
 import com.example.demo.auth.services.AuthenticationService;
 import com.example.demo.auth.services.AuthorizationService;
 import com.example.demo.common.ErrorResponse;
+import com.example.demo.common.Rol;
 import com.example.demo.course.services.CourseService;
 import com.example.demo.user.dto.CreateInstructorRequestDTO;
 import com.example.demo.user.dto.InstructorAuthenticationRequestDTO;
@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+// Recurso del instructor (TP4/TP5): registro, login y cursos propios.
+// Los 401/403 los produce ApiExceptionHandler a partir de las excepciones de auth/.
 @RestController
 @RequestMapping("/instructor")
 public class InstructorResource {
@@ -44,7 +46,10 @@ public class InstructorResource {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody CreateInstructorRequestDTO solicitud) {
+    public ResponseEntity<?> create(
+            @RequestHeader(value = "Authorization", required = false) String token,
+            @RequestBody CreateInstructorRequestDTO solicitud) {
+        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
         validar(solicitud);
         Instructor instructor = new Instructor(solicitud.firstName(), solicitud.lastName(), solicitud.email(),
                 solicitud.password());
@@ -60,34 +65,23 @@ public class InstructorResource {
     }
 
     @PostMapping(value = "/auth", produces = "application/json")
-    public ResponseEntity<?> authentication(@RequestBody InstructorAuthenticationRequestDTO solicitud)
-            throws Exception {
+    public ResponseEntity<?> authentication(@RequestBody InstructorAuthenticationRequestDTO solicitud) {
         if (solicitud == null) {
             throw new IllegalArgumentException("La solicitud no puede ser nula");
         }
         exigir(solicitud.email(), "email");
         exigir(solicitud.password(), "password");
         Instructor credenciales = new Instructor(null, null, solicitud.email(), solicitud.password());
-        try {
-            return ResponseEntity.ok(Map.of("token", authenticationService.authenticate(credenciales)));
-        } catch (AuthenticationException excepcion) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(excepcion.getMessage()));
-        }
+        return ResponseEntity.ok(Map.of("token", authenticationService.authenticate(credenciales)));
     }
 
     @GetMapping(value = {"", "/courses"}, produces = "application/json")
-    public ResponseEntity<?> getCourses(@RequestHeader(value = "Authorization", required = false) String token)
-            throws Exception {
-        Instructor instructor;
-        try {
-            instructor = authorizationService.authorize(token);
-        } catch (AuthorizationException excepcion) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(excepcion.getMessage()));
-        }
-        List<InstructorCoursesResponseDTO> cursos = courseService.getCoursesByInstructorId(instructor.getId()).stream()
+    public List<InstructorCoursesResponseDTO> getCourses(
+            @RequestHeader(value = "Authorization", required = false) String token) {
+        UsuarioAutenticado usuario = authorizationService.autorizar(token, Rol.INSTRUCTOR);
+        return courseService.getCoursesByInstructorId(usuario.id()).stream()
                 .map(curso -> new InstructorCoursesResponseDTO(curso.getId(), curso.getTitle(), curso.getDescription()))
                 .toList();
-        return ResponseEntity.ok(cursos);
     }
 
     private void validar(CreateInstructorRequestDTO solicitud) {

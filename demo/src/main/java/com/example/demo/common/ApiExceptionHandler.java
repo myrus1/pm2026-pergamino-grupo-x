@@ -1,6 +1,8 @@
 package com.example.demo.common;
 
 import com.example.demo.approval.model.ApprovalRequestException;
+import com.example.demo.auth.model.AuthenticationException;
+import com.example.demo.auth.model.AuthorizationException;
 import com.example.demo.enrollment.model.CourseEnrollmentException;
 import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -19,6 +21,18 @@ public class ApiExceptionHandler {
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<ErrorResponse> recursoNoEncontrado(EntityNotFoundException excepcion) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(excepcion.getMessage()));
+    }
+
+    // Sin credenciales validas: header Authorization ausente, token vencido o firma invalida
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponse> noAutenticado(AuthenticationException excepcion) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(excepcion.getMessage()));
+    }
+
+    // Credenciales validas pero sin permiso: rol equivocado o recurso que no le pertenece
+    @ExceptionHandler(AuthorizationException.class)
+    public ResponseEntity<ErrorResponse> noAutorizado(AuthorizationException excepcion) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(excepcion.getMessage()));
     }
 
     @ExceptionHandler(InstructorEmailAlreadyExistsException.class)
