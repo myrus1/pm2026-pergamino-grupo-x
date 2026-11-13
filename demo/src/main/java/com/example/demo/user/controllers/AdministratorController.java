@@ -8,6 +8,7 @@ import com.example.demo.user.dto.AdministratorRequest;
 import com.example.demo.user.dto.AdministratorResponse;
 import com.example.demo.user.model.Administrator;
 import com.example.demo.user.services.AdministratorService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 // API REST de administradores: /api/administrators (todo es de administrador)
+@SecurityRequirement(name = "token")
 @RestController
 @RequestMapping("/api/administrators")
 public class AdministratorController {

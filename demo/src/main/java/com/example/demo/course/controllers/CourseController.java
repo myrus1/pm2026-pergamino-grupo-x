@@ -10,6 +10,7 @@ import com.example.demo.course.services.CourseService;
 import com.example.demo.course.dto.CourseRequest;
 import com.example.demo.course.dto.CourseResponse;
 import com.example.demo.enrollment.services.EnrollmentService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -61,6 +62,7 @@ public class CourseController {
     }
 
     // Solo instructores y administradores crean; el instructor crea los suyos siempre.
+    @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public CourseResponse create(@RequestBody CourseRequest solicitud,
@@ -70,6 +72,7 @@ public class CourseController {
         return respuesta(courseService.create(solicitud, actor));
     }
 
+    @SecurityRequirement(name = "token")
     @PutMapping("/{id}")
     public CourseResponse update(@PathVariable Long id, @RequestBody CourseRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
@@ -78,6 +81,7 @@ public class CourseController {
         return respuesta(courseService.update(id, solicitud, actor));
     }
 
+    @SecurityRequirement(name = "token")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,

@@ -8,6 +8,7 @@ import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.course.dto.SpecialtyRequest;
 import com.example.demo.course.dto.SpecialtyResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -44,6 +45,7 @@ public class SpecialtyController {
         return respuesta(specialtyService.getById(id));
     }
 
+    @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public SpecialtyResponse create(@RequestBody SpecialtyRequest solicitud,
@@ -53,6 +55,7 @@ public class SpecialtyController {
         return respuesta(specialtyService.save(new Specialty(solicitud.getName())));
     }
 
+    @SecurityRequirement(name = "token")
     @PutMapping("/{id}")
     public SpecialtyResponse update(@PathVariable Long id, @RequestBody SpecialtyRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
@@ -63,6 +66,7 @@ public class SpecialtyController {
         return respuesta(specialtyService.save(especialidad));
     }
 
+    @SecurityRequirement(name = "token")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,

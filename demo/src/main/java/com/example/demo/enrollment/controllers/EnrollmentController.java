@@ -10,6 +10,7 @@ import com.example.demo.enrollment.dto.EnrollmentResponse;
 import com.example.demo.enrollment.dto.RevenueResponse;
 import com.example.demo.enrollment.model.Enrollment;
 import com.example.demo.enrollment.services.EnrollmentService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 // API REST de inscripciones: /api/enrollments.
 // No tiene PUT ni DELETE: una inscripcion se crea (con las reglas de Student.applyCourse) y no se cancela.
+@SecurityRequirement(name = "token")
 @RestController
 @RequestMapping("/api/enrollments")
 public class EnrollmentController {

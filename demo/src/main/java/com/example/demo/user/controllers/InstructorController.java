@@ -11,6 +11,7 @@ import com.example.demo.user.dto.InstructorRequest;
 import com.example.demo.user.dto.InstructorResponse;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.services.InstructorService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -52,6 +53,7 @@ public class InstructorController {
     }
 
     // La recaudacion es del propio instructor (o de un administrador).
+    @SecurityRequirement(name = "token")
     @GetMapping("/{id}/revenue")
     public RevenueResponse revenue(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
@@ -61,6 +63,7 @@ public class InstructorController {
     }
 
     // Crear instructores es de administrador (el registro abierto es solo de alumnos).
+    @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public InstructorResponse create(@RequestBody InstructorRequest solicitud,
@@ -72,6 +75,7 @@ public class InstructorController {
         return respuesta(instructorService.create(instructor));
     }
 
+    @SecurityRequirement(name = "token")
     @PutMapping("/{id}")
     public InstructorResponse update(@PathVariable Long id, @RequestBody InstructorRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
@@ -86,6 +90,7 @@ public class InstructorController {
         return respuesta(instructorService.update(instructor));
     }
 
+    @SecurityRequirement(name = "token")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,
@@ -96,6 +101,7 @@ public class InstructorController {
     }
 
     // Las especialidades las administra solo el administrador.
+    @SecurityRequirement(name = "token")
     @PutMapping("/{id}/specialties/{specialtyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void asignarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId,
@@ -104,6 +110,7 @@ public class InstructorController {
         instructorService.addSpecialty(id, specialtyId);
     }
 
+    @SecurityRequirement(name = "token")
     @DeleteMapping("/{id}/specialties/{specialtyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void quitarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId,

@@ -14,6 +14,7 @@ import com.example.demo.user.dto.InstructorCoursesResponseDTO;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import com.example.demo.user.services.InstructorService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -45,6 +46,7 @@ public class InstructorResource {
         this.courseService = courseService;
     }
 
+    @SecurityRequirement(name = "token")
     @PostMapping
     public ResponseEntity<?> create(
             @RequestHeader(value = "Authorization", required = false) String token,
@@ -75,6 +77,7 @@ public class InstructorResource {
         return ResponseEntity.ok(Map.of("token", authenticationService.authenticate(credenciales)));
     }
 
+    @SecurityRequirement(name = "token")
     @GetMapping(value = {"", "/courses"}, produces = "application/json")
     public List<InstructorCoursesResponseDTO> getCourses(
             @RequestHeader(value = "Authorization", required = false) String token) {

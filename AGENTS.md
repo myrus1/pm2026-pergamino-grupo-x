@@ -102,7 +102,8 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   controlador.
 - Stack: Spring Boot parent **4.1.1**, `spring-boot-starter-data-jpa`,
   `spring-boot-starter-webmvc`, Lombok, PostgreSQL driver, Password4j (BCrypt en
-  `common/PasswordEncoder`), DevTools. `java.version` en `pom.xml` = **17**.
+  `common/PasswordEncoder`), DevTools, springdoc-openapi **3.2.0** (Swagger UI/OpenAPI).
+  `java.version` en `pom.xml` = **17**.
 
 ## Convenciones de dominio (seguir el patrón de `<feature>/model`)
 
@@ -191,6 +192,41 @@ el id coincide.
   `comoAlumno`, `comoInstructor`) y la carpeta `9 - Permisos (401, 403 y 409)` de la
   colección de `Docs/Postman/`.
 
+## Documentación de la API (Swagger/OpenAPI)
+
+La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc-ui`
+**3.2.0**, compatible con Spring Boot 4):
+
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html` (redirige a
+  `/swagger-ui/index.html`). **Spec JSON**: `http://localhost:8080/v3/api-docs`. Las rutas
+  se configuran en `application.properties` (`springdoc.swagger-ui.path`,
+  `springdoc.api-docs.path`).
+- **`common/OpenApiConfig.java`**: define la info de la API y el security scheme `token`
+  (apiKey en el header `Authorization`), y registra un `OperationCustomizer`
+  (`QuitarHeaderDeAutorizacion`) que saca el parámetro `Authorization` que springdoc infiere
+  de cada `@RequestHeader`. El token no es un parámetro más del endpoint: se envía desde el
+  botón **Authorize** de Swagger UI con el valor completo `Bearer <jwt>` (igual que lo
+  devuelven los logins y como lo usa Postman: `Authorization: {{tokenAdmin}}`).
+- **Qué pide token**: `@SecurityRequirement(name = "token")` en los endpoints protegidos de
+  la matriz de permisos. Va a nivel de **clase** en los controladores 100% protegidos
+  (`AdministratorController`, `EnrollmentController`, `ApprovalRequestController`) y a nivel
+  de **método** en los que también tienen endpoints públicos (`StudentController`,
+  `CourseController`, `InstructorController`, `SpecialtyController`, `InstructorResource`).
+  springdoc fusiona lo de la clase con lo del método, y los públicos quedan sin anotación.
+- **Pruebas**: `common/OpenApiConfigTest` (unitario: info, esquema y limpieza del header) y
+  `DocumentacionApiTest` (levanta el contexto completo, lee `/v3/api-docs` y verifica que
+  los públicos no tengan `security`, que los protegidos sí tengan `token` y que ninguna
+  operación declare el header `Authorization` como parámetro).
+- **En producción** `/v3/api-docs` y `/swagger-ui.html` quedan públicos: apagarlos con
+  `springdoc.api-docs.enabled=false` y `springdoc.swagger-ui.enabled=false`.
+- **Tests y BD**: los tests que levantan el contexto completo usan `@ActiveProfiles("test")`,
+  que aplica `src/test/resources/application-test.properties` (pool de 2 conexiones). La BD
+  compartida del curso acepta **20 conexiones** en total y cada contexto de test usa Hikari
+  por defecto (10): con dos contextos en la misma JVM se pasaba del límite y fallaba
+  `Unable to determine Dialect without JDBC metadata`. **No** crear un `application.properties`
+  en `src/test/resources`: sombrea el de `src/main/resources` y se pierden `DB_URL`,
+  `jwt.secret`, etc.
+
 ## Pendiente / state actual
 
 - Modelos, repositorios y servicios implementados por feature.
@@ -236,7 +272,7 @@ el id coincide.
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`, ahora con el
   dueño) y de los controladores (`*ControllerTest`, slice `@WebMvcTest`, con
   `testutil/AutorizacionPrueba`), todos sin BD salvo `contextLoads`.
-  Todavia no hay tests de persistencia (JPA). Suite: **337 tests**.
+  Todavia no hay tests de persistencia (JPA). Suite: **345 tests**.
 - **Pendiente conocido: el primer administrador.** `/api/administrators` exige token de admin,
   asi que no hay como crear el primer admin desde la API (ciclo). Mientras se decide
   (seed desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, INSERT SQL o alta publica condicional), la

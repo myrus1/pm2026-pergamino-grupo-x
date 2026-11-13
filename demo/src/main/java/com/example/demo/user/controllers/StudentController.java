@@ -11,6 +11,7 @@ import com.example.demo.user.dto.StudentRequest;
 import com.example.demo.user.dto.StudentResponse;
 import com.example.demo.user.model.Student;
 import com.example.demo.user.services.StudentService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -45,6 +46,7 @@ public class StudentController {
 
     // Listar todos es de administrador; listar los de un curso tambien lo puede hacer
     // el instructor dueño de ese curso.
+    @SecurityRequirement(name = "token")
     @GetMapping
     public List<StudentResponse> getAll(@RequestParam(required = false) Long courseId,
             @RequestHeader(name = "Authorization", required = false) String token) {
@@ -60,6 +62,7 @@ public class StudentController {
         return alumnos.stream().map(this::respuesta).toList();
     }
 
+    @SecurityRequirement(name = "token")
     @GetMapping("/{id}")
     public StudentResponse getById(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
@@ -78,6 +81,7 @@ public class StudentController {
     }
 
     // El alumno no edita su perfil: lo hace un administrador.
+    @SecurityRequirement(name = "token")
     @PutMapping("/{id}")
     public StudentResponse update(@PathVariable Long id, @RequestBody StudentRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
@@ -92,6 +96,7 @@ public class StudentController {
         return respuesta(studentService.update(alumno));
     }
 
+    @SecurityRequirement(name = "token")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,

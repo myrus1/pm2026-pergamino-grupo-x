@@ -11,6 +11,7 @@ import com.example.demo.approval.services.ApprovalRequestService;
 import com.example.demo.auth.services.AuthorizationService;
 import com.example.demo.common.Rol;
 import com.example.demo.common.UsuarioAutenticado;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+@SecurityRequirement(name = "token")
 @RestController
 @RequestMapping("/api/approval-requests")
 public class ApprovalRequestController {
