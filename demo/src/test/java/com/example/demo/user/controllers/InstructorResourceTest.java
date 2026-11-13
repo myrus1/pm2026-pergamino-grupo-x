@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.demo.auth.model.AuthenticationException;
 import com.example.demo.auth.model.AuthorizationException;
-import com.example.demo.auth.model.UsuarioAutenticado;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.auth.services.AuthenticationService;
 import com.example.demo.auth.services.AuthorizationService;
 import com.example.demo.common.Rol;

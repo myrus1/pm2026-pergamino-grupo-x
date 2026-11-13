@@ -2,14 +2,14 @@ package com.example.demo.user.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
-import com.example.demo.auth.model.UsuarioAutenticado;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.auth.services.AuthenticationService;
 import com.example.demo.auth.services.AuthorizationService;
 import com.example.demo.common.ErrorResponse;
 import com.example.demo.common.Rol;
 import com.example.demo.course.services.CourseService;
+import com.example.demo.user.dto.AuthenticationRequestDTO;
 import com.example.demo.user.dto.CreateInstructorRequestDTO;
-import com.example.demo.user.dto.InstructorAuthenticationRequestDTO;
 import com.example.demo.user.dto.InstructorCoursesResponseDTO;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
@@ -65,7 +65,7 @@ public class InstructorResource {
     }
 
     @PostMapping(value = "/auth", produces = "application/json")
-    public ResponseEntity<?> authentication(@RequestBody InstructorAuthenticationRequestDTO solicitud) {
+    public ResponseEntity<?> authentication(@RequestBody AuthenticationRequestDTO solicitud) {
         if (solicitud == null) {
             throw new IllegalArgumentException("La solicitud no puede ser nula");
         }

@@ -2,7 +2,7 @@ package com.example.demo.auth.services;
 
 import com.example.demo.auth.model.AuthenticationException;
 import com.example.demo.auth.model.AuthorizationException;
-import com.example.demo.auth.model.UsuarioAutenticado;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.common.JwtTokenUtil;
 import com.example.demo.common.Rol;
 import com.example.demo.user.model.User;

@@ -1,6 +1,6 @@
 package com.example.demo.auth.services;
 
-import com.example.demo.auth.model.UsuarioAutenticado;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.common.Rol;
 
 public interface AuthorizationService {
