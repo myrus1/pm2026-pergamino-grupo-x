@@ -28,8 +28,8 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   │   ├── model/
 │   │   │   ├── services/         # UserService (base) y StudentService, InstructorService, AdministratorService
 │   │   │   ├── repositories/
-│   │   │   ├── controllers/      # StudentController, InstructorController, AdministratorController, InstructorResource (TP4)
-│   │   │   └── dto/              # StudentRequest/Response, Instructor..., Administrator..., CreateInstructorRequestDTO
+│   │   │   ├── controllers/      # StudentController, InstructorController, AdministratorController, InstructorResource (TP4), StudentResource y AdministratorResource (TP5)
+│   │   │   └── dto/              # StudentRequest/Response, Instructor..., Administrator..., CreateInstructorRequestDTO, AuthenticationRequestDTO
 │   │   ├── course/               # feature: Course, CourseStatus, Specialty
 │   │   │   ├── model/
 │   │   │   ├── services/         # CourseService, SpecialtyService
@@ -51,9 +51,9 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   ├── auth/                 # feature TP5: AuthenticationException, AuthorizationException
 │   │   │   ├── model/
 │   │   │   └── services/         # AuthenticationService(Imp), AuthorizationService(Imp)
-│   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse, PasswordEncoder, JwtTokenUtil
+│   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse, PasswordEncoder, JwtTokenUtil, Rol, UsuarioAutenticado
 │   ├── src/main/resources/application.properties
-│   └── src/test/java/com/example/demo/   # tests por feature (dominio, servicios, controladores)
+│   └── src/test/java/com/example/demo/   # tests por feature (dominio, servicios, controladores) + testutil/
 └── Docs/                     # UML/ (diagrama de clases), SQL/ (DER y esquema), Postman/ (coleccion)
 ```
 
@@ -151,6 +151,46 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `fix(entities): ...`, `refactor(domain): ...`.
 - Ejecutar `./mvnw -q compile` (y `test` si hay tests) antes de commitear.
 
+## Matriz de permisos (rama `permisos-roles`)
+
+Toda la API pide el token en el header `Authorization` (sin prefijo `Bearer` adicional:
+el valor guardado por los logins ya viene como `"Bearer ..."`). El controlador llama a
+`AuthorizationService.autorizar(token, Rol...)`; si el rol no alcanza devuelve 403, y si el
+token falta/vence 401 (`ApiExceptionHandler` los mapea a `{"mensaje": ...}`).
+`UsuarioAutenticado` (en `common/`, no en `auth/` para no armar ciclos de paquetes) expone
+`exigirPropio(idPropietario, mensaje)`: **el administrador siempre pasa**, los demás solo si
+el id coincide.
+
+| Endpoint | ALUMNO | INSTRUCTOR | ADMINISTRADOR | Público |
+| --- | --- | --- | --- | --- |
+| `POST /api/students` (registro) | ✅ | ✅ | ✅ | ✅ **sin token** |
+| `GET /api/courses`, `GET /api/courses/{id}`, `GET /api/instructors`, `GET /api/instructors/{id}`, `GET /api/specialties` | ✅ | ✅ | ✅ | ✅ |
+| `POST /api/instructors`, `PUT/DELETE /api/instructors/{id}`, `PUT/DELETE /api/instructors/{id}/specialties/{sid}` | ❌ | ❌ | ✅ | ❌ |
+| `POST/PUT/DELETE /api/administrators` | ❌ | ❌ | ✅ | ❌ |
+| `POST/PUT/DELETE /api/specialties` | ❌ | ❌ | ✅ | ❌ |
+| `GET /api/students` (lista), `GET /api/students/{id}`, `PUT/DELETE /api/students/{id}` | ❌ | ❌ | ✅ | ❌ |
+| `GET /api/students?courseId=` | ❌ | solo su curso | ✅ | ❌ |
+| `GET /api/courses?studentId=` | solo el suyo | ❌ | ✅ | ❌ |
+| `POST/PUT/DELETE /api/courses` | ❌ | solo los suyos, y solo en **DRAFT** | ✅ | ❌ |
+| `POST /api/enrollments` | solo a sí mismo | ❌ | ✅ (inscribe a cualquiera) | ❌ |
+| `GET /api/enrollments`, `GET /api/enrollments/revenue` | ❌ | ❌ | ✅ | ❌ |
+| `GET /api/enrollments/{id}` | solo la suya | solo las de sus cursos | ✅ | ❌ |
+| `GET /api/instructors/{id}/revenue` | ❌ | solo la suya | ✅ | ❌ |
+| `POST /api/approval-requests` | ❌ | solo de sus cursos | ✅ | ❌ |
+| `GET /api/approval-requests` (`?status=`/`?instructorId=`) | ❌ | solo las suyas (ignora el filtro) | ✅ | ❌ |
+| `GET /api/approval-requests/{id}`, `.../{id}/approve`, `.../{id}/reject` | ❌ | solo lectura de las suyas | ✅ | ❌ |
+
+- Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
+  (los tres reciben `AuthenticationRequestDTO`: `email` + `password` y devuelven
+  `{"token": "Bearer ..."}`).
+- El instructor **no** elige el dueño de un curso: `CourseService` usa el id del token y solo
+  el administrador puede mandar `instructorId` en el body.
+- Un curso que salió de DRAFT no se edita ni se borra: `CourseStateException` → 409.
+- `administratorId` ya no se manda en `ApprovalResolveRequest`; sale del token.
+- Pruebas: `testutil/AutorizacionPrueba` (`porDefecto`, `sinToken`, `sinPermiso`,
+  `comoAlumno`, `comoInstructor`) y la carpeta `9 - Permisos (401, 403 y 409)` de la
+  colección de `Docs/Postman/`.
+
 ## Pendiente / state actual
 
 - Modelos, repositorios y servicios implementados por feature.
@@ -176,13 +216,14 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `CreateInstructorRequestDTO` (record con email, password, firstName y lastName), delega en
   `InstructorService.create` (email unico + BCrypt) y responde con `ResponseEntity` 201, o 409
   si la creacion falla. Convive con el CRUD de `/api/instructors`.
-- TP5: `POST /instructor/auth` recibe `InstructorAuthenticationRequestDTO` (email, password) y
-  devuelve `{"token": "Bearer ..."}` (JWT HMAC512, vence en 10 dias, subject = email), o 401.
+- TP5: `POST /instructor/auth`, `POST /student/auth` y `POST /administrator/auth` reciben
+  `AuthenticationRequestDTO` (email, password) y devuelven `{"token": "Bearer ..."}`
+  (JWT HMAC512, vence en 10 dias, subject = email, con claims `rol` y `userId`), o 401.
   `GET /instructor` y `GET /instructor/courses` leen el header `Authorization`, validan el token
   con `AuthorizationService` y devuelven solo los cursos de ese instructor
   (`InstructorCoursesResponseDTO`: id, name, description), o 403. Los servicios de `auth/` lanzan
-  `AuthenticationException`/`AuthorizationException`, que son las que el recurso convierte en
-  401/403.
+  `AuthenticationException`/`AuthorizationException` (unchecked), que son las que
+  `ApiExceptionHandler` convierte en 401/403.
 - Recaudación: `GET /api/instructors/{id}/revenue` (65% del precio base por inscripción,
   sin importar descuentos; regla en `Enrollment.instructorRevenue`) y
   `GET /api/enrollments/revenue` (total pagado por los alumnos).
@@ -192,6 +233,13 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   edita con una especialidad de su instructor (`Instructor.validateSpecialty`).
   `DataIntegrityViolationException` (DNI/email duplicado, borrar algo en uso) responde 409.
 - Tests unitarios del dominio (`CourseTest`, `StudentTest`, `InstructorTest`,
-  `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`) y de los
-  controladores (`*ControllerTest`, slice `@WebMvcTest`), todos sin BD salvo `contextLoads`.
-  Todavia no hay tests de persistencia (JPA).
+  `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`, ahora con el
+  dueño) y de los controladores (`*ControllerTest`, slice `@WebMvcTest`, con
+  `testutil/AutorizacionPrueba`), todos sin BD salvo `contextLoads`.
+  Todavia no hay tests de persistencia (JPA). Suite: **337 tests**.
+- **Pendiente conocido: el primer administrador.** `/api/administrators` exige token de admin,
+  asi que no hay como crear el primer admin desde la API (ciclo). Mientras se decide
+  (seed desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, INSERT SQL o alta publica condicional), la
+  coleccion `Docs/Postman/` no puede correr de punta a punta: la carpeta
+  `0 - Autenticacion (JWT)` usa las variables `adminEmail`/`adminPassword` y responde 401
+  hasta que exista ese admin.

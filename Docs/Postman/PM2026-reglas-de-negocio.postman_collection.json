@@ -1,16 +1,102 @@
 {
   "info": {
     "name": "PM2026 - Reglas de negocio",
-    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba.",
+    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba.\n\nPermisos: la carpeta 0 autentica al administrador semilla y guarda tokenAdmin; los logins de instructor y alumnos estan al final de la carpeta 1 (recien creados esos usuarios). Cada pedido que lo exige lleva la cabecera Authorization con el token del rol que le corresponde; POST /api/students (registro de alumno) es el unico que no pide token.\n\nPENDIENTE: hasta que exista el primer administrador en la base de datos, la carpeta 0 responde 401 y las carpetas 1 a 9 no pueden correr (ver AGENTS.md).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:8080"
+    },
+    {
+      "key": "adminEmail",
+      "value": "",
+      "description": "Email del primer administrador (semilla) usado por POST /administrator/auth. PENDIENTE: todavia no hay forma de crear el primer admin desde la API."
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "description": "Contrasena del primer administrador (semilla)."
+    },
+    {
+      "key": "tokenAdmin",
+      "value": "",
+      "description": "Token Bearer del administrador."
+    },
+    {
+      "key": "tokenInstructor",
+      "value": "",
+      "description": "Token Bearer del instructor Laura (dueno de los cursos)."
+    },
+    {
+      "key": "tokenAna",
+      "value": "",
+      "description": "Token Bearer de la alumna Ana."
+    },
+    {
+      "key": "tokenBeto",
+      "value": "",
+      "description": "Token Bearer del alumno Beto."
+    },
+    {
+      "key": "tokenCarla",
+      "value": "",
+      "description": "Token Bearer de la alumna Carla."
     }
   ],
   "item": [
+    {
+      "name": "0 - Autenticacion (JWT)",
+      "description": "POST /administrator/auth, POST /instructor/auth y POST /student/auth devuelven {\"token\": \"Bearer ...\"}. El del administrador va primero porque todo lo demas esta protegido; los otros dos estan al final de la carpeta 1, donde se crean esos usuarios.",
+      "item": [
+        {
+          "name": "Login del administrador semilla: devuelve el token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenAdmin\", pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/administrator/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "administrator",
+                "auth"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Requiere el primer administrador en la base de datos (semilla pendiente). Guarda tokenAdmin, que usan todas las carpetas siguientes."
+          }
+        }
+      ]
+    },
     {
       "name": "1 - Datos base",
       "item": [
@@ -48,6 +134,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -91,6 +181,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -134,6 +228,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -178,6 +276,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -216,7 +318,12 @@
           ],
           "request": {
             "method": "PUT",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/instructors/{{instructorId}}/specialties/{{espProg}}",
               "host": [
@@ -247,7 +354,12 @@
           ],
           "request": {
             "method": "PUT",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/instructors/{{instructorId}}/specialties/{{espDis}}",
               "host": [
@@ -283,6 +395,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -307,6 +423,51 @@
           }
         },
         {
+          "name": "Login del instructor Laura: token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenInstructor\", pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/instructor/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "instructor",
+                "auth"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"laura{{run}}@test.com\",\n  \"password\": \"clave123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "El instructor dueno de los cursos de esta corrida."
+          }
+        },
+        {
           "name": "Crear curso Java (PROGRAMMING, 100): nace en DRAFT",
           "event": [
             {
@@ -327,6 +488,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -370,6 +535,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -413,6 +582,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -456,6 +629,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -499,6 +676,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -542,6 +723,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -693,6 +878,141 @@
               }
             }
           }
+        },
+        {
+          "name": "Login de la alumna Ana: token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenAna\", pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/student/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "student",
+                "auth"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"ana{{run}}@test.com\",\n  \"password\": \"clave123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Ana usa su propio token para inscribirse y ver sus cursos."
+          }
+        },
+        {
+          "name": "Login del alumno Beto: token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenBeto\", pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/student/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "student",
+                "auth"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"beto{{run}}@test.com\",\n  \"password\": \"clave123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        {
+          "name": "Login de la alumna Carla: token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenCarla\", pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/student/auth",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "student",
+                "auth"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"carla{{run}}@test.com\",\n  \"password\": \"clave123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": ""
+          }
         }
       ]
     },
@@ -720,6 +1040,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -793,6 +1117,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -831,7 +1159,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/approval-requests?status=SUBMITTED",
               "host": [
@@ -870,6 +1203,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -945,6 +1282,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -990,6 +1331,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -1034,6 +1379,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -1109,6 +1458,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -1152,6 +1505,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -1193,7 +1550,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/approval-requests?instructorId={{instructorId}}",
               "host": [
@@ -1231,6 +1593,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -1276,6 +1642,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -1319,6 +1689,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -1364,6 +1738,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -1407,6 +1785,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -1452,6 +1834,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -1495,6 +1881,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -1545,6 +1935,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
               }
             ],
             "url": {
@@ -1588,6 +1982,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
               }
             ],
             "url": {
@@ -1631,6 +2029,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
               }
             ],
             "url": {
@@ -1675,6 +2077,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
               }
             ],
             "url": {
@@ -1718,6 +2124,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenBeto}}"
               }
             ],
             "url": {
@@ -1760,6 +2170,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenBeto}}"
               }
             ],
             "url": {
@@ -1803,6 +2217,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenCarla}}"
               }
             ],
             "url": {
@@ -1846,6 +2264,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenCarla}}"
               }
             ],
             "url": {
@@ -1890,7 +2312,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/instructors/{{instructorId}}/revenue",
               "host": [
@@ -1920,7 +2347,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/instructors/999999/revenue",
               "host": [
@@ -1951,7 +2383,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/enrollments/revenue",
               "host": [
@@ -1989,6 +2426,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -2031,6 +2472,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -2102,6 +2547,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -2144,6 +2593,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -2186,6 +2639,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -2229,6 +2686,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -2272,6 +2733,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -2395,7 +2860,12 @@
           ],
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/courses/{{cursoJava}}",
               "host": [
@@ -2457,6 +2927,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -2499,6 +2973,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
               }
             ],
             "url": {
@@ -2543,7 +3021,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/students?courseId={{cursoJava}}",
               "host": [
@@ -2578,7 +3061,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/students?courseId={{cursoCupo}}",
               "host": [
@@ -2614,7 +3102,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/courses?studentId={{alumnoAna}}",
               "host": [
@@ -2648,7 +3141,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/students?courseId=999999",
               "host": [
@@ -2682,7 +3180,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/courses?studentId=999999",
               "host": [
@@ -2702,7 +3205,7 @@
           }
         },
         {
-          "name": "El admin lista todos los cursos",
+          "name": "Listar todos los cursos (publico)",
           "event": [
             {
               "listen": "test",
@@ -2744,7 +3247,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/enrollments",
               "host": [
@@ -2772,7 +3280,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/students",
               "host": [
@@ -2856,7 +3369,12 @@
           ],
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/approval-requests",
               "host": [
@@ -2893,6 +3411,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -2934,6 +3456,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -2975,6 +3501,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAdmin}}"
               }
             ],
             "url": {
@@ -3254,6 +3784,425 @@
               "path": [
                 "instructor",
                 "courses"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "9 - Permisos (401, 403 y 409)",
+      "description": "La misma API vista desde cada rol: sin token (401), con un rol que no alcanza (403), registro de alumno sin token (201) y curso fuera de borrador (409).",
+      "item": [
+        {
+          "name": "GET /api/students sin token: 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"el mensaje dice \\\"Token invalido o vencido\\\"\", () => pm.expect(pm.response.json().mensaje).to.eql(\"Token invalido o vencido\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Registro de alumno sin token: 201",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Publico\", \"lastName\": \"Registro\",\n  \"email\": \"publico{{run}}@test.com\", \"password\": \"clave123\",\n  \"dni\": \"7{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear especialidad siendo instructor: 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"el mensaje dice \\\"No tiene permisos para esta operacion\\\"\", () => pm.expect(pm.response.json().mensaje).to.eql(\"No tiene permisos para esta operacion\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/specialties",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "specialties"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"PERMISO-{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Crear curso siendo alumno: 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"el mensaje dice \\\"No tiene permisos para esta operacion\\\"\", () => pm.expect(pm.response.json().mensaje).to.eql(\"No tiene permisos para esta operacion\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Curso {{run}}\", \"description\": \"prueba de permisos\",\n  \"basePrice\": 100.00, \"startDate\": \"{{inicio}}\", \"endDate\": \"{{fin}}\",\n  \"maxCapacity\": 5, \"specialtyId\": {{espProg}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "El alumno no edita su perfil: 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"el mensaje dice \\\"No tiene permisos para esta operacion\\\"\", () => pm.expect(pm.response.json().mensaje).to.eql(\"No tiene permisos para esta operacion\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/{{alumnoAna}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "students",
+                "{{alumnoAna}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Ana\", \"lastName\": \"Prueba\",\n  \"email\": \"ana{{run}}@test.com\", \"password\": \"clave123\",\n  \"dni\": \"1{{run}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Inscribir a otro alumno: 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"el mensaje dice \\\"Solo puede inscribirse a si mismo\\\"\", () => pm.expect(pm.response.json().mensaje).to.eql(\"Solo puede inscribirse a si mismo\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/enrollments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "enrollments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"studentId\": {{alumnoBeto}},\n  \"courseId\": {{cursoJava}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Recaudacion de otro instructor: 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"el mensaje dice \\\"La recaudacion no le pertenece\\\"\", () => pm.expect(pm.response.json().mensaje).to.eql(\"La recaudacion no le pertenece\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/instructors/999999/revenue",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "instructors",
+                "999999",
+                "revenue"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Listar solicitudes siendo alumno: 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"el mensaje dice \\\"No tiene permisos para esta operacion\\\"\", () => pm.expect(pm.response.json().mensaje).to.eql(\"No tiene permisos para esta operacion\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenAna}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Aprobacion resuelta por un instructor: 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"el mensaje dice \\\"No tiene permisos para esta operacion\\\"\", () => pm.expect(pm.response.json().mensaje).to.eql(\"No tiene permisos para esta operacion\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/approval-requests/{{aprobCursoJava}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "approval-requests",
+                "{{aprobCursoJava}}",
+                "approve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"administratorComment\": \"Solo administradores\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Borrar un curso publicado: 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 409\", () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "{{tokenInstructor}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/courses/{{cursoFigma}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "courses",
+                "{{cursoFigma}}"
               ]
             }
           }
