@@ -25,6 +25,13 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import com.example.demo.auth.model.AuthorizationException;
+import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.common.Rol;
+import com.example.demo.common.UsuarioAutenticado;
+import com.example.demo.course.services.CourseService;
+import com.example.demo.testutil.AutorizacionPrueba;
+import org.junit.jupiter.api.BeforeEach;
 
 // Contrato HTTP de StudentController (slice web, sin contexto completo ni BD)
 @WebMvcTest(StudentController.class)
@@ -40,6 +47,16 @@ class StudentControllerTest {
 
     @MockitoBean
     private EnrollmentService enrollmentService;
+    @MockitoBean
+    private AuthorizationService authorizationService;
+
+    @MockitoBean
+    private CourseService courseService;
+
+    @BeforeEach
+    void autorizarPorDefecto() {
+        AutorizacionPrueba.porDefecto(authorizationService);
+    }
 
     private Student alumno() {
         Student alumno = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
@@ -157,5 +174,97 @@ class StudentControllerTest {
         mockMvc.perform(delete(RUTA + "/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Estudiante no encontrado con id 99"));
+    }
+
+    @Test
+    void getAllSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+        verify(studentService, never()).getAll();
+    }
+
+    @Test
+    void getAllComoAlumnoResponde403() throws Exception {
+        AutorizacionPrueba.sinPermiso(authorizationService);
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+        verify(studentService, never()).getAll();
+    }
+
+    @Test
+    void getAllDelCursoSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA).param("courseId", "3"))
+                .andExpect(status().isUnauthorized());
+        verify(enrollmentService, never()).getStudentsOfCourse(any());
+    }
+
+    @Test
+    void getAllDelCursoDeOtroInstructorResponde403() throws Exception {
+        AutorizacionPrueba.comoInstructor(authorizationService, 4L);
+        when(courseService.getById(3L, new UsuarioAutenticado(4L, "iris@example.com", Rol.INSTRUCTOR)))
+                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+
+        mockMvc.perform(get(RUTA).param("courseId", "3"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("El curso pertenece a otro instructor"));
+        verify(enrollmentService, never()).getStudentsOfCourse(any());
+    }
+
+    @Test
+    void createEsPublicoYSinTokenResponde201() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+        when(studentService.create(any(Student.class))).thenAnswer(invocation -> {
+            Student creado = invocation.getArgument(0);
+            TestIds.fijarId(creado, 7L);
+            return creado;
+        });
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+                {"firstName":"Ana","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"44555666"}"""))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(7));
+    }
+
+    @Test
+    void updateSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content("""
+                {"firstName":"Ana","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"44555666"}"""))
+                .andExpect(status().isUnauthorized());
+        verify(studentService, never()).update(any(Student.class));
+    }
+
+    @Test
+    void updateConRolNoPermitidoResponde403() throws Exception {
+        AutorizacionPrueba.sinPermiso(authorizationService);
+
+        mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content("""
+                {"firstName":"Ana","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"44555666"}"""))
+                .andExpect(status().isForbidden());
+        verify(studentService, never()).update(any(Student.class));
+    }
+
+    @Test
+    void deleteSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(delete(RUTA + "/1")).andExpect(status().isUnauthorized());
+        verify(studentService, never()).delete(any());
+    }
+
+    @Test
+    void getByIdSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA + "/1")).andExpect(status().isUnauthorized());
+        verify(studentService, never()).getById(any());
     }
 }

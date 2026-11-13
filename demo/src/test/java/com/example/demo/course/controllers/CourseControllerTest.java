@@ -3,6 +3,7 @@ package com.example.demo.course.controllers;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,6 +32,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.auth.model.AuthorizationException;
+import com.example.demo.common.UsuarioAutenticado;
+import com.example.demo.testutil.AutorizacionPrueba;
+import org.junit.jupiter.api.BeforeEach;
 
 // Contrato HTTP de CourseController (slice web, sin contexto completo ni BD)
 @WebMvcTest(CourseController.class)
@@ -50,6 +56,13 @@ class CourseControllerTest {
 
     @MockitoBean
     private EnrollmentService enrollmentService;
+    @MockitoBean
+    private AuthorizationService authorizationService;
+
+    @BeforeEach
+    void autorizarPorDefecto() {
+        AutorizacionPrueba.porDefecto(authorizationService);
+    }
 
     private Specialty especialidad() {
         Specialty especialidad = new Specialty("Programacion");
@@ -127,7 +140,8 @@ class CourseControllerTest {
         Course creado = new Course("Curso de Java", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
                 LocalDate.of(2026, 6, 20), 5, especialidad(), instructor());
         TestIds.fijarId(creado, 7L);
-        when(courseService.create(any(CourseRequest.class))).thenReturn(creado);
+        when(courseService.create(any(CourseRequest.class), any(UsuarioAutenticado.class)))
+                .thenReturn(creado);
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
                 .andExpect(status().isCreated())
@@ -148,7 +162,7 @@ class CourseControllerTest {
 
     @Test
     void createConEspecialidadInexistenteResponde404() throws Exception {
-        when(courseService.create(any(CourseRequest.class)))
+        when(courseService.create(any(CourseRequest.class), any(UsuarioAutenticado.class)))
                 .thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 1"));
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
@@ -161,7 +175,8 @@ class CourseControllerTest {
         Course actualizado = new Course("Curso de Java Avanzado", "Desc", new BigDecimal("100.00"),
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 20), 5, especialidad(), instructor());
         TestIds.fijarId(actualizado, 5L);
-        when(courseService.update(eq(5L), any(CourseRequest.class))).thenReturn(actualizado);
+        when(courseService.update(eq(5L), any(CourseRequest.class), any(UsuarioAutenticado.class)))
+                .thenReturn(actualizado);
 
         mockMvc.perform(put(RUTA + "/5").contentType(MediaType.APPLICATION_JSON).content("""
                 {"title":"Curso de Java Avanzado","description":"Desc","basePrice":100.00,
@@ -175,7 +190,7 @@ class CourseControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(courseService.update(eq(99L), any(CourseRequest.class)))
+        when(courseService.update(eq(99L), any(CourseRequest.class), any(UsuarioAutenticado.class)))
                 .thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
 
         mockMvc.perform(put(RUTA + "/99").contentType(MediaType.APPLICATION_JSON).content(CUERPO))
@@ -185,18 +200,101 @@ class CourseControllerTest {
 
     @Test
     void deleteResponde204() throws Exception {
-        when(courseService.getById(5L)).thenReturn(curso());
-
         mockMvc.perform(delete(RUTA + "/5"))
                 .andExpect(status().isNoContent());
     }
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(courseService.getById(99L)).thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+        doThrow(new EntityNotFoundException("Curso no encontrado con id 99"))
+                .when(courseService).delete(99L, AutorizacionPrueba.ADMIN);
 
         mockMvc.perform(delete(RUTA + "/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Curso no encontrado con id 99"));
+    }
+
+    @Test
+    void getAllEsPublicoYSinTokenResponde200() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+        when(courseService.getAll()).thenReturn(List.of(curso()));
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(5));
+    }
+
+    @Test
+    void getByIdEsPublicoYSinTokenResponde200() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+        when(courseService.getById(5L)).thenReturn(curso());
+
+        mockMvc.perform(get(RUTA + "/5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(5));
+    }
+
+    @Test
+    void getAllConAlumnoSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA).param("studentId", "8")).andExpect(status().isUnauthorized());
+        verify(enrollmentService, never()).getCoursesOfStudent(any());
+    }
+
+    @Test
+    void getAllDeOtroAlumnoResponde403() throws Exception {
+        AutorizacionPrueba.comoAlumno(authorizationService, 9L);
+
+        mockMvc.perform(get(RUTA).param("studentId", "7"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo puede ver sus propios cursos"));
+        verify(enrollmentService, never()).getCoursesOfStudent(any());
+    }
+
+    @Test
+    void createSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized());
+        verify(courseService, never()).create(any(CourseRequest.class), any(UsuarioAutenticado.class));
+    }
+
+    @Test
+    void createConRolNoPermitidoResponde403() throws Exception {
+        AutorizacionPrueba.sinPermiso(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isForbidden());
+        verify(courseService, never()).create(any(CourseRequest.class), any(UsuarioAutenticado.class));
+    }
+
+    @Test
+    void updateSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(put(RUTA + "/5").contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized());
+        verify(courseService, never()).update(any(), any(CourseRequest.class), any(UsuarioAutenticado.class));
+    }
+
+    @Test
+    void updateDeCursoAjenoResponde403() throws Exception {
+        AutorizacionPrueba.comoInstructor(authorizationService, 4L);
+        when(courseService.update(eq(5L), any(CourseRequest.class), any(UsuarioAutenticado.class)))
+                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+
+        mockMvc.perform(put(RUTA + "/5").contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("El curso pertenece a otro instructor"));
+    }
+
+    @Test
+    void deleteSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(delete(RUTA + "/5")).andExpect(status().isUnauthorized());
+        verify(courseService, never()).delete(any(), any(UsuarioAutenticado.class));
     }
 }

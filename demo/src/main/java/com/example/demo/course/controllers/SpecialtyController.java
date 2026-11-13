@@ -2,6 +2,8 @@ package com.example.demo.course.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
+import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.common.Rol;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.SpecialtyService;
 import com.example.demo.course.dto.SpecialtyRequest;
@@ -14,19 +16,22 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-// API REST de especialidades: /api/specialties
+// API REST de especialidades: /api/specialties (consultar es publico, escribir es de administrador)
 @RestController
 @RequestMapping("/api/specialties")
 public class SpecialtyController {
 
     private final SpecialtyService specialtyService;
+    private final AuthorizationService authorizationService;
 
-    public SpecialtyController(SpecialtyService specialtyService) {
+    public SpecialtyController(SpecialtyService specialtyService, AuthorizationService authorizationService) {
         this.specialtyService = specialtyService;
+        this.authorizationService = authorizationService;
     }
 
     @GetMapping
@@ -41,13 +46,17 @@ public class SpecialtyController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public SpecialtyResponse create(@RequestBody SpecialtyRequest solicitud) {
+    public SpecialtyResponse create(@RequestBody SpecialtyRequest solicitud,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
         validar(solicitud);
         return respuesta(specialtyService.save(new Specialty(solicitud.getName())));
     }
 
     @PutMapping("/{id}")
-    public SpecialtyResponse update(@PathVariable Long id, @RequestBody SpecialtyRequest solicitud) {
+    public SpecialtyResponse update(@PathVariable Long id, @RequestBody SpecialtyRequest solicitud,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
         validar(solicitud);
         Specialty especialidad = specialtyService.getById(id);
         especialidad.setName(solicitud.getName());
@@ -56,7 +65,9 @@ public class SpecialtyController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable Long id,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
         specialtyService.getById(id);
         specialtyService.delete(id);
     }

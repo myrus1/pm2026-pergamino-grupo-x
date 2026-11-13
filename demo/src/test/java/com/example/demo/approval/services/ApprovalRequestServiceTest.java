@@ -11,10 +11,14 @@ import com.example.demo.approval.model.ApprovalRequest;
 import com.example.demo.approval.model.ApprovalRequestException;
 import com.example.demo.approval.model.ApprovalStatus;
 import com.example.demo.approval.repositories.ApprovalRequestRepository;
+import com.example.demo.auth.model.AuthorizationException;
+import com.example.demo.common.Rol;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.CourseService;
+import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Administrator;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.services.AdministratorService;
@@ -51,9 +55,25 @@ class ApprovalRequestServiceTest {
     }
 
     private Course curso() {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        TestIds.fijarId(instructor, 2L);
         return new Course("Curso", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
-                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"),
-                new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"), instructor);
+    }
+
+    private UsuarioAutenticado administrador() {
+        return new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRADOR);
+    }
+
+    private UsuarioAutenticado instructor(Long id) {
+        return new UsuarioAutenticado(id, "iris@example.com", Rol.INSTRUCTOR);
+    }
+
+    private Course cursoDeInstructor(Long instructorId) {
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        TestIds.fijarId(instructor, instructorId);
+        return new Course("Curso", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"), instructor);
     }
 
     @Test
@@ -62,7 +82,7 @@ class ApprovalRequestServiceTest {
         when(courseService.getById(1L)).thenReturn(curso);
         when(approvalRequestRepository.save(any(ApprovalRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        ApprovalRequest solicitud = approvalRequestService.submit(1L, "Listo");
+        ApprovalRequest solicitud = approvalRequestService.submit(1L, "Listo", instructor(2L));
 
         assertThat(solicitud.getCourse()).isSameAs(curso);
         assertThat(solicitud.getInstructorComment()).isEqualTo("Listo");
@@ -75,9 +95,37 @@ class ApprovalRequestServiceTest {
         curso.setStatus(CourseStatus.PUBLISHED);
         when(courseService.getById(1L)).thenReturn(curso);
 
-        assertThatThrownBy(() -> approvalRequestService.submit(1L, null))
+        assertThatThrownBy(() -> approvalRequestService.submit(1L, null, instructor(2L)))
                 .isInstanceOf(ApprovalRequestException.class);
         verify(approvalRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void submitComoInstructorDeCursoAjenoNoGuardaNada() {
+        when(courseService.getById(1L)).thenReturn(cursoDeInstructor(5L));
+
+        assertThatThrownBy(() -> approvalRequestService.submit(1L, "Listo", instructor(2L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("El curso pertenece a otro instructor");
+        verify(approvalRequestRepository, never()).save(any());
+    }
+
+    @Test
+    void getByIdDeInstructorConSolicitudAjenaLanzaExcepcion() {
+        ApprovalRequest solicitud = new ApprovalRequest(cursoDeInstructor(5L), null);
+        when(approvalRequestRepository.findById(5L)).thenReturn(Optional.of(solicitud));
+
+        assertThatThrownBy(() -> approvalRequestService.getById(5L, instructor(2L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("La solicitud de aprobacion no le pertenece");
+    }
+
+    @Test
+    void getByIdDeAdministradorConSolicitudAjenaLaDevuelve() {
+        ApprovalRequest solicitud = new ApprovalRequest(cursoDeInstructor(5L), null);
+        when(approvalRequestRepository.findById(5L)).thenReturn(Optional.of(solicitud));
+
+        assertThat(approvalRequestService.getById(5L, administrador())).isSameAs(solicitud);
     }
 
     @Test

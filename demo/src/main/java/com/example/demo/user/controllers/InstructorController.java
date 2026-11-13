@@ -2,6 +2,9 @@ package com.example.demo.user.controllers;
 
 import static com.example.demo.common.Validaciones.exigir;
 
+import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.common.Rol;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.enrollment.dto.RevenueResponse;
 import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.user.dto.InstructorRequest;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,12 +31,16 @@ public class InstructorController {
 
     private final InstructorService instructorService;
     private final EnrollmentService enrollmentService;
+    private final AuthorizationService authorizationService;
 
-    public InstructorController(InstructorService instructorService, EnrollmentService enrollmentService) {
+    public InstructorController(InstructorService instructorService, EnrollmentService enrollmentService,
+            AuthorizationService authorizationService) {
         this.instructorService = instructorService;
         this.enrollmentService = enrollmentService;
+        this.authorizationService = authorizationService;
     }
 
+    // Listar instructores es publico (hace falta para mostrar los cursos).
     @GetMapping
     public List<InstructorResponse> getAll() {
         return instructorService.getAll().stream().map(this::respuesta).toList();
@@ -43,14 +51,21 @@ public class InstructorController {
         return respuesta(instructorService.getById(id));
     }
 
+    // La recaudacion es del propio instructor (o de un administrador).
     @GetMapping("/{id}/revenue")
-    public RevenueResponse revenue(@PathVariable Long id) {
+    public RevenueResponse revenue(@PathVariable Long id,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR);
+        actor.exigirPropio(id, "La recaudacion no le pertenece");
         return new RevenueResponse(enrollmentService.instructorRevenue(id));
     }
 
+    // Crear instructores es de administrador (el registro abierto es solo de alumnos).
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public InstructorResponse create(@RequestBody InstructorRequest solicitud) {
+    public InstructorResponse create(@RequestBody InstructorRequest solicitud,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
         validar(solicitud);
         Instructor instructor = new Instructor(solicitud.getFirstName(), solicitud.getLastName(),
                 solicitud.getEmail(), solicitud.getPassword());
@@ -58,7 +73,10 @@ public class InstructorController {
     }
 
     @PutMapping("/{id}")
-    public InstructorResponse update(@PathVariable Long id, @RequestBody InstructorRequest solicitud) {
+    public InstructorResponse update(@PathVariable Long id, @RequestBody InstructorRequest solicitud,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR);
+        actor.exigirPropio(id, "Solo puede modificar su propio perfil");
         validar(solicitud);
         Instructor instructor = instructorService.getById(id);
         instructor.setFirstName(solicitud.getFirstName());
@@ -70,20 +88,27 @@ public class InstructorController {
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable Long id,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
         instructorService.getById(id);
         instructorService.delete(id);
     }
 
+    // Las especialidades las administra solo el administrador.
     @PutMapping("/{id}/specialties/{specialtyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void asignarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId) {
+    public void asignarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
         instructorService.addSpecialty(id, specialtyId);
     }
 
     @DeleteMapping("/{id}/specialties/{specialtyId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void quitarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId) {
+    public void quitarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
         instructorService.removeSpecialty(id, specialtyId);
     }
 

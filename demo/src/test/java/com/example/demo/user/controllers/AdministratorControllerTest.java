@@ -22,6 +22,11 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.testutil.AutorizacionPrueba;
+import org.junit.jupiter.api.BeforeEach;
 
 // Contrato HTTP de AdministratorController (slice web, sin contexto completo ni BD)
 @WebMvcTest(AdministratorController.class)
@@ -34,6 +39,16 @@ class AdministratorControllerTest {
 
     @MockitoBean
     private AdministratorService administratorService;
+    private static final String CUERPO = """
+            {"firstName":"Eva","lastName":"Sosa","email":"eva@example.com","password":"secret"}""";
+
+    @MockitoBean
+    private AuthorizationService authorizationService;
+
+    @BeforeEach
+    void autorizarPorDefecto() {
+        AutorizacionPrueba.porDefecto(authorizationService);
+    }
 
     private Administrator administrador() {
         Administrator administrador = new Administrator("Eva", "Sosa", "eva@example.com", "secret");
@@ -128,5 +143,59 @@ class AdministratorControllerTest {
         mockMvc.perform(delete(RUTA + "/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Administrador no encontrado con id 99"));
+    }
+
+    @Test
+    void getAllSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+        verify(administratorService, never()).getAll();
+    }
+
+    @Test
+    void getByIdSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA + "/1")).andExpect(status().isUnauthorized());
+        verify(administratorService, never()).getById(any());
+    }
+
+    @Test
+    void createSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized());
+        verify(administratorService, never()).create(any());
+    }
+
+    @Test
+    void createConRolNoPermitidoResponde403() throws Exception {
+        AutorizacionPrueba.sinPermiso(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+        verify(administratorService, never()).create(any());
+    }
+
+    @Test
+    void updateSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized());
+        verify(administratorService, never()).update(any());
+    }
+
+    @Test
+    void deleteSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(delete(RUTA + "/1")).andExpect(status().isUnauthorized());
+        verify(administratorService, never()).delete(any());
     }
 }

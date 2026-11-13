@@ -1,5 +1,7 @@
 package com.example.demo.enrollment.services;
 
+import com.example.demo.common.Rol;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.course.model.Course;
 import com.example.demo.course.services.CourseService;
 import com.example.demo.enrollment.model.Enrollment;
@@ -73,5 +75,32 @@ public class EnrollmentService {
     public Enrollment getById(Long id) {
         return enrollmentRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Inscripcion no encontrada con id " + id));
+    }
+
+    // El alumno solo ve su inscripcion; el instructor solo las de sus cursos; el admin, cualquiera.
+    @Transactional(readOnly = true)
+    public Enrollment getById(Long id, UsuarioAutenticado actor) {
+        Enrollment enrollment = getById(id);
+        switch (actor.rol()) {
+            case ALUMNO -> actor.exigirPropio(enrollment.getStudent().getId(),
+                    "La inscripcion no le pertenece");
+            case INSTRUCTOR -> actor.exigirPropio(enrollment.getCourse().getInstructor().getId(),
+                    "La inscripcion no le pertenece a sus cursos");
+            default -> {
+                // El administrador puede consultar cualquier inscripcion.
+            }
+        }
+        return enrollment;
+    }
+
+    // Listados filtrados por quien pide: cada rol ve solo lo que le corresponde.
+    @Transactional(readOnly = true)
+    public List<Enrollment> getAllDeAlumno(Long studentId) {
+        return enrollmentRepository.findByStudentId(studentId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Enrollment> getAllDeInstructor(Long instructorId) {
+        return enrollmentRepository.findByCourseInstructorId(instructorId);
     }
 }

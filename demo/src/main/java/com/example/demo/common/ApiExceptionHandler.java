@@ -3,6 +3,7 @@ package com.example.demo.common;
 import com.example.demo.approval.model.ApprovalRequestException;
 import com.example.demo.auth.model.AuthenticationException;
 import com.example.demo.auth.model.AuthorizationException;
+import com.example.demo.course.model.CourseStateException;
 import com.example.demo.enrollment.model.CourseEnrollmentException;
 import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import jakarta.persistence.EntityNotFoundException;
@@ -60,6 +61,12 @@ public class ApiExceptionHandler {
     // Reglas de negocio de inscripciones: curso no publicado, lleno, duplicado, etc.
     @ExceptionHandler(CourseEnrollmentException.class)
     public ResponseEntity<ErrorResponse> inscripcionRechazada(CourseEnrollmentException excepcion) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(excepcion.getMessage()));
+    }
+
+    // El curso no esta en un estado que permita la operacion (p. ej. editar uno publicado)
+    @ExceptionHandler(CourseStateException.class)
+    public ResponseEntity<ErrorResponse> cursoEnEstadoInvalido(CourseStateException excepcion) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(excepcion.getMessage()));
     }
 

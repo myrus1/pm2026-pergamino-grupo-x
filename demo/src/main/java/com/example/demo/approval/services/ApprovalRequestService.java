@@ -2,6 +2,9 @@ package com.example.demo.approval.services;
 
 import com.example.demo.approval.model.ApprovalRequest;
 import com.example.demo.approval.repositories.ApprovalRequestRepository;
+import com.example.demo.common.Rol;
+import com.example.demo.common.UsuarioAutenticado;
+import com.example.demo.course.model.Course;
 import com.example.demo.course.services.CourseService;
 import com.example.demo.user.services.AdministratorService;
 import jakarta.persistence.EntityNotFoundException;
@@ -40,8 +43,22 @@ public class ApprovalRequestService {
                 .orElseThrow(() -> new EntityNotFoundException("Solicitud de aprobacion no encontrada con id " + id));
     }
 
-    public ApprovalRequest submit(Long courseId, String instructorComment) {
-        ApprovalRequest request = new ApprovalRequest(courseService.getById(courseId), instructorComment);
+    // El instructor solo consulta sus solicitudes; el administrador, cualquiera.
+    @Transactional(readOnly = true)
+    public ApprovalRequest getById(Long id, UsuarioAutenticado actor) {
+        ApprovalRequest request = getById(id);
+        if (actor.rol() != Rol.ADMINISTRADOR) {
+            actor.exigirPropio(request.getCourse().getInstructor().getId(),
+                    "La solicitud de aprobacion no le pertenece");
+        }
+        return request;
+    }
+
+    // Solo el dueño del curso puede enviarlo a aprobacion.
+    public ApprovalRequest submit(Long courseId, String instructorComment, UsuarioAutenticado actor) {
+        Course course = courseService.getById(courseId);
+        actor.exigirPropio(course.getInstructor().getId(), "El curso pertenece a otro instructor");
+        ApprovalRequest request = new ApprovalRequest(course, instructorComment);
         return approvalRequestRepository.save(request);
     }
 
