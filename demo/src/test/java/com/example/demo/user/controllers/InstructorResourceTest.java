@@ -3,6 +3,7 @@ package com.example.demo.user.controllers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -15,8 +16,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.demo.auth.model.AuthenticationException;
 import com.example.demo.auth.model.AuthorizationException;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.auth.services.AuthenticationService;
 import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.common.Rol;
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.services.CourseService;
@@ -42,6 +45,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class InstructorResourceTest {
 
     private static final String RUTA = "/instructor";
+    private static final String TOKEN = "Bearer abc.def.ghi";
     private static final String CUERPO = """
             {"email":"iris@example.com","password":"secret","firstName":"Iris","lastName":"Ruiz"}""";
 
@@ -59,6 +63,11 @@ class InstructorResourceTest {
 
     @MockitoBean
     private CourseService courseService;
+
+    private void dejarPasarComoAdministrador() throws Exception {
+        when(authorizationService.autorizar(TOKEN, Rol.ADMINISTRADOR))
+                .thenReturn(new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRADOR));
+    }
 
     @Test
     void authConCredencialesValidasDevuelveElTokenEnElBody() throws Exception {
@@ -92,7 +101,7 @@ class InstructorResourceTest {
         mockMvc.perform(post(RUTA + "/auth").contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"iris@example.com"}"""))
                 .andExpect(status().isBadRequest());
-        verify(authenticationService, never()).authenticate(any());
+        verify(authenticationService, never()).authenticate(any(Instructor.class));
     }
 
     @ParameterizedTest
@@ -103,10 +112,11 @@ class InstructorResourceTest {
         Course curso = new Course("Java", "Desde cero", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
                 LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"), instructor);
         TestIds.fijarId(curso, 7L);
-        when(authorizationService.authorize("Bearer abc.def.ghi")).thenReturn(instructor);
+        when(authorizationService.autorizar(TOKEN, Rol.INSTRUCTOR))
+                .thenReturn(new UsuarioAutenticado(4L, "iris@example.com", Rol.INSTRUCTOR));
         when(courseService.getCoursesByInstructorId(4L)).thenReturn(List.of(curso));
 
-        mockMvc.perform(get(RUTA + ruta).header("Authorization", "Bearer abc.def.ghi"))
+        mockMvc.perform(get(RUTA + ruta).header("Authorization", TOKEN))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].id").value(7))
@@ -115,29 +125,44 @@ class InstructorResourceTest {
     }
 
     @Test
-    void getCoursesConTokenInvalidoResponde403() throws Exception {
-        when(authorizationService.authorize("Bearer vencido"))
-                .thenThrow(new AuthorizationException("Token invalido o vencido"));
+    void getCoursesConTokenInvalidoResponde401() throws Exception {
+        when(authorizationService.autorizar("Bearer vencido", Rol.INSTRUCTOR))
+                .thenThrow(new AuthenticationException("Token invalido o vencido"));
 
         mockMvc.perform(get(RUTA + "/courses").header("Authorization", "Bearer vencido"))
-                .andExpect(status().isForbidden())
+                .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
         verify(courseService, never()).getCoursesByInstructorId(any());
     }
 
     @Test
-    void getCoursesSinHeaderAuthorizationResponde403() throws Exception {
-        when(authorizationService.authorize(isNull())).thenThrow(new AuthorizationException("Token invalido o vencido"));
+    void getCoursesSinHeaderAuthorizationResponde401() throws Exception {
+        when(authorizationService.autorizar(isNull(), eq(Rol.INSTRUCTOR)))
+                .thenThrow(new AuthenticationException("Token invalido o vencido"));
 
         mockMvc.perform(get(RUTA + "/courses"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
     }
 
     @Test
-    void createResponde201YDelegaEnElServicioConLosDatosDelDto() throws Exception {
+    void getCoursesConRolQueNoEsInstructorResponde403() throws Exception {
+        when(authorizationService.autorizar(TOKEN, Rol.INSTRUCTOR))
+                .thenThrow(new AuthorizationException("No tiene permisos para esta operacion"));
+
+        mockMvc.perform(get(RUTA + "/courses").header("Authorization", TOKEN))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+        verify(courseService, never()).getCoursesByInstructorId(any());
+    }
+
+    @Test
+    void createComoAdministradorResponde201YDelegaEnElServicioConLosDatosDelDto() throws Exception {
+        dejarPasarComoAdministrador();
         when(instructorService.create(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+        mockMvc.perform(post(RUTA).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
+                .content(CUERPO))
                 .andExpect(status().isCreated())
                 .andExpect(content().string(""));
 
@@ -150,27 +175,56 @@ class InstructorResourceTest {
     }
 
     @Test
+    void createSinTokenResponde401SinLlamarAlServicio() throws Exception {
+        when(authorizationService.autorizar(isNull(), eq(Rol.ADMINISTRADOR)))
+                .thenThrow(new AuthenticationException("Token invalido o vencido"));
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+        verify(instructorService, never()).create(any());
+    }
+
+    @Test
+    void createConRolQueNoEsAdministradorResponde403() throws Exception {
+        when(authorizationService.autorizar(TOKEN, Rol.ADMINISTRADOR))
+                .thenThrow(new AuthorizationException("No tiene permisos para esta operacion"));
+
+        mockMvc.perform(post(RUTA).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
+                .content(CUERPO))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+        verify(instructorService, never()).create(any());
+    }
+
+    @Test
     void createConEmailRepetidoResponde409() throws Exception {
+        dejarPasarComoAdministrador();
         when(instructorService.create(any(Instructor.class)))
                 .thenThrow(new InstructorEmailAlreadyExistsException("iris@example.com"));
 
-        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+        mockMvc.perform(post(RUTA).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
+                .content(CUERPO))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.mensaje").value("Ya existe un instructor con el email iris@example.com"));
     }
 
     @Test
     void createConEmailUsadoPorOtroUsuarioResponde409DesdeElRecurso() throws Exception {
+        dejarPasarComoAdministrador();
         when(instructorService.create(any(Instructor.class))).thenThrow(new DataIntegrityViolationException("duplicado"));
 
-        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+        mockMvc.perform(post(RUTA).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
+                .content(CUERPO))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.mensaje").value("Ya existe un usuario con el email iris@example.com"));
     }
 
     @Test
     void createSinPasswordResponde400SinLlamarAlServicio() throws Exception {
-        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content("""
+        dejarPasarComoAdministrador();
+
+        mockMvc.perform(post(RUTA).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"iris@example.com","firstName":"Iris","lastName":"Ruiz"}"""))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.mensaje", containsString("password")));

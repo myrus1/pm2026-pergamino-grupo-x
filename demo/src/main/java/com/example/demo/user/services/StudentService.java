@@ -30,6 +30,11 @@ public class StudentService extends UserService<Student> {
                 .orElseThrow(() -> new EntityNotFoundException("Estudiante no encontrado con id " + id));
     }
 
+    @Transactional(readOnly = true)
+    public Student findByEmail(String email) {
+        return studentRepository.findByEmail(email);
+    }
+
     public void delete(Long id) {
         studentRepository.deleteById(id);
     }

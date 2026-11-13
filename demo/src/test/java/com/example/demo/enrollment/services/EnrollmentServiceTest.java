@@ -7,6 +7,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.demo.auth.model.AuthorizationException;
+import com.example.demo.common.Rol;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
@@ -14,6 +17,7 @@ import com.example.demo.course.services.CourseService;
 import com.example.demo.enrollment.model.CourseEnrollmentException;
 import com.example.demo.enrollment.model.Enrollment;
 import com.example.demo.enrollment.repositories.EnrollmentRepository;
+import com.example.demo.testutil.TestIds;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.model.Student;
 import com.example.demo.user.services.InstructorService;
@@ -190,5 +194,78 @@ class EnrollmentServiceTest {
         assertThatThrownBy(() -> enrollmentService.getById(99L))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Inscripcion no encontrada con id 99");
+    }
+
+    private UsuarioAutenticado administrador() {
+        return new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRADOR);
+    }
+
+    private UsuarioAutenticado instructor(Long id) {
+        return new UsuarioAutenticado(id, "iris@example.com", Rol.INSTRUCTOR);
+    }
+
+    private UsuarioAutenticado alumno(Long id) {
+        return new UsuarioAutenticado(id, "ana@example.com", Rol.ALUMNO);
+    }
+
+    private Enrollment inscripcionDe(Long studentId, Long instructorId) {
+        Student estudiante = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
+        TestIds.fijarId(estudiante, studentId);
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        TestIds.fijarId(instructor, instructorId);
+        Course curso = new Course("Curso", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"), instructor);
+        TestIds.fijarId(curso, instructorId + 100);
+        return new Enrollment(estudiante, curso, new BigDecimal("100.00"));
+    }
+
+    @Test
+    void getAllDeAlumnoDevuelveSoloSusInscripciones() {
+        Enrollment propia = inscripcionDe(9L, 4L);
+        when(enrollmentRepository.findByStudentId(9L)).thenReturn(List.of(propia));
+
+        assertThat(enrollmentService.getAllDeAlumno(9L)).containsExactly(propia);
+    }
+
+    @Test
+    void getAllDeInstructorDevuelveSoloLasDeSusCursos() {
+        Enrollment suya = inscripcionDe(9L, 4L);
+        when(enrollmentRepository.findByCourseInstructorId(4L)).thenReturn(List.of(suya));
+
+        assertThat(enrollmentService.getAllDeInstructor(4L)).containsExactly(suya);
+    }
+
+    @Test
+    void getByIdDeAlumnoConInscripcionAjenaLanzaExcepcion() {
+        when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(inscripcionDe(7L, 4L)));
+
+        assertThatThrownBy(() -> enrollmentService.getById(5L, alumno(9L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("La inscripcion no le pertenece");
+    }
+
+    @Test
+    void getByIdDeAlumnoConSuInscripcionLaDevuelve() {
+        Enrollment propia = inscripcionDe(9L, 4L);
+        when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(propia));
+
+        assertThat(enrollmentService.getById(5L, alumno(9L))).isSameAs(propia);
+    }
+
+    @Test
+    void getByIdDeInstructorConInscripcionDeOtroCursoLanzaExcepcion() {
+        when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(inscripcionDe(9L, 5L)));
+
+        assertThatThrownBy(() -> enrollmentService.getById(5L, instructor(4L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("La inscripcion no le pertenece a sus cursos");
+    }
+
+    @Test
+    void getByIdDeAdministradorConInscripcionAjenaLaDevuelve() {
+        Enrollment ajena = inscripcionDe(9L, 5L);
+        when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(ajena));
+
+        assertThat(enrollmentService.getById(5L, administrador())).isSameAs(ajena);
     }
 }

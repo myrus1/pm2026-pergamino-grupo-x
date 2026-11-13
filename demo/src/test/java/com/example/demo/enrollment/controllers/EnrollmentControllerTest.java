@@ -29,6 +29,15 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import com.example.demo.auth.model.AuthorizationException;
+import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.common.Rol;
+import com.example.demo.common.UsuarioAutenticado;
+import com.example.demo.testutil.AutorizacionPrueba;
+import org.junit.jupiter.api.BeforeEach;
 
 // Contrato HTTP de EnrollmentController (slice web, sin contexto completo ni BD)
 @WebMvcTest(EnrollmentController.class)
@@ -41,6 +50,13 @@ class EnrollmentControllerTest {
 
     @MockitoBean
     private EnrollmentService enrollmentService;
+    @MockitoBean
+    private AuthorizationService authorizationService;
+
+    @BeforeEach
+    void autorizarPorDefecto() {
+        AutorizacionPrueba.porDefecto(authorizationService);
+    }
 
     private Student alumno() {
         Student alumno = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
@@ -77,7 +93,7 @@ class EnrollmentControllerTest {
 
     @Test
     void getByIdDevuelveLaInscripcion() throws Exception {
-        when(enrollmentService.getById(9L)).thenReturn(inscripcion());
+        when(enrollmentService.getById(9L, AutorizacionPrueba.ADMIN)).thenReturn(inscripcion());
 
         mockMvc.perform(get(RUTA + "/9"))
                 .andExpect(status().isOk())
@@ -86,7 +102,7 @@ class EnrollmentControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(enrollmentService.getById(99L)).thenThrow(new EntityNotFoundException("Inscripcion no encontrada con id 99"));
+        when(enrollmentService.getById(99L, AutorizacionPrueba.ADMIN)).thenThrow(new EntityNotFoundException("Inscripcion no encontrada con id 99"));
 
         mockMvc.perform(get(RUTA + "/99"))
                 .andExpect(status().isNotFound())
@@ -156,5 +172,107 @@ class EnrollmentControllerTest {
     void cancelarUnaInscripcionNoEstaPermitidoResponde405() throws Exception {
         mockMvc.perform(delete(RUTA + "/9"))
                 .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void getAllSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+        verify(enrollmentService, never()).getAll();
+    }
+
+    @Test
+    void getAllComoAlumnoDevuelveSoloSusInscripciones() throws Exception {
+        AutorizacionPrueba.comoAlumno(authorizationService, 1L);
+        when(enrollmentService.getAllDeAlumno(1L)).thenReturn(List.of(inscripcion()));
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].studentId").value(1));
+        verify(enrollmentService, never()).getAll();
+    }
+
+    @Test
+    void getAllComoInstructorDevuelveSoloLasDeSusCursos() throws Exception {
+        AutorizacionPrueba.comoInstructor(authorizationService, 4L);
+        when(enrollmentService.getAllDeInstructor(4L)).thenReturn(List.of(inscripcion()));
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].studentId").value(1));
+        verify(enrollmentService, never()).getAll();
+    }
+
+    @Test
+    void revenueSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA + "/revenue")).andExpect(status().isUnauthorized());
+        verify(enrollmentService, never()).totalRevenue();
+    }
+
+    @Test
+    void getByIdSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA + "/9")).andExpect(status().isUnauthorized());
+        verify(enrollmentService, never()).getById(any(Long.class));
+    }
+
+    @Test
+    void getByIdAjenoResponde403() throws Exception {
+        AutorizacionPrueba.comoAlumno(authorizationService, 9L);
+        when(enrollmentService.getById(9L, new UsuarioAutenticado(9L, "ana@example.com", Rol.ALUMNO)))
+                .thenThrow(new AuthorizationException("La inscripcion no le pertenece"));
+
+        mockMvc.perform(get(RUTA + "/9"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("La inscripcion no le pertenece"));
+    }
+
+    @Test
+    void createSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"studentId\":1,\"courseId\":2}"))
+                .andExpect(status().isUnauthorized());
+        verify(enrollmentService, never()).enroll(any(), any());
+    }
+
+    @Test
+    void createConRolNoPermitidoResponde403() throws Exception {
+        AutorizacionPrueba.sinPermiso(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"studentId\":1,\"courseId\":2}"))
+                .andExpect(status().isForbidden());
+        verify(enrollmentService, never()).enroll(any(), any());
+    }
+
+    @Test
+    void createDeOtroAlumnoResponde403() throws Exception {
+        AutorizacionPrueba.comoAlumno(authorizationService, 9L);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"studentId\":7,\"courseId\":2}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo puede inscribirse a si mismo"));
+        verify(enrollmentService, never()).enroll(any(), any());
+    }
+
+    @Test
+    void createDeSiMismoResponde201() throws Exception {
+        AutorizacionPrueba.comoAlumno(authorizationService, 9L);
+        when(enrollmentService.enroll(9L, 2L)).thenReturn(inscripcion());
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"studentId\":9,\"courseId\":2}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(9));
+        verify(enrollmentService).enroll(9L, 2L);
     }
 }

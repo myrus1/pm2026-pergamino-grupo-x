@@ -1,7 +1,11 @@
 package com.example.demo.course.services;
 
+import com.example.demo.common.Rol;
+import com.example.demo.common.UsuarioAutenticado;
 import com.example.demo.course.dto.CourseRequest;
 import com.example.demo.course.model.Course;
+import com.example.demo.course.model.CourseStateException;
+import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
 import com.example.demo.course.repositories.CourseRepository;
 import com.example.demo.user.model.Instructor;
@@ -26,18 +30,20 @@ public class CourseService {
         this.instructorService = instructorService;
     }
 
-    public Course create(CourseRequest request) {
+    // El instructor siempre crea cursos suyos; el administrador crea el que indica el body.
+    public Course create(CourseRequest request, UsuarioAutenticado actor) {
         Specialty specialty = specialtyService.getById(request.getSpecialtyId());
-        Instructor instructor = instructorService.getById(request.getInstructorId());
+        Instructor instructor = instructorService.getById(instructorDelActor(request, actor));
         Course course = instructor.createCourse(request.getTitle(), request.getDescription(), request.getBasePrice(),
                 request.getStartDate(), request.getEndDate(), request.getMaxCapacity(), specialty);
         return courseRepository.save(course);
     }
 
-    public Course update(Long id, CourseRequest request) {
+    public Course update(Long id, CourseRequest request, UsuarioAutenticado actor) {
         Course course = getById(id);
+        exigirQuePuedaModificar(course, actor);
         Specialty specialty = specialtyService.getById(request.getSpecialtyId());
-        Instructor instructor = instructorService.getById(request.getInstructorId());
+        Instructor instructor = instructorService.getById(instructorDelActor(request, actor));
         instructor.validateSpecialty(specialty);
         course.setTitle(request.getTitle());
         course.setDescription(request.getDescription());
@@ -66,11 +72,35 @@ public class CourseService {
                 .orElseThrow(() -> new EntityNotFoundException("Curso no encontrado con id " + id));
     }
 
+    // Igual que getById pero ademas exige que el curso le pertenezca al instructor del token.
+    @Transactional(readOnly = true)
+    public Course getById(Long id, UsuarioAutenticado actor) {
+        Course course = getById(id);
+        actor.exigirPropio(course.getInstructor() == null ? null : course.getInstructor().getId(),
+                "El curso pertenece a otro instructor");
+        return course;
+    }
+
     public Course save(Course course) {
         return courseRepository.save(course);
     }
 
-    public void delete(Long id) {
+    public void delete(Long id, UsuarioAutenticado actor) {
+        Course course = getById(id);
+        exigirQuePuedaModificar(course, actor);
         courseRepository.deleteById(id);
+    }
+
+    private Long instructorDelActor(CourseRequest request, UsuarioAutenticado actor) {
+        return actor.rol() == Rol.INSTRUCTOR ? actor.id() : request.getInstructorId();
+    }
+
+    // Un curso ajeno es 403; uno que ya salio de borrador es 409 (hay que reenviarlo a aprobacion).
+    private void exigirQuePuedaModificar(Course course, UsuarioAutenticado actor) {
+        actor.exigirPropio(course.getInstructor() == null ? null : course.getInstructor().getId(),
+                "El curso pertenece a otro instructor");
+        if (actor.rol() != Rol.ADMINISTRADOR && course.getStatus() != CourseStatus.DRAFT) {
+            throw new CourseStateException("El curso solo se puede modificar mientras este en borrador");
+        }
     }
 }
