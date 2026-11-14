@@ -58,6 +58,8 @@ public class InstructorController {
         return instructorService.getSpecialties(id);
     }
 
+    // La recaudacion es del propio instructor (o de un administrador).
+    @SecurityRequirement(name = "token")
     @GetMapping("/{id}/revenue")
     public RevenueResponse revenue(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
