@@ -32,6 +32,36 @@ class JwtTokenUtilTest {
         assertThat(jwtTokenUtil.getUserId(token)).isEqualTo(9L);
     }
 
+    // El front (front-pm2026-pergamino-grupo-x, src/auth/jwt.ts) lee estos valores del claim "rol":
+    // el enum esta en ingles, pero en el token se mantienen los nombres de siempre
+    @Test
+    void elClaimRolMantieneLosValoresQueEsperaElFront() {
+        assertThat(claimRol(Role.STUDENT)).isEqualTo("ALUMNO");
+        assertThat(claimRol(Role.INSTRUCTOR)).isEqualTo("INSTRUCTOR");
+        assertThat(claimRol(Role.ADMINISTRATOR)).isEqualTo("ADMINISTRADOR");
+    }
+
+    @Test
+    void getRoleLeeLosValoresDelClaimEnEspanol() {
+        String student = JWT.create().withClaim("rol", "ALUMNO").sign(Algorithm.HMAC512(CLAVE));
+        String administrator = JWT.create().withClaim("rol", "ADMINISTRADOR").sign(Algorithm.HMAC512(CLAVE));
+
+        assertThat(jwtTokenUtil.getRole(student)).isEqualTo(Role.STUDENT);
+        assertThat(jwtTokenUtil.getRole(administrator)).isEqualTo(Role.ADMINISTRATOR);
+    }
+
+    @Test
+    void getRoleRechazaUnValorDeRolDesconocido() {
+        String unknown = JWT.create().withClaim("rol", "STUDENT").sign(Algorithm.HMAC512(CLAVE));
+
+        assertThatThrownBy(() -> jwtTokenUtil.getRole(unknown)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    private String claimRol(Role role) {
+        String token = jwtTokenUtil.generateToken("iris@example.com", role, 4L);
+        return JWT.decode(token.substring(7)).getClaim("rol").asString();
+    }
+
     @Test
     void generateTokenNoSePuedeFirmarSinRolNiIdDeUsuario() {
         assertThatThrownBy(() -> jwtTokenUtil.generateToken("iris@example.com", null, 4L))

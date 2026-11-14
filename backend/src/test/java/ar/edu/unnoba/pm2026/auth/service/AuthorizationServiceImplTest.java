@@ -111,14 +111,14 @@ class AuthorizationServiceImplTest {
                 .hasMessage("El token no tiene rol asignado");
     }
 
-    // Tokens emitidos antes del cambio Rol -> Role traen "ALUMNO" o "ADMINISTRADOR":
-    // tienen que pedir login de nuevo (401), no romper con un 400
+    // Un token firmado con un valor de rol que no existe tiene que pedir login de nuevo (401),
+    // no romper con un 400
     @Test
     void autorizarConRolDesconocidoEnElTokenLanzaExcepcionDeAutenticacion() {
-        String oldRole = com.auth0.jwt.JWT.create().withSubject("ana@example.com").withClaim("rol", "ALUMNO")
+        String unknownRole = com.auth0.jwt.JWT.create().withSubject("ana@example.com").withClaim("rol", "SUPERUSUARIO")
                 .sign(com.auth0.jwt.algorithms.Algorithm.HMAC512("clave-de-prueba"));
 
-        assertThatThrownBy(() -> authorizationService.authorize(oldRole, Role.STUDENT))
+        assertThatThrownBy(() -> authorizationService.authorize(unknownRole, Role.STUDENT))
                 .isInstanceOf(AuthenticationException.class)
                 .hasMessage("Token invalido o vencido");
     }

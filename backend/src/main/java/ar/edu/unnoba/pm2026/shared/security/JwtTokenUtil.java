@@ -31,7 +31,7 @@ public class JwtTokenUtil {
         Instant now = Instant.now();
         return PREFIX + JWT.create()
                 .withSubject(subject)
-                .withClaim(CLAIM_ROLE, role.name())
+                .withClaim(CLAIM_ROLE, role.claimValue())
                 .withClaim(CLAIM_USER_ID, userId)
                 .withIssuedAt(now)
                 .withExpiresAt(now.plus(EXPIRATION))
@@ -56,7 +56,7 @@ public class JwtTokenUtil {
 
     public Role getRole(String token) {
         String role = JWT.decode(withoutPrefix(token)).getClaim(CLAIM_ROLE).asString();
-        return role == null ? null : Role.valueOf(role);
+        return role == null ? null : Role.fromClaimValue(role);
     }
 
     public Long getUserId(String token) {

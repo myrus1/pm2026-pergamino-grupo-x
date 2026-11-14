@@ -1,11 +1,31 @@
 package ar.edu.unnoba.pm2026.shared.security;
 
-// Roles de usuario que viajan dentro del JWT.
-// Vive en common porque lo usan JwtTokenUtil (firma/lectura) y todos los controladores
-// al pedir permisos; no pertenece a una sola feature.
+import java.util.Arrays;
+
+// Roles de usuario que viajan dentro del JWT (claim "rol").
+// En el codigo van en ingles, pero en el token se mantienen los valores de siempre
+// (ALUMNO, INSTRUCTOR, ADMINISTRADOR) porque el front los lee asi.
 public enum Role {
 
-    STUDENT,
-    INSTRUCTOR,
-    ADMINISTRATOR
+    STUDENT("ALUMNO"),
+    INSTRUCTOR("INSTRUCTOR"),
+    ADMINISTRATOR("ADMINISTRADOR");
+
+    private final String claimValue;
+
+    Role(String claimValue) {
+        this.claimValue = claimValue;
+    }
+
+    public String claimValue() {
+        return claimValue;
+    }
+
+    // Lanza IllegalArgumentException si el valor no corresponde a ningun rol
+    public static Role fromClaimValue(String claimValue) {
+        return Arrays.stream(values())
+                .filter(role -> role.claimValue.equals(claimValue))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Rol desconocido en el token: " + claimValue));
+    }
 }
