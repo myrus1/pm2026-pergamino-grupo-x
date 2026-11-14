@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.approval.service;
 
 import ar.edu.unnoba.pm2026.approval.model.ApprovalRequest;
 import ar.edu.unnoba.pm2026.approval.repository.ApprovalRequestRepository;
+import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.course.model.Course;
@@ -19,12 +20,14 @@ public class ApprovalRequestService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final CourseService courseService;
     private final AdministratorService administratorService;
+    private final BusinessMetrics businessMetrics;
 
     public ApprovalRequestService(ApprovalRequestRepository approvalRequestRepository, CourseService courseService,
-            AdministratorService administratorService) {
+            AdministratorService administratorService, BusinessMetrics businessMetrics) {
         this.approvalRequestRepository = approvalRequestRepository;
         this.courseService = courseService;
         this.administratorService = administratorService;
+        this.businessMetrics = businessMetrics;
     }
 
     @Transactional(readOnly = true)
@@ -65,12 +68,16 @@ public class ApprovalRequestService {
     public ApprovalRequest approve(Long id, Long administratorId, String administratorComment) {
         ApprovalRequest request = getById(id);
         request.approve(administratorService.getById(administratorId), administratorComment);
-        return approvalRequestRepository.save(request);
+        ApprovalRequest saved = approvalRequestRepository.save(request);
+        businessMetrics.courseApproved();
+        return saved;
     }
 
     public ApprovalRequest reject(Long id, Long administratorId, String administratorComment) {
         ApprovalRequest request = getById(id);
         request.reject(administratorService.getById(administratorId), administratorComment);
-        return approvalRequestRepository.save(request);
+        ApprovalRequest saved = approvalRequestRepository.save(request);
+        businessMetrics.courseRejected();
+        return saved;
     }
 }

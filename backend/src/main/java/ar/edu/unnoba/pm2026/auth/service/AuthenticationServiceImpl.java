@@ -1,6 +1,7 @@
 package ar.edu.unnoba.pm2026.auth.service;
 
 import ar.edu.unnoba.pm2026.auth.exception.AuthenticationException;
+import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.JwtTokenUtil;
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
 import ar.edu.unnoba.pm2026.shared.security.Role;
@@ -22,14 +23,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AdministratorService administratorService;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenUtil jwtTokenUtil;
+    private final BusinessMetrics businessMetrics;
 
     public AuthenticationServiceImpl(InstructorService instructorService, StudentService studentService,
-            AdministratorService administratorService, PasswordEncoder passwordEncoder, JwtTokenUtil jwtTokenUtil) {
+            AdministratorService administratorService, PasswordEncoder passwordEncoder, JwtTokenUtil jwtTokenUtil,
+            BusinessMetrics businessMetrics) {
         this.instructorService = instructorService;
         this.studentService = studentService;
         this.administratorService = administratorService;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenUtil = jwtTokenUtil;
+        this.businessMetrics = businessMetrics;
     }
 
     @Override
@@ -50,8 +54,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private String authenticateUser(User credentials, Role role, Function<String, User> findUserByEmail) {
         User registeredUser = findUserByEmail.apply(credentials.getEmail());
         if (registeredUser == null || !isPasswordValid(credentials.getPassword(), registeredUser.getPassword())) {
+            businessMetrics.loginFailed(role);
             throw new AuthenticationException("Email o contraseña incorrectos");
         }
+        businessMetrics.loginSucceeded(role);
         return jwtTokenUtil.generateToken(registeredUser.getEmail(), role, registeredUser.getId());
     }
 

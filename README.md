@@ -90,6 +90,44 @@ cd backend
 
 `Pm2026ApplicationTests` levanta la app completa y necesita las variables del `.env` cargadas y una base accesible.
 
+## Observabilidad
+
+Con la app levantada:
+
+| Endpoint | Acceso | Qué muestra |
+|---|---|---|
+| `GET /actuator/health` | público | `UP`/`DOWN` de la app, la base de datos y el disco |
+| `GET /actuator/info` | admin | nombre, versión y Java |
+| `GET /actuator/metrics` | admin | lista de métricas; `/actuator/metrics/{nombre}` muestra una |
+| `GET /actuator/prometheus` | admin | todas las métricas en formato Prometheus |
+
+Los endpoints de admin piden el header `Authorization: Bearer ...` con el token de `POST /administrator/auth`. Sin token responden 401, y con el token de otro rol responden 403.
+
+```bash
+TOKEN=$(curl -s -H 'Content-Type: application/json' \
+  -d '{"email":"<admin>","password":"<clave>"}' \
+  http://localhost:8080/administrator/auth | sed -E 's/.*"token":"([^"]+)".*/\1/')
+curl -s -H "Authorization: $TOKEN" http://localhost:8080/actuator/prometheus | grep pm2026_
+```
+
+Métricas propias:
+
+| Métrica | Qué cuenta |
+|---|---|
+| `pm2026_auth_logins_total{role, result}` | logins por rol (`STUDENT`, `INSTRUCTOR`, `ADMINISTRATOR`) y resultado (`success`, `failure`) |
+| `pm2026_enrollments_total` | inscripciones creadas |
+| `pm2026_course_approvals_total{result}` | cursos aprobados (`approved`) y rechazados (`rejected`) |
+| `http_server_requests_seconds_*{uri, method, status}` | cantidad y tiempo de respuesta por endpoint (lo da Spring) |
+| `hikaricp_connections_*` | uso del pool de conexiones a la base, que tiene un máximo de 3 |
+
+**Logs:** cada request recibe un `correlationId`. Si el cliente manda el header `X-Correlation-Id`, se usa ese; si no, se genera uno. Se devuelve en la respuesta y aparece entre corchetes en cada línea de log de esa request:
+
+```
+INFO ... [demo-facu-1] a.e.u.p.s.o.CorrelationIdFilter : GET /api/courses -> 200 (502 ms)
+```
+
+Para logs en JSON, agregá `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs` al entorno.
+
 ## Probar la API
 
 En `Docs/Postman` hay una colección con todas las reglas de negocio. Importala en Postman y correla con el Collection Runner. Cada corrida crea sus propios datos de prueba.

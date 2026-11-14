@@ -26,6 +26,8 @@ import jakarta.persistence.EntityNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
+import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,12 +48,18 @@ class ApprovalRequestServiceTest {
 
     private ApprovalRequestService approvalRequestService;
 
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     private final Administrator admin = new Administrator("Ada", "Lopez", "ada@example.com", "secret");
 
     @BeforeEach
     void setUp() {
         approvalRequestService = new ApprovalRequestService(approvalRequestRepository, courseService,
-                administratorService);
+                administratorService, new BusinessMetrics(meterRegistry));
+    }
+
+    private double approvals(String result) {
+        return meterRegistry.get("pm2026.course.approvals").tag("result", result).counter().count();
     }
 
     private Course course() {
@@ -141,6 +149,8 @@ class ApprovalRequestServiceTest {
         assertThat(request.getStatus()).isEqualTo(ApprovalStatus.APPROVED);
         assertThat(request.getAdministrator()).isSameAs(admin);
         assertThat(course.getStatus()).isEqualTo(CourseStatus.PUBLISHED);
+        assertThat(approvals("approved")).isEqualTo(1);
+        assertThat(approvals("rejected")).isZero();
     }
 
     @Test
@@ -155,6 +165,8 @@ class ApprovalRequestServiceTest {
 
         assertThat(request.getStatus()).isEqualTo(ApprovalStatus.REJECTED);
         assertThat(course.getStatus()).isEqualTo(CourseStatus.DRAFT);
+        assertThat(approvals("rejected")).isEqualTo(1);
+        assertThat(approvals("approved")).isZero();
     }
 
     @Test
@@ -169,6 +181,7 @@ class ApprovalRequestServiceTest {
                 .isInstanceOf(EntityNotFoundException.class);
         assertThat(course.getStatus()).isEqualTo(CourseStatus.PENDING_APPROVAL);
         verify(approvalRequestRepository, never()).save(any());
+        assertThat(approvals("approved")).isZero();
     }
 
     @Test
