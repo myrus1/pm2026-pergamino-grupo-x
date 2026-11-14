@@ -5,6 +5,7 @@ import static com.example.demo.common.Validaciones.exigir;
 import com.example.demo.auth.services.AuthorizationService;
 import com.example.demo.common.Rol;
 import com.example.demo.common.UsuarioAutenticado;
+import com.example.demo.course.dto.SpecialtyResponse;
 import com.example.demo.enrollment.dto.RevenueResponse;
 import com.example.demo.enrollment.services.EnrollmentService;
 import com.example.demo.user.dto.InstructorRequest;
@@ -52,8 +53,11 @@ public class InstructorController {
         return respuesta(instructorService.getById(id));
     }
 
-    // La recaudacion es del propio instructor (o de un administrador).
-    @SecurityRequirement(name = "token")
+    @GetMapping("/{id}/specialties")
+    public List<SpecialtyResponse> getSpecialties(@PathVariable Long id) {
+        return instructorService.getSpecialties(id);
+    }
+
     @GetMapping("/{id}/revenue")
     public RevenueResponse revenue(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
