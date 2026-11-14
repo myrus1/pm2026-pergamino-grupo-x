@@ -21,63 +21,84 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 .
 ├── AGENTS.md / README.md / .env.example   # raíz del repo (no es un proyecto Maven)
 ├── Dockerfile / .dockerignore             # imagen del backend (contexto de build: la raíz)
-├── demo/                                  # <- maven root (acá está pom.xml y ./mvnw)
-│   ├── src/main/java/com/example/demo/
-│   │   ├── DemoApplication.java
+├── backend/                               # <- maven root (acá está pom.xml y ./mvnw)
+│   ├── src/main/java/ar/edu/unnoba/pm2026/
+│   │   ├── Pm2026Application.java
 │   │   ├── user/                 # feature: User, Student, Instructor, Administrator
 │   │   │   ├── model/
-│   │   │   ├── services/         # UserService (base) y StudentService, InstructorService, AdministratorService
-│   │   │   ├── repositories/
-│   │   │   ├── controllers/      # StudentController, InstructorController, AdministratorController, InstructorResource (TP4), StudentResource y AdministratorResource (TP5)
-│   │   │   └── dto/              # StudentRequest/Response, Instructor..., Administrator..., CreateInstructorRequestDTO, AuthenticationRequestDTO
+│   │   │   ├── service/          # UserService (base) y StudentService, InstructorService, AdministratorService
+│   │   │   ├── repository/
+│   │   │   ├── controller/       # StudentController, InstructorController, AdministratorController y los de los TP: LegacyInstructorController (TP4/TP5), LegacyStudentController y LegacyAdministratorController (TP5)
+│   │   │   ├── dto/              # StudentRequest/Response, Instructor..., Administrator..., CreateInstructorRequest, InstructorCourseResponse
+│   │   │   └── exception/        # InstructorEmailAlreadyExistsException
 │   │   ├── course/               # feature: Course, CourseStatus, Specialty
 │   │   │   ├── model/
-│   │   │   ├── services/         # CourseService, SpecialtyService
-│   │   │   ├── repositories/
-│   │   │   ├── controllers/      # CourseController, SpecialtyController
-│   │   │   └── dto/              # CourseRequest/Response, SpecialtyRequest/Response
-│   │   ├── enrollment/           # feature: Enrollment, CourseEnrollmentException
+│   │   │   ├── service/          # CourseService, SpecialtyService
+│   │   │   ├── repository/
+│   │   │   ├── controller/       # CourseController, SpecialtyController
+│   │   │   ├── dto/              # CourseRequest/Response, SpecialtyRequest/Response
+│   │   │   └── exception/        # CourseStateException
+│   │   ├── enrollment/           # feature: Enrollment
 │   │   │   ├── model/
-│   │   │   ├── services/         # EnrollmentService
-│   │   │   ├── repositories/
-│   │   │   ├── controllers/      # EnrollmentController
-│   │   │   └── dto/              # EnrollmentRequest/Response
-│   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus, ApprovalRequestException
+│   │   │   ├── service/          # EnrollmentService
+│   │   │   ├── repository/
+│   │   │   ├── controller/       # EnrollmentController
+│   │   │   ├── dto/              # EnrollmentRequest/Response, RevenueResponse
+│   │   │   └── exception/        # CourseEnrollmentException
+│   │   ├── approval/             # feature: ApprovalRequest, ApprovalStatus
 │   │   │   ├── model/
-│   │   │   ├── services/         # ApprovalRequestService
-│   │   │   ├── repositories/
-│   │   │   ├── controllers/      # ApprovalRequestController
-│   │   │   └── dto/              # ApprovalSubmitRequest, ApprovalResolveRequest, ApprovalRequestResponse
-│   │   ├── auth/                 # feature TP5: AuthenticationException, AuthorizationException
-│   │   │   ├── model/
-│   │   │   └── services/         # AuthenticationService(Imp), AuthorizationService(Imp)
-│   │   └── common/               # transversal: ApiExceptionHandler, Validaciones, ErrorResponse, PasswordEncoder, JwtTokenUtil, Rol, UsuarioAutenticado
+│   │   │   ├── service/          # ApprovalRequestService
+│   │   │   ├── repository/
+│   │   │   ├── controller/       # ApprovalRequestController
+│   │   │   ├── dto/              # ApprovalSubmitRequest, ApprovalResolveRequest, ApprovalRequestResponse
+│   │   │   └── exception/        # ApprovalRequestException
+│   │   ├── auth/                 # feature TP5: login y permisos
+│   │   │   ├── service/          # AuthenticationService(Impl), AuthorizationService(Impl)
+│   │   │   ├── dto/              # AuthenticationRequest
+│   │   │   └── exception/        # AuthenticationException, AuthorizationException
+│   │   └── shared/               # transversal a todas las features
+│   │       ├── config/           # CorsConfig, OpenApiConfig
+│   │       ├── security/         # JwtTokenUtil, PasswordEncoder, Role, AuthenticatedUser
+│   │       ├── exception/        # ApiExceptionHandler, ErrorResponse
+│   │       └── validation/       # RequestValidator
 │   ├── src/main/resources/application.properties
-│   └── src/test/java/com/example/demo/   # tests por feature (dominio, servicios, controladores) + testutil/
+│   └── src/test/java/ar/edu/unnoba/pm2026/   # tests por feature (dominio, servicios, controladores) + testutil/
 └── Docs/                     # UML/ (diagrama de clases), SQL/ (DER y esquema), Postman/ (coleccion)
 ```
 
-Importante: **el directorio Maven es `demo/`, no la raíz**. No existe `mvnw` en la raíz.
+Importante: **el directorio Maven es `backend/`, no la raíz**. No existe `mvnw` en la raíz.
 
-Al agregar una feature nueva: crear `<feature>/model`, `<feature>/services`,
-`<feature>/repositories`, `<feature>/controllers` y `<feature>/dto` bajo
-`com.example.demo`. Lo transversal a todas las features (manejo de errores,
-validación de requests) vive en `common/`.
+Al agregar una feature nueva: crear `<feature>/model`, `<feature>/service`,
+`<feature>/repository`, `<feature>/controller`, `<feature>/dto` y `<feature>/exception` bajo
+`ar.edu.unnoba.pm2026`. Lo transversal a todas las features vive en `shared/`
+(`config`, `security`, `exception`, `validation`).
+
+## Convención de nombres
+
+- **Código en inglés**: clases, métodos, variables, paquetes y rutas. **Comentarios, mensajes de
+  error y commits en español.** Los nombres de los métodos de test siguen describiendo el
+  comportamiento en español (`createSinTokenResponde401`), como documentación.
+- Sufijos: `XxxController`, `XxxService` (+ `XxxServiceImpl` solo si hay interfaz),
+  `XxxRepository`, `XxxRequest` / `XxxResponse` (sin `DTO`), `XxxException`.
+- Subpaquetes por feature en singular: `controller`, `service`, `repository`, `model`, `dto`, `exception`.
+- Los endpoints de los TP (`/student/auth`, `/instructor`, `/administrator/auth`) viven en
+  `Legacy*Controller`; las rutas nuevas van bajo `/api/...` en plural y kebab-case.
+- El enum `Role` (`STUDENT`, `INSTRUCTOR`, `ADMINISTRATOR`) viaja en el claim `rol` del JWT; no se persiste.
 
 ## Comandos
 
-Siempre correr Maven desde `demo/` (desde la raíz, invocando `demo/mvnw -f demo/pom.xml`):
+Siempre correr Maven desde `backend/` (desde la raíz, invocando `backend/mvnw -f backend/pom.xml`):
 
 ```bash
 # Correr la app (el .env vive en la RAÍZ del repo)
 set -a && . ./.env && set +a
-cd demo && ./mvnw spring-boot:run
+cd backend && ./mvnw spring-boot:run
 
 # Compilar / testear
-cd demo && ./mvnw -q compile
-cd demo && ./mvnw test
+cd backend && ./mvnw -q compile
+cd backend && ./mvnw test
 
-# Imagen Docker (se construye desde la RAÍZ del repo, no desde demo/)
+# Imagen Docker (se construye desde la RAÍZ del repo, no desde backend/)
 docker build -t pm2026-backend .
 docker run --rm -p 8080:8080 --env-file .env pm2026-backend
 ```
@@ -94,7 +115,7 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `${DB_PASSWORD}`. Plantilla en `.env.example`; `.env` está en `.gitignore`.
 - `jwt.secret=${JWT_SECRET:...}`: clave HMAC512 de los tokens. Si no hay `JWT_SECRET` en el
   `.env` se usa un valor por defecto de desarrollo.
-- CORS (`common/CorsConfig`): `cors.allowed-origins=${CORS_ALLOWED_ORIGINS:*}` acepta una lista
+- CORS (`shared/config/CorsConfig`): `cors.allowed-origins=${CORS_ALLOWED_ORIGINS:*}` acepta una lista
   de orígenes separada por comas (`http://localhost:5173,https://mi-frontend.com`). Por defecto
   `*` (desarrollo). Se permite el header `Authorization` y los métodos GET/POST/PUT/PATCH/DELETE/OPTIONS.
 - `spring.jpa.hibernate.ddl-auto=update` → el esquema se actualiza solo; **no hay
@@ -105,13 +126,13 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   controlador.
 - Stack: Spring Boot parent **4.1.1**, `spring-boot-starter-data-jpa`,
   `spring-boot-starter-webmvc`, Lombok, PostgreSQL driver, Password4j (BCrypt en
-  `common/PasswordEncoder`), DevTools, springdoc-openapi **3.2.0** (Swagger UI/OpenAPI).
+  `shared/security/PasswordEncoder`), DevTools, springdoc-openapi **3.2.0** (Swagger UI/OpenAPI).
   `java.version` en `pom.xml` = **17**.
 
 ## Convenciones de dominio (seguir el patrón de `<feature>/model`)
 
-- **Paquetes por feature, no por capa**: `com.example.demo.<feature>.model` /
-  `.services` / `.repositories`. Cada feature tiene sus tres subpaquetes.
+- **Paquetes por feature, no por capa**: `ar.edu.unnoba.pm2026.<feature>.model` /
+  `.service` / `.repository` / `.controller` / `.dto` / `.exception`, siempre en singular.
 - JPA: `@Entity` + `@Table(name = "plural_snake")` (`students`, `courses`), `@Id`
   `@GeneratedValue(strategy = IDENTITY)`, **todas las entidades tienen constructor sin
   argumentos** (lo exige JPA) y constructores de conveniencia explícitos.
@@ -143,7 +164,7 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `UserService<T extends User>`, que da `create(x)` y `update(x)` guardando la contraseña con
   BCrypt (`PasswordEncoder`). Los servicios de usuarios **no tienen `save`**: para no guardar
   nunca una contraseña sin hash, se usa siempre `create`/`update`.
-  Una subclase puede sobreescribir `validarEmailDisponible` (lo hace `InstructorService`).
+  Una subclase puede sobreescribir `validateEmailAvailable` (lo hace `InstructorService`).
 
 ## Flujo git
 
@@ -159,13 +180,13 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 
 Toda la API pide el token en el header `Authorization` (sin prefijo `Bearer` adicional:
 el valor guardado por los logins ya viene como `"Bearer ..."`). El controlador llama a
-`AuthorizationService.autorizar(token, Rol...)`; si el rol no alcanza devuelve 403, y si el
+`AuthorizationService.authorize(token, Role...)`; si el rol no alcanza devuelve 403, y si el
 token falta/vence 401 (`ApiExceptionHandler` los mapea a `{"mensaje": ...}`).
-`UsuarioAutenticado` (en `common/`, no en `auth/` para no armar ciclos de paquetes) expone
-`exigirPropio(idPropietario, mensaje)`: **el administrador siempre pasa**, los demás solo si
+`AuthenticatedUser` (en `shared/security/`, no en `auth/` para no armar ciclos de paquetes) expone
+`requireOwnership(ownerId, message)`: **el administrador siempre pasa**, los demás solo si
 el id coincide.
 
-| Endpoint | ALUMNO | INSTRUCTOR | ADMINISTRADOR | Público |
+| Endpoint | STUDENT | INSTRUCTOR | ADMINISTRATOR | Público |
 | --- | --- | --- | --- | --- |
 | `POST /api/students` (registro) | ✅ | ✅ | ✅ | ✅ **sin token** |
 | `GET /api/courses`, `GET /api/courses/{id}`, `GET /api/instructors`, `GET /api/instructors/{id}`, `GET /api/specialties` | ✅ | ✅ | ✅ | ✅ |
@@ -185,14 +206,14 @@ el id coincide.
 | `GET /api/approval-requests/{id}`, `.../{id}/approve`, `.../{id}/reject` | ❌ | solo lectura de las suyas | ✅ | ❌ |
 
 - Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
-  (los tres reciben `AuthenticationRequestDTO`: `email` + `password` y devuelven
+  (los tres reciben `AuthenticationRequest`: `email` + `password` y devuelven
   `{"token": "Bearer ..."}`).
 - El instructor **no** elige el dueño de un curso: `CourseService` usa el id del token y solo
   el administrador puede mandar `instructorId` en el body.
 - Un curso que salió de DRAFT no se edita ni se borra: `CourseStateException` → 409.
 - `administratorId` ya no se manda en `ApprovalResolveRequest`; sale del token.
-- Pruebas: `testutil/AutorizacionPrueba` (`porDefecto`, `sinToken`, `sinPermiso`,
-  `comoAlumno`, `comoInstructor`) y la carpeta `9 - Permisos (401, 403 y 409)` de la
+- Pruebas: `testutil/AuthTestSupport` (`asDefaultAdministrator`, `withoutToken`, `withoutPermission`,
+  `asStudent`, `asInstructor`) y la carpeta `9 - Permisos (401, 403 y 409)` de la
   colección de `Docs/Postman/`.
 
 ## Documentación de la API (Swagger/OpenAPI)
@@ -204,9 +225,9 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   `/swagger-ui/index.html`). **Spec JSON**: `http://localhost:8080/v3/api-docs`. Las rutas
   se configuran en `application.properties` (`springdoc.swagger-ui.path`,
   `springdoc.api-docs.path`).
-- **`common/OpenApiConfig.java`**: define la info de la API y el security scheme `token`
+- **`shared/config/OpenApiConfig.java`**: define la info de la API y el security scheme `token`
   (apiKey en el header `Authorization`), y registra un `OperationCustomizer`
-  (`QuitarHeaderDeAutorizacion`) que saca el parámetro `Authorization` que springdoc infiere
+  (`RemoveAuthorizationHeader`) que saca el parámetro `Authorization` que springdoc infiere
   de cada `@RequestHeader`. El token no es un parámetro más del endpoint: se envía desde el
   botón **Authorize** de Swagger UI con el valor completo `Bearer <jwt>` (igual que lo
   devuelven los logins y como lo usa Postman: `Authorization: {{tokenAdmin}}`).
@@ -214,10 +235,10 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   la matriz de permisos. Va a nivel de **clase** en los controladores 100% protegidos
   (`AdministratorController`, `EnrollmentController`, `ApprovalRequestController`) y a nivel
   de **método** en los que también tienen endpoints públicos (`StudentController`,
-  `CourseController`, `InstructorController`, `SpecialtyController`, `InstructorResource`).
+  `CourseController`, `InstructorController`, `SpecialtyController`, `LegacyInstructorController`).
   springdoc fusiona lo de la clase con lo del método, y los públicos quedan sin anotación.
-- **Pruebas**: `common/OpenApiConfigTest` (unitario: info, esquema y limpieza del header) y
-  `DocumentacionApiTest` (levanta el contexto completo, lee `/v3/api-docs` y verifica que
+- **Pruebas**: `shared/config/OpenApiConfigTest` (unitario: info, esquema y limpieza del header) y
+  `ApiDocumentationTest` (levanta el contexto completo, lee `/v3/api-docs` y verifica que
   los públicos no tengan `security`, que los protegidos sí tengan `token` y que ninguna
   operación declare el header `Authorization` como parámetro).
 - **En producción** `/v3/api-docs` y `/swagger-ui.html` quedan públicos: apagarlos con
@@ -240,9 +261,9 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
 - API REST implementada: CRUD bajo `/api/students`, `/api/instructors`,
   `/api/administrators`, `/api/courses`, `/api/specialties`, `/api/enrollments` y
   `/api/approval-requests`.
-  Los controladores y DTOs viven en `<feature>/controllers` y `<feature>/dto`;
-  `ApiExceptionHandler`, `Validaciones` y `ErrorResponse` son transversales
-  (paquete `common/`).
+  Los controladores y DTOs viven en `<feature>/controller` y `<feature>/dto`;
+  `ApiExceptionHandler`, `ErrorResponse` (`shared/exception/`) y `RequestValidator`
+  (`shared/validation/`) son transversales.
   `POST /api/enrollments` valida las reglas de negocio via
   `EnrollmentService.enroll` → `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
   400/404/409 con cuerpo `{"mensaje": ...}`.
@@ -251,17 +272,17 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   `GET /api/approval-requests?status=&instructorId=` para listar. Las reglas viven en
   `ApprovalRequest` y responden 409. El estado del curso no se recibe en `CourseRequest`:
   solo cambia por este flujo.
-- TP4: `POST /instructor` (`user/controllers/InstructorResource`) recibe
-  `CreateInstructorRequestDTO` (record con email, password, firstName y lastName), delega en
+- TP4: `POST /instructor` (`user/controller/LegacyInstructorController`) recibe
+  `CreateInstructorRequest` (record con email, password, firstName y lastName), delega en
   `InstructorService.create` (email unico + BCrypt) y responde con `ResponseEntity` 201, o 409
   si la creacion falla. Convive con el CRUD de `/api/instructors`.
 - TP5: `POST /instructor/auth`, `POST /student/auth` y `POST /administrator/auth` reciben
-  `AuthenticationRequestDTO` (email, password) y devuelven `{"token": "Bearer ..."}`
-  (JWT HMAC512, vence en 10 dias, subject = email, con claims `rol` y `userId`), o 401.
+  `AuthenticationRequest` (email, password) y devuelven `{"token": "Bearer ..."}`
+  (JWT HMAC512, vence en 10 dias, subject = email, con claims `rol` (`STUDENT`, `INSTRUCTOR` o `ADMINISTRATOR`) y `userId`), o 401.
   `GET /instructor` y `GET /instructor/courses` leen el header `Authorization`, validan el token
   con `AuthorizationService` y devuelven solo los cursos de ese instructor
-  (`InstructorCoursesResponseDTO`: id, name, description), o 403. Los servicios de `auth/` lanzan
-  `AuthenticationException`/`AuthorizationException` (unchecked), que son las que
+  (`InstructorCourseResponse`: id, name, description), o 403. Los servicios de `auth/` lanzan
+  `AuthenticationException`/`AuthorizationException` (`auth/exception/`) (unchecked), que son las que
   `ApiExceptionHandler` convierte en 401/403.
 - Recaudación: `GET /api/instructors/{id}/revenue` (65% del precio base por inscripción,
   sin importar descuentos; regla en `Enrollment.instructorRevenue`) y
@@ -274,7 +295,7 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
 - Tests unitarios del dominio (`CourseTest`, `StudentTest`, `InstructorTest`,
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`, ahora con el
   dueño) y de los controladores (`*ControllerTest`, slice `@WebMvcTest`, con
-  `testutil/AutorizacionPrueba`), todos sin BD salvo `contextLoads`.
+  `testutil/AuthTestSupport`), todos sin BD salvo `contextLoads`.
   Todavia no hay tests de persistencia (JPA). Suite: **345 tests**.
 - **Pendiente conocido: el primer administrador.** `/api/administrators` exige token de admin,
   asi que no hay como crear el primer admin desde la API (ciclo). Mientras se decide
