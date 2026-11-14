@@ -22,5 +22,5 @@ proyecto-pm-2026
 .vscode
 
 # Salidas de builds locales
-demo/target
+backend/target
 target
