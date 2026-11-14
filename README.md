@@ -13,7 +13,7 @@ Proyecto desarrollado para la materia **Programación Multiplataforma 2026**: ba
 - Java 17 o superior
 - Una base PostgreSQL: la compartida del grupo en Aiven o una local
 
-El proyecto Maven está en `demo/`. No hace falta instalar Maven: se usa `./mvnw`.
+El proyecto Maven está en `backend/`. No hace falta instalar Maven: se usa `./mvnw`.
 
 ## Configuración
 
@@ -41,7 +41,7 @@ Desde la raíz del repositorio (en Git Bash):
 
 ```bash
 set -a && . ./.env && set +a
-cd demo
+cd backend
 ./mvnw spring-boot:run
 ```
 
@@ -84,11 +84,11 @@ docker run --rm --network host --env-file .env pm2026-backend
 ## Tests
 
 ```bash
-cd demo
+cd backend
 ./mvnw test
 ```
 
-`DemoApplicationTests` levanta la app completa y necesita las variables del `.env` cargadas y una base accesible.
+`Pm2026ApplicationTests` levanta la app completa y necesita las variables del `.env` cargadas y una base accesible.
 
 ## Probar la API
 
