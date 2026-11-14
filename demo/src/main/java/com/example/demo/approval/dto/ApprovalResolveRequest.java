@@ -7,6 +7,6 @@ import lombok.Setter;
 @Setter
 public class ApprovalResolveRequest {
 
-    private Long administratorId;
+    // El administrador que resuelve sale del token, no del body.
     private String administratorComment;
 }

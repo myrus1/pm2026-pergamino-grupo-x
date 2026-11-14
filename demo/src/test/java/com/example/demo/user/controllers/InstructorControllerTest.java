@@ -28,6 +28,10 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.mockito.Mockito.never;
+import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.testutil.AutorizacionPrueba;
+import org.junit.jupiter.api.BeforeEach;
 
 // Contrato HTTP de InstructorController (slice web, sin contexto completo ni BD)
 @WebMvcTest(InstructorController.class)
@@ -43,6 +47,16 @@ class InstructorControllerTest {
 
     @MockitoBean
     private EnrollmentService enrollmentService;
+    private static final String CUERPO = """
+            {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}""";
+
+    @MockitoBean
+    private AuthorizationService authorizationService;
+
+    @BeforeEach
+    void autorizarPorDefecto() {
+        AutorizacionPrueba.porDefecto(authorizationService);
+    }
 
     private Instructor instructor() {
         Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
@@ -227,5 +241,114 @@ class InstructorControllerTest {
                 {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+    }
+
+    @Test
+    void getAllEsPublicoYSinTokenResponde200() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+        when(instructorService.getAll()).thenReturn(List.of(instructor()));
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1));
+    }
+
+    @Test
+    void getByIdEsPublicoYSinTokenResponde200() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+        when(instructorService.getById(1L)).thenReturn(instructor());
+
+        mockMvc.perform(get(RUTA + "/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1));
+    }
+
+    @Test
+    void revenueSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(get(RUTA + "/4/revenue")).andExpect(status().isUnauthorized());
+        verify(enrollmentService, never()).instructorRevenue(any());
+    }
+
+    @Test
+    void revenueDeOtroInstructorResponde403() throws Exception {
+        AutorizacionPrueba.comoInstructor(authorizationService, 4L);
+
+        mockMvc.perform(get(RUTA + "/99/revenue"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("La recaudacion no le pertenece"));
+        verify(enrollmentService, never()).instructorRevenue(any());
+    }
+
+    @Test
+    void revenueDelInstructorPropioResponde200() throws Exception {
+        AutorizacionPrueba.comoInstructor(authorizationService, 4L);
+        when(enrollmentService.instructorRevenue(4L)).thenReturn(new BigDecimal("70.00"));
+
+        mockMvc.perform(get(RUTA + "/4/revenue"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("\"total\":70.00")));
+    }
+
+    @Test
+    void createSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized());
+        verify(instructorService, never()).create(any());
+    }
+
+    @Test
+    void createConRolNoPermitidoResponde403() throws Exception {
+        AutorizacionPrueba.sinPermiso(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isForbidden());
+        verify(instructorService, never()).create(any());
+    }
+
+    @Test
+    void updateSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(put(RUTA + "/4").contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized());
+        verify(instructorService, never()).update(any());
+    }
+
+    @Test
+    void updateDeOtroInstructorResponde403() throws Exception {
+        AutorizacionPrueba.comoInstructor(authorizationService, 4L);
+
+        mockMvc.perform(put(RUTA + "/99").contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("Solo puede modificar su propio perfil"));
+        verify(instructorService, never()).update(any());
+    }
+
+    @Test
+    void deleteSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(delete(RUTA + "/4")).andExpect(status().isUnauthorized());
+        verify(instructorService, never()).delete(any());
+    }
+
+    @Test
+    void asignarEspecialidadSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(put(RUTA + "/4/specialties/1")).andExpect(status().isUnauthorized());
+        verify(instructorService, never()).addSpecialty(any(), any());
+    }
+
+    @Test
+    void quitarEspecialidadSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(delete(RUTA + "/4/specialties/1")).andExpect(status().isUnauthorized());
+        verify(instructorService, never()).removeSpecialty(any(), any());
     }
 }

@@ -70,4 +70,19 @@ class AdministratorServiceTest {
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Administrador no encontrado con id 99");
     }
+
+    @Test
+    void findByEmailDevuelveElAdministradorExistente() {
+        Administrator administrador = new Administrator("Ada", "Lopez", "ada@example.com", "secret");
+        when(administratorRepository.findByEmail("ada@example.com")).thenReturn(administrador);
+
+        assertThat(administratorService.findByEmail("ada@example.com")).isSameAs(administrador);
+    }
+
+    @Test
+    void findByEmailDevuelveNullCuandoElAdministradorNoExiste() {
+        when(administratorRepository.findByEmail("nadie@example.com")).thenReturn(null);
+
+        assertThat(administratorService.findByEmail("nadie@example.com")).isNull();
+    }
 }

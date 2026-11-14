@@ -30,6 +30,11 @@ public class AdministratorService extends UserService<Administrator> {
                 .orElseThrow(() -> new EntityNotFoundException("Administrador no encontrado con id " + id));
     }
 
+    @Transactional(readOnly = true)
+    public Administrator findByEmail(String email) {
+        return administratorRepository.findByEmail(email);
+    }
+
     public void delete(Long id) {
         administratorRepository.deleteById(id);
     }

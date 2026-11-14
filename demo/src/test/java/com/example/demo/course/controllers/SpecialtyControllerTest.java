@@ -25,6 +25,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import com.example.demo.auth.services.AuthorizationService;
+import com.example.demo.testutil.AutorizacionPrueba;
+import org.junit.jupiter.api.BeforeEach;
 
 // Contrato HTTP de SpecialtyController (slice web, sin contexto completo ni BD)
 @WebMvcTest(SpecialtyController.class)
@@ -37,6 +42,16 @@ class SpecialtyControllerTest {
 
     @MockitoBean
     private SpecialtyService specialtyService;
+    private static final String CUERPO = """
+            {"name":"Programacion"}""";
+
+    @MockitoBean
+    private AuthorizationService authorizationService;
+
+    @BeforeEach
+    void autorizarPorDefecto() {
+        AutorizacionPrueba.porDefecto(authorizationService);
+    }
 
     private Specialty especialidad() {
         Specialty especialidad = new Specialty("Programacion");
@@ -164,5 +179,51 @@ class SpecialtyControllerTest {
         mockMvc.perform(delete(RUTA + "/99"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 99"));
+    }
+
+    @Test
+    void getAllEsPublicoYSinTokenResponde200() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+        when(specialtyService.getAll()).thenReturn(List.of(especialidad()));
+
+        mockMvc.perform(get(RUTA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Programacion"));
+    }
+
+    @Test
+    void createSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized());
+        verify(specialtyService, never()).save(any());
+    }
+
+    @Test
+    void createConRolNoPermitidoResponde403() throws Exception {
+        AutorizacionPrueba.sinPermiso(authorizationService);
+
+        mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+        verify(specialtyService, never()).save(any());
+    }
+
+    @Test
+    void updateSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(put(RUTA + "/1").contentType(MediaType.APPLICATION_JSON).content(CUERPO))
+                .andExpect(status().isUnauthorized());
+        verify(specialtyService, never()).getById(any());
+    }
+
+    @Test
+    void deleteSinTokenResponde401() throws Exception {
+        AutorizacionPrueba.sinToken(authorizationService);
+
+        mockMvc.perform(delete(RUTA + "/1")).andExpect(status().isUnauthorized());
+        verify(specialtyService, never()).delete(any());
     }
 }

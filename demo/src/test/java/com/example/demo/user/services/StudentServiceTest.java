@@ -70,4 +70,19 @@ class StudentServiceTest {
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessage("Estudiante no encontrado con id 99");
     }
+
+    @Test
+    void findByEmailDevuelveElAlumnoExistente() {
+        Student estudiante = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
+        when(studentRepository.findByEmail("ana@example.com")).thenReturn(estudiante);
+
+        assertThat(studentService.findByEmail("ana@example.com")).isSameAs(estudiante);
+    }
+
+    @Test
+    void findByEmailDevuelveNullCuandoElAlumnoNoExiste() {
+        when(studentRepository.findByEmail("nadie@example.com")).thenReturn(null);
+
+        assertThat(studentService.findByEmail("nadie@example.com")).isNull();
+    }
 }
