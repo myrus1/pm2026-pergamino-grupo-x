@@ -33,7 +33,13 @@ public class AuthorizationServiceImpl implements AuthorizationService {
         if (token == null || !jwtTokenUtil.verify(token)) {
             throw new AuthenticationException("Token invalido o vencido");
         }
-        Role role = jwtTokenUtil.getRole(token);
+        Role role;
+        try {
+            role = jwtTokenUtil.getRole(token);
+        } catch (IllegalArgumentException exception) {
+            // Rol que ya no existe (p. ej. "ALUMNO" de antes del cambio a Role): pedir login de nuevo
+            throw new AuthenticationException("Token invalido o vencido");
+        }
         if (role == null) {
             throw new AuthorizationException("El token no tiene rol asignado");
         }
