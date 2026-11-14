@@ -94,6 +94,9 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `${DB_PASSWORD}`. Plantilla en `.env.example`; `.env` está en `.gitignore`.
 - `jwt.secret=${JWT_SECRET:...}`: clave HMAC512 de los tokens. Si no hay `JWT_SECRET` en el
   `.env` se usa un valor por defecto de desarrollo.
+- CORS (`common/CorsConfig`): `cors.allowed-origins=${CORS_ALLOWED_ORIGINS:*}` acepta una lista
+  de orígenes separada por comas (`http://localhost:5173,https://mi-frontend.com`). Por defecto
+  `*` (desarrollo). Se permite el header `Authorization` y los métodos GET/POST/PUT/PATCH/DELETE/OPTIONS.
 - `spring.jpa.hibernate.ddl-auto=update` → el esquema se actualiza solo; **no hay
   migraciones (Flyway/Liquibase)**. Cambios de esquema se generan desde las entidades.
 - `spring.jpa.open-in-view=false` → la sesión JPA se cierra al salir del servicio. Todo lo

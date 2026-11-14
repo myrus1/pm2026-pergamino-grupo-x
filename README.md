@@ -31,6 +31,10 @@ Para la base del grupo en Aiven, pedí los datos al grupo y agregá `?sslmode=re
 
 Las tablas se crean y actualizan solas al levantar la app (`spring.jpa.hibernate.ddl-auto=update`).
 
+`CORS_ALLOWED_ORIGINS` (opcional) limita los orígenes del frontend que pueden llamar a la API;
+es una lista separada por comas (por ejemplo `http://localhost:5173,https://mi-frontend.com`).
+Si no está, se permite cualquier origen (`*`), pensado para desarrollo.
+
 ## Ejecución
 
 Desde la raíz del repositorio (en Git Bash):
