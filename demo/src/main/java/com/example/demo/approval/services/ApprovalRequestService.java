@@ -47,7 +47,7 @@ public class ApprovalRequestService {
     @Transactional(readOnly = true)
     public ApprovalRequest getById(Long id, UsuarioAutenticado actor) {
         ApprovalRequest request = getById(id);
-        if (actor.rol() != Rol.ADMINISTRADOR) {
+        if (actor.rol() != Rol.ADMINISTRATOR) {
             actor.exigirPropio(request.getCourse().getInstructor().getId(),
                     "La solicitud de aprobacion no le pertenece");
         }

@@ -19,7 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-// Login del alumno (rol ALUMNO): POST /student/auth
+// Login viejo del alumno (rol STUDENT): POST /student/auth
 @WebMvcTest(StudentResource.class)
 class StudentResourceTest {
 

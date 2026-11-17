@@ -40,14 +40,14 @@ public class AdministratorController {
     @GetMapping
     public List<AdministratorResponse> getAll(
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         return administratorService.getAll().stream().map(this::respuesta).toList();
     }
 
     @GetMapping("/{id}")
     public AdministratorResponse getById(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         return respuesta(administratorService.getById(id));
     }
 
@@ -55,7 +55,7 @@ public class AdministratorController {
     @ResponseStatus(HttpStatus.CREATED)
     public AdministratorResponse create(@RequestBody AdministratorRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         validar(solicitud);
         Administrator administrador = new Administrator(solicitud.getFirstName(), solicitud.getLastName(),
                 solicitud.getEmail(), solicitud.getPassword());
@@ -65,7 +65,7 @@ public class AdministratorController {
     @PutMapping("/{id}")
     public AdministratorResponse update(@PathVariable Long id, @RequestBody AdministratorRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         validar(solicitud);
         Administrator administrador = administratorService.getById(id);
         administrador.setFirstName(solicitud.getFirstName());
@@ -79,7 +79,7 @@ public class AdministratorController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         administratorService.getById(id);
         administratorService.delete(id);
     }

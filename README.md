@@ -28,6 +28,7 @@ DB_PASSWORD=pass
 Para la base del grupo en Aiven, pedí los datos al grupo y agregá `?sslmode=require` al final de `DB_URL`. El `.env` no se sube al repositorio.
 
 `JWT_SECRET` (opcional) es la clave con la que se firman los tokens de login; si no está, se usa una de desarrollo.
+`JWT_EXPIRATION` (opcional) es la duración de los tokens en segundos; por defecto `864000` (10 días).
 
 Las tablas se crean y actualizan solas al levantar la app (`spring.jpa.hibernate.ddl-auto=update`).
 
@@ -92,10 +93,14 @@ cd demo
 
 ## Probar la API
 
+El login único es `POST /api/auth/token` con `{"email", "password"}`; devuelve `accessToken`,
+`tokenType`, `expiresIn` y `role`. En Swagger UI se pega `Bearer <accessToken>` en **Authorize**.
+Los logins viejos por rol siguen funcionando pero están deprecados.
+
 En `Docs/Postman` hay una colección con todas las reglas de negocio. Importala en Postman y correla con el Collection Runner. Cada corrida crea sus propios datos de prueba.
 
 ## Documentación
 
-- `Docs/UML`: diagrama de clases
+- `Docs/UML`: diagrama de clases y diagrama de secuencia del login
 - `Docs/SQL`: modelo relacional (DER) y script del esquema
 - `AGENTS.md`: estructura del proyecto, convenciones y estado actual

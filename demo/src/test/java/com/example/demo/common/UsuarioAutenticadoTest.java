@@ -11,7 +11,7 @@ class UsuarioAutenticadoTest {
     private static final String MENSAJE = "La inscripcion no le pertenece";
 
     private UsuarioAutenticado administrador() {
-        return new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRADOR);
+        return new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRATOR);
     }
 
     private UsuarioAutenticado instructor() {
@@ -19,7 +19,7 @@ class UsuarioAutenticadoTest {
     }
 
     private UsuarioAutenticado alumno() {
-        return new UsuarioAutenticado(9L, "ana@example.com", Rol.ALUMNO);
+        return new UsuarioAutenticado(9L, "ana@example.com", Rol.STUDENT);
     }
 
     @Test

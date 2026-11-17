@@ -13,22 +13,23 @@ import org.junit.jupiter.api.Test;
 class JwtTokenUtilTest {
 
     private static final String CLAVE = "clave-de-prueba-para-los-tests";
+    private static final Duration DURACION = Duration.ofSeconds(864000);
 
-    private final JwtTokenUtil jwtTokenUtil = new JwtTokenUtil(CLAVE);
+    private final JwtTokenUtil jwtTokenUtil = new JwtTokenUtil(CLAVE, DURACION);
 
     @Test
-    void generateTokenAnteponeBearerYGuardaElEmailComoSubject() {
+    void generateTokenDevuelveElJwtCrudoYGuardaElEmailComoSubject() {
         String token = jwtTokenUtil.generateToken("iris@example.com", Rol.INSTRUCTOR, 4L);
 
-        assertThat(token).startsWith("Bearer ");
+        assertThat(token).doesNotStartWith("Bearer ");
         assertThat(jwtTokenUtil.getSubject(token)).isEqualTo("iris@example.com");
     }
 
     @Test
     void generateTokenGuardaElRolYElIdDelUsuarioComoClaims() {
-        String token = jwtTokenUtil.generateToken("iris@example.com", Rol.ALUMNO, 9L);
+        String token = jwtTokenUtil.generateToken("iris@example.com", Rol.STUDENT, 9L);
 
-        assertThat(jwtTokenUtil.getRol(token)).isEqualTo(Rol.ALUMNO);
+        assertThat(jwtTokenUtil.getRol(token)).isEqualTo(Rol.STUDENT);
         assertThat(jwtTokenUtil.getUserId(token)).isEqualTo(9L);
     }
 
@@ -36,7 +37,7 @@ class JwtTokenUtilTest {
     void generateTokenNoSePuedeFirmarSinRolNiIdDeUsuario() {
         assertThatThrownBy(() -> jwtTokenUtil.generateToken("iris@example.com", null, 4L))
                 .isInstanceOf(NullPointerException.class);
-        assertThatThrownBy(() -> jwtTokenUtil.generateToken("iris@example.com", Rol.ALUMNO, null))
+        assertThatThrownBy(() -> jwtTokenUtil.generateToken("iris@example.com", Rol.STUDENT, null))
                 .isInstanceOf(NullPointerException.class);
     }
 
@@ -48,13 +49,34 @@ class JwtTokenUtilTest {
     }
 
     @Test
-    void elTokenVenceEnDiezDiasYUsaHmac512() {
+    void getRolDevuelveNullParaTokensViejosConRolesEnEspanol() {
+        String viejo = JWT.create().withSubject("iris@example.com")
+                .withClaim("rol", "ALUMNO")
+                .sign(Algorithm.HMAC512(CLAVE));
+
+        assertThat(jwtTokenUtil.getRol(viejo)).isNull();
+    }
+
+    @Test
+    void elTokenVenceSegunLaDuracionConfiguradaYUsaHmac512() {
         DecodedJWT decodificado = JWT.decode(
-                jwtTokenUtil.generateToken("iris@example.com", Rol.INSTRUCTOR, 4L).substring(7));
+                jwtTokenUtil.generateToken("iris@example.com", Rol.INSTRUCTOR, 4L));
 
         assertThat(Duration.between(decodificado.getIssuedAtAsInstant(), decodificado.getExpiresAtAsInstant()))
-                .isEqualTo(Duration.ofDays(10));
+                .isEqualTo(DURACION);
         assertThat(decodificado.getAlgorithm()).isEqualTo("HS512");
+        assertThat(jwtTokenUtil.getExpirationSeconds()).isEqualTo(864000);
+    }
+
+    @Test
+    void laDuracionDelTokenSePuedeConfigurar() {
+        JwtTokenUtil corto = new JwtTokenUtil(CLAVE, Duration.ofSeconds(60));
+
+        DecodedJWT decodificado = JWT.decode(corto.generateToken("iris@example.com", Rol.INSTRUCTOR, 4L));
+
+        assertThat(Duration.between(decodificado.getIssuedAtAsInstant(), decodificado.getExpiresAtAsInstant()))
+                .isEqualTo(Duration.ofSeconds(60));
+        assertThat(corto.getExpirationSeconds()).isEqualTo(60);
     }
 
     @Test
@@ -62,12 +84,13 @@ class JwtTokenUtilTest {
         String token = jwtTokenUtil.generateToken("iris@example.com", Rol.INSTRUCTOR, 4L);
 
         assertThat(jwtTokenUtil.verify(token)).isTrue();
-        assertThat(jwtTokenUtil.verify(token.substring(7))).isTrue();
+        assertThat(jwtTokenUtil.verify("Bearer " + token)).isTrue();
     }
 
     @Test
     void verifyRechazaUnTokenFirmadoConOtraClave() {
-        String ajeno = new JwtTokenUtil("otra-clave").generateToken("iris@example.com", Rol.INSTRUCTOR, 4L);
+        String ajeno = new JwtTokenUtil("otra-clave", DURACION)
+                .generateToken("iris@example.com", Rol.INSTRUCTOR, 4L);
 
         assertThat(jwtTokenUtil.verify(ajeno)).isFalse();
     }

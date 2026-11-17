@@ -19,7 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-// Login del administrador (rol ADMINISTRADOR): POST /administrator/auth
+// Login viejo del administrador (rol ADMINISTRATOR): POST /administrator/auth
 @WebMvcTest(AdministratorResource.class)
 class AdministratorResourceTest {
 

@@ -82,7 +82,7 @@ public class EnrollmentService {
     public Enrollment getById(Long id, UsuarioAutenticado actor) {
         Enrollment enrollment = getById(id);
         switch (actor.rol()) {
-            case ALUMNO -> actor.exigirPropio(enrollment.getStudent().getId(),
+            case STUDENT -> actor.exigirPropio(enrollment.getStudent().getId(),
                     "La inscripcion no le pertenece");
             case INSTRUCTOR -> actor.exigirPropio(enrollment.getCourse().getInstructor().getId(),
                     "La inscripcion no le pertenece a sus cursos");

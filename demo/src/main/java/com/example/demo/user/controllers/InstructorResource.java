@@ -14,6 +14,7 @@ import com.example.demo.user.dto.InstructorCoursesResponseDTO;
 import com.example.demo.user.model.Instructor;
 import com.example.demo.user.services.InstructorEmailAlreadyExistsException;
 import com.example.demo.user.services.InstructorService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.util.List;
 import java.util.Map;
@@ -46,12 +47,14 @@ public class InstructorResource {
         this.courseService = courseService;
     }
 
+    @Deprecated
+    @Operation(deprecated = true, description = "Deprecado: usar POST /api/instructors")
     @SecurityRequirement(name = "token")
     @PostMapping
     public ResponseEntity<?> create(
             @RequestHeader(value = "Authorization", required = false) String token,
             @RequestBody CreateInstructorRequestDTO solicitud) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         validar(solicitud);
         Instructor instructor = new Instructor(solicitud.firstName(), solicitud.lastName(), solicitud.email(),
                 solicitud.password());
@@ -66,6 +69,8 @@ public class InstructorResource {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
+    @Deprecated
+    @Operation(deprecated = true, description = "Deprecado: usar POST /api/auth/token")
     @PostMapping(value = "/auth", produces = "application/json")
     public ResponseEntity<?> authentication(@RequestBody AuthenticationRequestDTO solicitud) {
         if (solicitud == null) {

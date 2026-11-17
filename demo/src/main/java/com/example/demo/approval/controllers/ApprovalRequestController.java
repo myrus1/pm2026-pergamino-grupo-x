@@ -44,7 +44,7 @@ public class ApprovalRequestController {
             @RequestParam(required = false) ApprovalStatus status,
             @RequestParam(required = false) Long instructorId,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRADOR, Rol.INSTRUCTOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRATOR, Rol.INSTRUCTOR);
         List<ApprovalRequest> solicitudes;
         if (actor.rol() == Rol.INSTRUCTOR) {
             solicitudes = approvalRequestService.getByInstructor(actor.id());
@@ -62,7 +62,7 @@ public class ApprovalRequestController {
     @GetMapping("/{id}")
     public ApprovalRequestResponse getById(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRADOR, Rol.INSTRUCTOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRATOR, Rol.INSTRUCTOR);
         return respuesta(approvalRequestService.getById(id, actor));
     }
 
@@ -74,7 +74,7 @@ public class ApprovalRequestController {
             throw new IllegalArgumentException("La solicitud no puede ser nula");
         }
         exigir(solicitud.getCourseId(), "courseId");
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRATOR);
         return respuesta(approvalRequestService.submit(solicitud.getCourseId(), solicitud.getInstructorComment(),
                 actor));
     }
@@ -83,7 +83,7 @@ public class ApprovalRequestController {
     public ApprovalRequestResponse approve(@PathVariable Long id, @RequestBody ApprovalResolveRequest resolucion,
             @RequestHeader(name = "Authorization", required = false) String token) {
         validar(resolucion);
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         return respuesta(approvalRequestService.approve(id, actor.id(), resolucion.getAdministratorComment()));
     }
 
@@ -91,7 +91,7 @@ public class ApprovalRequestController {
     public ApprovalRequestResponse reject(@PathVariable Long id, @RequestBody ApprovalResolveRequest resolucion,
             @RequestHeader(name = "Authorization", required = false) String token) {
         validar(resolucion);
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         return respuesta(approvalRequestService.reject(id, actor.id(), resolucion.getAdministratorComment()));
     }
 

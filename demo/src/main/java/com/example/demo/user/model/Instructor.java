@@ -1,5 +1,6 @@
 package com.example.demo.user.model;
 
+import com.example.demo.common.Rol;
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.Specialty;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -32,6 +33,7 @@ public class Instructor extends User {
 
     public Instructor(String firstName, String lastName, String email, String password) {
         super(firstName, lastName, email, password);
+        setRol(Rol.INSTRUCTOR);
     }
 
     public Course createCourse(String title, String description, BigDecimal basePrice,

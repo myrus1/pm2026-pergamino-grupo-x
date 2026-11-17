@@ -1,5 +1,6 @@
 package com.example.demo.user.model;
 
+import com.example.demo.common.Rol;
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
@@ -44,6 +45,7 @@ public class Student extends User {
 
     public Student(String firstName, String lastName, String email, String password, String dni) {
         super(firstName, lastName, email, password);
+        setRol(Rol.STUDENT);
         this.dni = dni;
     }
 

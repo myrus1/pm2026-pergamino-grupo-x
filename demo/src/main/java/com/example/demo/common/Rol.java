@@ -5,7 +5,7 @@ package com.example.demo.common;
 // al pedir permisos; no pertenece a una sola feature.
 public enum Rol {
 
-    ALUMNO,
+    STUDENT,
     INSTRUCTOR,
-    ADMINISTRADOR
+    ADMINISTRATOR
 }

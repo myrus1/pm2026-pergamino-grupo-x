@@ -26,15 +26,18 @@ public class OpenApiConfig {
                         .title("PM2026 - API de la academia")
                         .description("API REST del trabajo practico: cursos, especialidades, inscripciones, "
                                 + "aprobaciones de cursos y usuarios. La autenticacion es por JWT: se llama a "
-                                + "POST /student/auth, POST /instructor/auth o POST /administrator/auth y el "
-                                + "token obtenido se envía en el header Authorization (con el prefijo Bearer).")
+                                + "POST /api/auth/token con email y password, y el valor de accessToken se "
+                                + "envía en el header Authorization con el prefijo Bearer. Los logins viejos "
+                                + "por rol (POST /student/auth, /instructor/auth y /administrator/auth) quedan "
+                                + "deprecados.")
                         .version("1.0.0"))
                 .components(new Components()
                         .addSecuritySchemes(ESQUEMA_TOKEN, new SecurityScheme()
                                 .type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.HEADER)
                                 .name("Authorization")
-                                .description("Token JWT devuelto por los logins, con el prefijo Bearer")));
+                                .description("JWT devuelto por POST /api/auth/token. Pegar el valor completo "
+                                        + "\"Bearer <accessToken>\".")));
     }
 
     // Quitar el header Authorization que springdoc infiere de los @RequestHeader: el token no es un

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "PM2026 - Reglas de negocio",
-    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba.\n\nPermisos: la carpeta 0 autentica al administrador semilla y guarda tokenAdmin; los logins de instructor y alumnos estan al final de la carpeta 1 (recien creados esos usuarios). Cada pedido que lo exige lleva la cabecera Authorization con el token del rol que le corresponde; POST /api/students (registro de alumno) es el unico que no pide token.\n\nPENDIENTE: hasta que exista el primer administrador en la base de datos, la carpeta 0 responde 401 y las carpetas 1 a 9 no pueden correr (ver AGENTS.md).",
+    "description": "Correr en orden con el Collection Runner. Cada corrida crea sus propios datos de prueba.\n\nPermisos: la carpeta 0 autentica al administrador semilla con el login unico y guarda tokenAdmin; los logins de instructor y alumnos estan al final de la carpeta 1 (recien creados esos usuarios). Cada pedido que lo exige lleva la cabecera Authorization con el token del rol que le corresponde; POST /api/students (registro de alumno) es el unico que no pide token.\n\nPENDIENTE: hasta que exista el primer administrador en la base de datos, la carpeta 0 responde 401 y las carpetas 1 a 9 no pueden correr (ver AGENTS.md).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,7 +12,7 @@
     {
       "key": "adminEmail",
       "value": "",
-      "description": "Email del primer administrador (semilla) usado por POST /administrator/auth. PENDIENTE: todavia no hay forma de crear el primer admin desde la API."
+      "description": "Email del primer administrador (semilla) usado por POST /api/auth/token. PENDIENTE: todavia no hay forma de crear el primer admin desde la API."
     },
     {
       "key": "adminPassword",
@@ -48,10 +48,10 @@
   "item": [
     {
       "name": "0 - Autenticacion (JWT)",
-      "description": "POST /administrator/auth, POST /instructor/auth y POST /student/auth devuelven {\"token\": \"Bearer ...\"}. El del administrador va primero porque todo lo demas esta protegido; los otros dos estan al final de la carpeta 1, donde se crean esos usuarios.",
+      "description": "POST /api/auth/token es el login unico: recibe {\"email\",\"password\"}, detecta el rol (STUDENT, INSTRUCTOR o ADMINISTRATOR) y devuelve {\"accessToken\",\"tokenType\",\"expiresIn\",\"role\"}. El del administrador va primero porque todo lo demas esta protegido; los otros dos estan al final de la carpeta 1, donde se crean esos usuarios. Los logins viejos por rol y POST /instructor (TP4) quedan deprecados.",
       "item": [
         {
-          "name": "Login del administrador semilla: devuelve el token",
+          "name": "Login único del administrador semilla: devuelve el token",
           "event": [
             {
               "listen": "test",
@@ -59,8 +59,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
-                  "pm.collectionVariables.set(\"tokenAdmin\", pm.response.json().token);"
+                  "pm.test(\"devuelve el rol ADMINISTRATOR\", () => pm.expect(pm.response.json().role).to.eql(\"ADMINISTRATOR\"));",
+                  "pm.test(\"tokenType es Bearer\", () => pm.expect(pm.response.json().tokenType).to.eql(\"Bearer\"));",
+                  "pm.test(\"expiresIn es 864000\", () => pm.expect(pm.response.json().expiresIn).to.eql(864000));",
+                  "pm.test(\"el accessToken no trae el prefijo\", () => pm.expect(pm.response.json().accessToken).to.not.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenAdmin\", \"Bearer \" + pm.response.json().accessToken);"
                 ]
               }
             }
@@ -74,13 +77,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/administrator/auth",
+              "raw": "{{baseUrl}}/api/auth/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "administrator",
-                "auth"
+                "api",
+                "auth",
+                "token"
               ]
             },
             "body": {
@@ -92,7 +96,52 @@
                 }
               }
             },
-            "description": "Requiere el primer administrador en la base de datos (semilla pendiente). Guarda tokenAdmin, que usan todas las carpetas siguientes."
+            "description": "Login único: administrador, devuelve accessToken (JWT crudo) con rol ADMINISTRATOR. Guarda tokenAdmin con el prefijo Bearer para el resto de la colección."
+          }
+        },
+        {
+          "name": "Login unico con password incorrecta: 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"responde 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"devuelve el mensaje de credenciales\", () => pm.expect(pm.response.json().mensaje).to.eql(\"Email o contraseña incorrectos\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "token"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"password-incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Verifica que el login unico responda 401 (y no 500) con una password incorrecta."
           }
         }
       ]
@@ -423,7 +472,7 @@
           }
         },
         {
-          "name": "Login del instructor Laura: token",
+          "name": "Login único del instructor Laura: token",
           "event": [
             {
               "listen": "test",
@@ -431,8 +480,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
-                  "pm.collectionVariables.set(\"tokenInstructor\", pm.response.json().token);"
+                  "pm.test(\"devuelve el rol INSTRUCTOR\", () => pm.expect(pm.response.json().role).to.eql(\"INSTRUCTOR\"));",
+                  "pm.test(\"tokenType es Bearer\", () => pm.expect(pm.response.json().tokenType).to.eql(\"Bearer\"));",
+                  "pm.test(\"expiresIn es 864000\", () => pm.expect(pm.response.json().expiresIn).to.eql(864000));",
+                  "pm.test(\"el accessToken no trae el prefijo\", () => pm.expect(pm.response.json().accessToken).to.not.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenInstructor\", \"Bearer \" + pm.response.json().accessToken);"
                 ]
               }
             }
@@ -446,13 +498,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/instructor/auth",
+              "raw": "{{baseUrl}}/api/auth/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "instructor",
-                "auth"
+                "api",
+                "auth",
+                "token"
               ]
             },
             "body": {
@@ -464,7 +517,7 @@
                 }
               }
             },
-            "description": "El instructor dueno de los cursos de esta corrida."
+            "description": "Login único: instructor, devuelve accessToken (JWT crudo) con rol INSTRUCTOR. Guarda tokenInstructor con el prefijo Bearer para el resto de la colección."
           }
         },
         {
@@ -880,7 +933,7 @@
           }
         },
         {
-          "name": "Login de la alumna Ana: token",
+          "name": "Login único de la alumna Ana: token",
           "event": [
             {
               "listen": "test",
@@ -888,8 +941,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
-                  "pm.collectionVariables.set(\"tokenAna\", pm.response.json().token);"
+                  "pm.test(\"devuelve el rol STUDENT\", () => pm.expect(pm.response.json().role).to.eql(\"STUDENT\"));",
+                  "pm.test(\"tokenType es Bearer\", () => pm.expect(pm.response.json().tokenType).to.eql(\"Bearer\"));",
+                  "pm.test(\"expiresIn es 864000\", () => pm.expect(pm.response.json().expiresIn).to.eql(864000));",
+                  "pm.test(\"el accessToken no trae el prefijo\", () => pm.expect(pm.response.json().accessToken).to.not.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenAna\", \"Bearer \" + pm.response.json().accessToken);"
                 ]
               }
             }
@@ -903,13 +959,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/student/auth",
+              "raw": "{{baseUrl}}/api/auth/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "student",
-                "auth"
+                "api",
+                "auth",
+                "token"
               ]
             },
             "body": {
@@ -921,11 +978,11 @@
                 }
               }
             },
-            "description": "Ana usa su propio token para inscribirse y ver sus cursos."
+            "description": "Login único: alumno, devuelve accessToken (JWT crudo) con rol STUDENT. Guarda tokenAna con el prefijo Bearer para el resto de la colección."
           }
         },
         {
-          "name": "Login del alumno Beto: token",
+          "name": "Login único del alumno Beto: token",
           "event": [
             {
               "listen": "test",
@@ -933,8 +990,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
-                  "pm.collectionVariables.set(\"tokenBeto\", pm.response.json().token);"
+                  "pm.test(\"devuelve el rol STUDENT\", () => pm.expect(pm.response.json().role).to.eql(\"STUDENT\"));",
+                  "pm.test(\"tokenType es Bearer\", () => pm.expect(pm.response.json().tokenType).to.eql(\"Bearer\"));",
+                  "pm.test(\"expiresIn es 864000\", () => pm.expect(pm.response.json().expiresIn).to.eql(864000));",
+                  "pm.test(\"el accessToken no trae el prefijo\", () => pm.expect(pm.response.json().accessToken).to.not.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenBeto\", \"Bearer \" + pm.response.json().accessToken);"
                 ]
               }
             }
@@ -948,13 +1008,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/student/auth",
+              "raw": "{{baseUrl}}/api/auth/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "student",
-                "auth"
+                "api",
+                "auth",
+                "token"
               ]
             },
             "body": {
@@ -966,11 +1027,11 @@
                 }
               }
             },
-            "description": ""
+            "description": "Login único: alumno, devuelve accessToken (JWT crudo) con rol STUDENT. Guarda tokenBeto con el prefijo Bearer para el resto de la colección."
           }
         },
         {
-          "name": "Login de la alumna Carla: token",
+          "name": "Login único de la alumna Carla: token",
           "event": [
             {
               "listen": "test",
@@ -978,8 +1039,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
-                  "pm.collectionVariables.set(\"tokenCarla\", pm.response.json().token);"
+                  "pm.test(\"devuelve el rol STUDENT\", () => pm.expect(pm.response.json().role).to.eql(\"STUDENT\"));",
+                  "pm.test(\"tokenType es Bearer\", () => pm.expect(pm.response.json().tokenType).to.eql(\"Bearer\"));",
+                  "pm.test(\"expiresIn es 864000\", () => pm.expect(pm.response.json().expiresIn).to.eql(864000));",
+                  "pm.test(\"el accessToken no trae el prefijo\", () => pm.expect(pm.response.json().accessToken).to.not.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"tokenCarla\", \"Bearer \" + pm.response.json().accessToken);"
                 ]
               }
             }
@@ -993,13 +1057,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/student/auth",
+              "raw": "{{baseUrl}}/api/auth/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "student",
-                "auth"
+                "api",
+                "auth",
+                "token"
               ]
             },
             "body": {
@@ -1011,7 +1076,7 @@
                 }
               }
             },
-            "description": ""
+            "description": "Login único: alumno, devuelve accessToken (JWT crudo) con rol STUDENT. Guarda tokenCarla con el prefijo Bearer para el resto de la colección."
           }
         }
       ]
@@ -3527,13 +3592,14 @@
             }
           }
         }
-      ]
+      ],
+      "description": "POST /instructor queda deprecado: el alta de instructores se hace con POST /api/instructors. La carpeta se mantiene para comprobar que el endpoint viejo sigue funcionando."
     },
     {
       "name": "8 - TP5: login y cursos con JWT",
       "item": [
         {
-          "name": "Login del instructor: devuelve el token JWT",
+          "name": "Login único del instructor: devuelve el token JWT",
           "event": [
             {
               "listen": "test",
@@ -3541,8 +3607,11 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"el token empieza con Bearer\", () => pm.expect(pm.response.json().token).to.match(/^Bearer /));",
-                  "pm.collectionVariables.set(\"token\", pm.response.json().token);"
+                  "pm.test(\"devuelve el rol INSTRUCTOR\", () => pm.expect(pm.response.json().role).to.eql(\"INSTRUCTOR\"));",
+                  "pm.test(\"tokenType es Bearer\", () => pm.expect(pm.response.json().tokenType).to.eql(\"Bearer\"));",
+                  "pm.test(\"expiresIn es 864000\", () => pm.expect(pm.response.json().expiresIn).to.eql(864000));",
+                  "pm.test(\"el accessToken no trae el prefijo\", () => pm.expect(pm.response.json().accessToken).to.not.match(/^Bearer /));",
+                  "pm.collectionVariables.set(\"token\", \"Bearer \" + pm.response.json().accessToken);"
                 ]
               }
             }
@@ -3556,13 +3625,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/instructor/auth",
+              "raw": "{{baseUrl}}/api/auth/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "instructor",
-                "auth"
+                "api",
+                "auth",
+                "token"
               ]
             },
             "body": {
@@ -3573,7 +3643,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Login único: instructor, devuelve accessToken (JWT crudo) con rol INSTRUCTOR. Guarda tokenInstructor con el prefijo Bearer para el resto de la colección."
           }
         },
         {
@@ -3584,7 +3655,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"responde 401\", () => pm.response.to.have.status(401));"
+                  "pm.test(\"responde 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"devuelve el mensaje de credenciales\", () => pm.expect(pm.response.json().mensaje).to.eql(\"Email o contraseña incorrectos\"));"
                 ]
               }
             }
@@ -3598,13 +3670,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/instructor/auth",
+              "raw": "{{baseUrl}}/api/auth/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "instructor",
-                "auth"
+                "api",
+                "auth",
+                "token"
               ]
             },
             "body": {
@@ -3615,7 +3688,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Login único: instructor, devuelve accessToken (JWT crudo) con rol INSTRUCTOR. Guarda tokenInstructor con el prefijo Bearer para el resto de la colección."
           }
         },
         {
@@ -3626,7 +3700,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"responde 401\", () => pm.response.to.have.status(401));"
+                  "pm.test(\"responde 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"devuelve el mensaje de credenciales\", () => pm.expect(pm.response.json().mensaje).to.eql(\"Email o contraseña incorrectos\"));"
                 ]
               }
             }
@@ -3640,13 +3715,14 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/instructor/auth",
+              "raw": "{{baseUrl}}/api/auth/token",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "instructor",
-                "auth"
+                "api",
+                "auth",
+                "token"
               ]
             },
             "body": {
@@ -3657,7 +3733,8 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Login único: instructor, devuelve accessToken (JWT crudo) con rol INSTRUCTOR. Guarda tokenInstructor con el prefijo Bearer para el resto de la colección."
           }
         },
         {

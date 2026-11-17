@@ -16,6 +16,7 @@ import com.example.demo.user.model.Student;
 import com.example.demo.user.services.AdministratorService;
 import com.example.demo.user.services.InstructorService;
 import com.example.demo.user.services.StudentService;
+import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,7 +35,7 @@ class AuthorizationServiceImpTest {
     @Mock
     private AdministratorService administratorService;
 
-    private final JwtTokenUtil jwtTokenUtil = new JwtTokenUtil("clave-de-prueba");
+    private final JwtTokenUtil jwtTokenUtil = new JwtTokenUtil("clave-de-prueba", Duration.ofDays(10));
 
     private AuthorizationServiceImp authorizationService;
 
@@ -63,17 +64,17 @@ class AuthorizationServiceImpTest {
         Administrator admin = new Administrator("Ada", "Lopez", "ada@example.com", "hash");
         TestIds.fijarId(admin, 3L);
         when(administratorService.findByEmail("ada@example.com")).thenReturn(admin);
-        String token = jwtTokenUtil.generateToken("ada@example.com", Rol.ADMINISTRADOR, 3L);
+        String token = jwtTokenUtil.generateToken("ada@example.com", Rol.ADMINISTRATOR, 3L);
 
-        assertThat(authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR).rol())
-                .isEqualTo(Rol.ADMINISTRADOR);
+        assertThat(authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRATOR).rol())
+                .isEqualTo(Rol.ADMINISTRATOR);
     }
 
     @Test
     void autorizarConRolNoPermitidoLanzaExcepcionDeAutorizacion() {
-        String token = jwtTokenUtil.generateToken("ana@example.com", Rol.ALUMNO, 9L);
+        String token = jwtTokenUtil.generateToken("ana@example.com", Rol.STUDENT, 9L);
 
-        assertThatThrownBy(() -> authorizationService.autorizar(token, Rol.ADMINISTRADOR))
+        assertThatThrownBy(() -> authorizationService.autorizar(token, Rol.ADMINISTRATOR))
                 .isInstanceOf(AuthorizationException.class)
                 .hasMessage("No tiene permisos para esta operacion");
     }
@@ -94,7 +95,8 @@ class AuthorizationServiceImpTest {
 
     @Test
     void autorizarConTokenDeOtraClaveLanzaExcepcionDeAutenticacion() {
-        String ajeno = new JwtTokenUtil("otra-clave").generateToken("iris@example.com", Rol.INSTRUCTOR, 4L);
+        String ajeno = new JwtTokenUtil("otra-clave", Duration.ofDays(10))
+                .generateToken("iris@example.com", Rol.INSTRUCTOR, 4L);
 
         assertThatThrownBy(() -> authorizationService.autorizar(ajeno, Rol.INSTRUCTOR))
                 .isInstanceOf(AuthenticationException.class)
@@ -126,8 +128,8 @@ class AuthorizationServiceImpTest {
         Student alumno = new Student("Ana", "Perez", "ana@example.com", "hash", "11111111");
         TestIds.fijarId(alumno, 9L);
         when(studentService.findByEmail("ana@example.com")).thenReturn(alumno);
-        String token = jwtTokenUtil.generateToken("ana@example.com", Rol.ALUMNO, 9L);
+        String token = jwtTokenUtil.generateToken("ana@example.com", Rol.STUDENT, 9L);
 
-        assertThat(authorizationService.autorizar(token, Rol.ALUMNO).id()).isEqualTo(9L);
+        assertThat(authorizationService.autorizar(token, Rol.STUDENT).id()).isEqualTo(9L);
     }
 }

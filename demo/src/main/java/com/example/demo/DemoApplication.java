@@ -6,6 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import com.example.demo.common.JwtTokenUtil;
 import com.example.demo.common.PasswordEncoder;
+import java.time.Duration;
 
 @SpringBootApplication
 public class DemoApplication {
@@ -16,8 +17,9 @@ public class DemoApplication {
 	}
 
 	@Bean
-	public JwtTokenUtil jwtTokenUtil(@Value("${jwt.secret}") String secret) {
-		return new JwtTokenUtil(secret);
+	public JwtTokenUtil jwtTokenUtil(@Value("${jwt.secret}") String secret,
+			@Value("${jwt.expiration}") long expirationSeconds) {
+		return new JwtTokenUtil(secret, Duration.ofSeconds(expirationSeconds));
 	}
 
 	public static void main(String[] args) {

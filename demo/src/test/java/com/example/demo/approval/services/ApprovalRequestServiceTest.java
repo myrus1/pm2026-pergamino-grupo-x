@@ -62,7 +62,7 @@ class ApprovalRequestServiceTest {
     }
 
     private UsuarioAutenticado administrador() {
-        return new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRADOR);
+        return new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRATOR);
     }
 
     private UsuarioAutenticado instructor(Long id) {

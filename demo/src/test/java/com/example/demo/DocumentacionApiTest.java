@@ -32,8 +32,9 @@ class DocumentacionApiTest {
     void documentaComoPublicosLosEndpointsQueNoPidenToken() throws Exception {
         JsonNode paths = doc().get("paths");
 
-        // Registro publico y logins
+        // Registro publico y login unico (los logins viejos siguen publicos y deprecados)
         exigirPublico(paths, "/api/students", "post");
+        exigirPublico(paths, "/api/auth/token", "post");
         exigirPublico(paths, "/student/auth", "post");
         exigirPublico(paths, "/instructor/auth", "post");
         exigirPublico(paths, "/administrator/auth", "post");
@@ -85,6 +86,19 @@ class DocumentacionApiTest {
                 assertThat(parametros.toString()).doesNotContain("\"Authorization\"");
             }
         }
+    }
+
+    @Test
+    void marcaComoDeprecadosLosLoginsViejosYElAltaDeInstructorDelTp4() throws Exception {
+        JsonNode paths = doc().get("paths");
+
+        assertThat(operacionDe(paths, "/student/auth", "post").get("deprecated").asBoolean()).isTrue();
+        assertThat(operacionDe(paths, "/instructor/auth", "post").get("deprecated").asBoolean()).isTrue();
+        assertThat(operacionDe(paths, "/administrator/auth", "post").get("deprecated").asBoolean()).isTrue();
+        assertThat(operacionDe(paths, "/instructor", "post").get("deprecated").asBoolean()).isTrue();
+
+        JsonNode loginNuevo = operacionDe(paths, "/api/auth/token", "post").get("deprecated");
+        assertThat(loginNuevo == null || !loginNuevo.asBoolean()).isTrue();
     }
 
     @Test

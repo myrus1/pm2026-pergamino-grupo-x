@@ -41,12 +41,12 @@ public class EnrollmentController {
     @GetMapping
     public List<EnrollmentResponse> getAll(
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ALUMNO, Rol.INSTRUCTOR,
-                Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.STUDENT, Rol.INSTRUCTOR,
+                Rol.ADMINISTRATOR);
         List<Enrollment> inscripciones = switch (actor.rol()) {
-            case ALUMNO -> enrollmentService.getAllDeAlumno(actor.id());
+            case STUDENT -> enrollmentService.getAllDeAlumno(actor.id());
             case INSTRUCTOR -> enrollmentService.getAllDeInstructor(actor.id());
-            case ADMINISTRADOR -> enrollmentService.getAll();
+            case ADMINISTRATOR -> enrollmentService.getAll();
         };
         return inscripciones.stream().map(this::respuesta).toList();
     }
@@ -54,15 +54,15 @@ public class EnrollmentController {
     @GetMapping("/revenue")
     public RevenueResponse totalRevenue(
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         return new RevenueResponse(enrollmentService.totalRevenue());
     }
 
     @GetMapping("/{id}")
     public EnrollmentResponse getById(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ALUMNO, Rol.INSTRUCTOR,
-                Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.STUDENT, Rol.INSTRUCTOR,
+                Rol.ADMINISTRATOR);
         return respuesta(enrollmentService.getById(id, actor));
     }
 
@@ -71,7 +71,7 @@ public class EnrollmentController {
     @ResponseStatus(HttpStatus.CREATED)
     public EnrollmentResponse create(@RequestBody EnrollmentRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ALUMNO, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.STUDENT, Rol.ADMINISTRATOR);
         validar(solicitud, actor);
         return respuesta(enrollmentService.enroll(solicitud.getStudentId(), solicitud.getCourseId()));
     }

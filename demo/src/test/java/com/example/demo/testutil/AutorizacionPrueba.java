@@ -16,7 +16,7 @@ public final class AutorizacionPrueba {
 
     public static final String TOKEN = "Bearer token-de-prueba";
     public static final UsuarioAutenticado ADMIN = new UsuarioAutenticado(3L, "ada@example.com",
-            Rol.ADMINISTRADOR);
+            Rol.ADMINISTRATOR);
 
     private AutorizacionPrueba() {
     }
@@ -34,7 +34,7 @@ public final class AutorizacionPrueba {
     }
 
     public static void comoAlumno(AuthorizationService servicio, Long alumnoId) {
-        como(servicio, new UsuarioAutenticado(alumnoId, "ana@example.com", Rol.ALUMNO));
+        como(servicio, new UsuarioAutenticado(alumnoId, "ana@example.com", Rol.STUDENT));
     }
 
     // 401: sin header Authorization o token invalido/vencido

@@ -21,7 +21,7 @@ class OpenApiConfigTest {
         assertThat(info.getTitle()).isEqualTo("PM2026 - API de la academia");
         assertThat(info.getVersion()).isEqualTo("1.0.0");
         assertThat(info.getDescription())
-                .contains("POST /student/auth")
+                .contains("POST /api/auth/token")
                 .contains("header Authorization");
     }
 

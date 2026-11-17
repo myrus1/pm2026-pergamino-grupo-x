@@ -63,7 +63,7 @@ public class InstructorController {
     @GetMapping("/{id}/revenue")
     public RevenueResponse revenue(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRATOR);
         actor.exigirPropio(id, "La recaudacion no le pertenece");
         return new RevenueResponse(enrollmentService.instructorRevenue(id));
     }
@@ -74,7 +74,7 @@ public class InstructorController {
     @ResponseStatus(HttpStatus.CREATED)
     public InstructorResponse create(@RequestBody InstructorRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         validar(solicitud);
         Instructor instructor = new Instructor(solicitud.getFirstName(), solicitud.getLastName(),
                 solicitud.getEmail(), solicitud.getPassword());
@@ -85,7 +85,7 @@ public class InstructorController {
     @PutMapping("/{id}")
     public InstructorResponse update(@PathVariable Long id, @RequestBody InstructorRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRATOR);
         actor.exigirPropio(id, "Solo puede modificar su propio perfil");
         validar(solicitud);
         Instructor instructor = instructorService.getById(id);
@@ -101,7 +101,7 @@ public class InstructorController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         instructorService.getById(id);
         instructorService.delete(id);
     }
@@ -112,7 +112,7 @@ public class InstructorController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void asignarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         instructorService.addSpecialty(id, specialtyId);
     }
 
@@ -121,7 +121,7 @@ public class InstructorController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void quitarEspecialidad(@PathVariable Long id, @PathVariable Long specialtyId,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         instructorService.removeSpecialty(id, specialtyId);
     }
 

@@ -50,8 +50,8 @@ public class AuthorizationServiceImp implements AuthorizationService {
     private User buscarPorEmail(Rol rol, String email) {
         return switch (rol) {
             case INSTRUCTOR -> instructorService.findByEmail(email);
-            case ALUMNO -> studentService.findByEmail(email);
-            case ADMINISTRADOR -> administratorService.findByEmail(email);
+            case STUDENT -> studentService.findByEmail(email);
+            case ADMINISTRATOR -> administratorService.findByEmail(email);
         };
     }
 }

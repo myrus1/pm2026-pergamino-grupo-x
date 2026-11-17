@@ -1,5 +1,6 @@
 package com.example.demo.user.model;
 
+import com.example.demo.common.Rol;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
@@ -13,5 +14,6 @@ public class Administrator extends User {
 
     public Administrator(String firstName, String lastName, String email, String password) {
         super(firstName, lastName, email, password);
+        setRol(Rol.ADMINISTRATOR);
     }
 }

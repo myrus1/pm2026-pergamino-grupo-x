@@ -1,5 +1,6 @@
 package com.example.demo.user.model;
 
+import com.example.demo.common.Rol;
 import com.example.demo.course.model.Course;
 import com.example.demo.course.model.CourseStatus;
 import com.example.demo.course.model.Specialty;
@@ -204,6 +205,13 @@ class ModelAssociationTests {
         enrollment.setStudent(firstStudent);
         assertTrue(secondStudent.getEnrollments().isEmpty());
         assertTrue(firstStudent.getEnrollments().contains(enrollment));
+    }
+
+    @Test
+    void cadaTipoDeUsuarioQuedaConSuRol() {
+        assertEquals(Rol.STUDENT, new Student("Ana", "Perez", "ana@example.com", "hash", "11111111").getRol());
+        assertEquals(Rol.INSTRUCTOR, new Instructor("Iris", "Ruiz", "iris@example.com", "hash").getRol());
+        assertEquals(Rol.ADMINISTRATOR, new Administrator("Ada", "Lopez", "ada@example.com", "hash").getRol());
     }
 
     @Test

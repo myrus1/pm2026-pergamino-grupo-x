@@ -99,7 +99,7 @@ public class CourseService {
     private void exigirQuePuedaModificar(Course course, UsuarioAutenticado actor) {
         actor.exigirPropio(course.getInstructor() == null ? null : course.getInstructor().getId(),
                 "El curso pertenece a otro instructor");
-        if (actor.rol() != Rol.ADMINISTRADOR && course.getStatus() != CourseStatus.DRAFT) {
+        if (actor.rol() != Rol.ADMINISTRATOR && course.getStatus() != CourseStatus.DRAFT) {
             throw new CourseStateException("El curso solo se puede modificar mientras este en borrador");
         }
     }

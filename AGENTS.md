@@ -94,6 +94,8 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `${DB_PASSWORD}`. Plantilla en `.env.example`; `.env` está en `.gitignore`.
 - `jwt.secret=${JWT_SECRET:...}`: clave HMAC512 de los tokens. Si no hay `JWT_SECRET` en el
   `.env` se usa un valor por defecto de desarrollo.
+- `jwt.expiration=${JWT_EXPIRATION:864000}`: duración de los tokens en **segundos** (10 días).
+  Se devuelve como `expiresIn` en `POST /api/auth/token`.
 - CORS (`common/CorsConfig`): `cors.allowed-origins=${CORS_ALLOWED_ORIGINS:*}` acepta una lista
   de orígenes separada por comas (`http://localhost:5173,https://mi-frontend.com`). Por defecto
   `*` (desarrollo). Se permite el header `Authorization` y los métodos GET/POST/PUT/PATCH/DELETE/OPTIONS.
@@ -157,15 +159,16 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 
 ## Matriz de permisos (rama `permisos-roles`)
 
-Toda la API pide el token en el header `Authorization` (sin prefijo `Bearer` adicional:
-el valor guardado por los logins ya viene como `"Bearer ..."`). El controlador llama a
+Toda la API pide el token en el header `Authorization` con el formato `Bearer <jwt>`.
+`POST /api/auth/token` devuelve el JWT crudo en `accessToken`; los logins viejos ya devuelven
+el valor completo con el prefijo. El controlador llama a
 `AuthorizationService.autorizar(token, Rol...)`; si el rol no alcanza devuelve 403, y si el
 token falta/vence 401 (`ApiExceptionHandler` los mapea a `{"mensaje": ...}`).
 `UsuarioAutenticado` (en `common/`, no en `auth/` para no armar ciclos de paquetes) expone
 `exigirPropio(idPropietario, mensaje)`: **el administrador siempre pasa**, los demás solo si
 el id coincide.
 
-| Endpoint | ALUMNO | INSTRUCTOR | ADMINISTRADOR | Público |
+| Endpoint | STUDENT | INSTRUCTOR | ADMINISTRATOR | Público |
 | --- | --- | --- | --- | --- |
 | `POST /api/students` (registro) | ✅ | ✅ | ✅ | ✅ **sin token** |
 | `GET /api/courses`, `GET /api/courses/{id}`, `GET /api/instructors`, `GET /api/instructors/{id}`, `GET /api/specialties` | ✅ | ✅ | ✅ | ✅ |
@@ -184,9 +187,12 @@ el id coincide.
 | `GET /api/approval-requests` (`?status=`/`?instructorId=`) | ❌ | solo las suyas (ignora el filtro) | ✅ | ❌ |
 | `GET /api/approval-requests/{id}`, `.../{id}/approve`, `.../{id}/reject` | ❌ | solo lectura de las suyas | ✅ | ❌ |
 
-- Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
-  (los tres reciben `AuthenticationRequestDTO`: `email` + `password` y devuelven
-  `{"token": "Bearer ..."}`).
+- Login único: `POST /api/auth/token` recibe `AuthenticationRequestDTO` (`email` + `password`),
+  busca el usuario en `users`, detecta su `rol` (`STUDENT`, `INSTRUCTOR`, `ADMINISTRATOR`) y
+  devuelve `{"accessToken": "<jwt>", "tokenType": "Bearer", "expiresIn": 864000, "role": "..."}`.
+- Logins viejos: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
+  siguen funcionando (devuelven `{"token": "Bearer ..."}`) pero están `@Deprecated` y
+  `@Operation(deprecated = true)`; apuntan a `POST /api/auth/token`.
 - El instructor **no** elige el dueño de un curso: `CourseService` usa el id del token y solo
   el administrador puede mandar `instructorId` en el body.
 - Un curso que salió de DRAFT no se edita ni se borra: `CourseStateException` → 409.
@@ -208,8 +214,8 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   (apiKey en el header `Authorization`), y registra un `OperationCustomizer`
   (`QuitarHeaderDeAutorizacion`) que saca el parámetro `Authorization` que springdoc infiere
   de cada `@RequestHeader`. El token no es un parámetro más del endpoint: se envía desde el
-  botón **Authorize** de Swagger UI con el valor completo `Bearer <jwt>` (igual que lo
-  devuelven los logins y como lo usa Postman: `Authorization: {{tokenAdmin}}`).
+  botón **Authorize** de Swagger UI con el valor completo `Bearer <accessToken>` (el
+  `accessToken` que devuelve `POST /api/auth/token`, con el prefijo agregado a mano).
 - **Qué pide token**: `@SecurityRequirement(name = "token")` en los endpoints protegidos de
   la matriz de permisos. Va a nivel de **clase** en los controladores 100% protegidos
   (`AdministratorController`, `EnrollmentController`, `ApprovalRequestController`) y a nivel
@@ -254,15 +260,17 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
 - TP4: `POST /instructor` (`user/controllers/InstructorResource`) recibe
   `CreateInstructorRequestDTO` (record con email, password, firstName y lastName), delega en
   `InstructorService.create` (email unico + BCrypt) y responde con `ResponseEntity` 201, o 409
-  si la creacion falla. Convive con el CRUD de `/api/instructors`.
-- TP5: `POST /instructor/auth`, `POST /student/auth` y `POST /administrator/auth` reciben
-  `AuthenticationRequestDTO` (email, password) y devuelven `{"token": "Bearer ..."}`
-  (JWT HMAC512, vence en 10 dias, subject = email, con claims `rol` y `userId`), o 401.
-  `GET /instructor` y `GET /instructor/courses` leen el header `Authorization`, validan el token
-  con `AuthorizationService` y devuelven solo los cursos de ese instructor
-  (`InstructorCoursesResponseDTO`: id, name, description), o 403. Los servicios de `auth/` lanzan
-  `AuthenticationException`/`AuthorizationException` (unchecked), que son las que
-  `ApiExceptionHandler` convierte en 401/403.
+  si la creacion falla. Queda `@Deprecated` (usar `POST /api/instructors`), pero sigue
+  conviviendo con el CRUD de `/api/instructors`.
+- TP5: `POST /api/auth/token` es el login unico. Busca el email en `users` con
+  `UserRepository`, valida BCrypt, detecta el rol guardado en `User.rol` y devuelve
+  `{"accessToken": "<jwt>", "tokenType": "Bearer", "expiresIn": 864000, "role": "..."}`
+  (JWT HMAC512, subject = email, claims `rol` y `userId`), o 401. Los tres logins viejos y
+  el alta TP4 quedan deprecados en Swagger. `GET /instructor` y `GET /instructor/courses`
+  leen el header `Authorization`, validan el token con `AuthorizationService` y devuelven solo
+  los cursos de ese instructor (`InstructorCoursesResponseDTO`: id, name, description), o 403.
+  Los servicios de `auth/` lanzan `AuthenticationException`/`AuthorizationException`
+  (unchecked), que son las que `ApiExceptionHandler` convierte en 401/403.
 - Recaudación: `GET /api/instructors/{id}/revenue` (65% del precio base por inscripción,
   sin importar descuentos; regla en `Enrollment.instructorRevenue`) y
   `GET /api/enrollments/revenue` (total pagado por los alumnos).
@@ -275,7 +283,7 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`, ahora con el
   dueño) y de los controladores (`*ControllerTest`, slice `@WebMvcTest`, con
   `testutil/AutorizacionPrueba`), todos sin BD salvo `contextLoads`.
-  Todavia no hay tests de persistencia (JPA). Suite: **345 tests**.
+  Todavia no hay tests de persistencia (JPA). Suite: **364 tests**.
 - **Pendiente conocido: el primer administrador.** `/api/administrators` exige token de admin,
   asi que no hay como crear el primer admin desde la API (ciclo). Mientras se decide
   (seed desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, INSERT SQL o alta publica condicional), la

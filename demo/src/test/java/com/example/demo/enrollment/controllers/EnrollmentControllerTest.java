@@ -225,7 +225,7 @@ class EnrollmentControllerTest {
     @Test
     void getByIdAjenoResponde403() throws Exception {
         AutorizacionPrueba.comoAlumno(authorizationService, 9L);
-        when(enrollmentService.getById(9L, new UsuarioAutenticado(9L, "ana@example.com", Rol.ALUMNO)))
+        when(enrollmentService.getById(9L, new UsuarioAutenticado(9L, "ana@example.com", Rol.STUDENT)))
                 .thenThrow(new AuthorizationException("La inscripcion no le pertenece"));
 
         mockMvc.perform(get(RUTA + "/9"))

@@ -52,10 +52,10 @@ public class StudentController {
             @RequestHeader(name = "Authorization", required = false) String token) {
         List<Student> alumnos;
         if (courseId == null) {
-            authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+            authorizationService.autorizar(token, Rol.ADMINISTRATOR);
             alumnos = studentService.getAll();
         } else {
-            UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRADOR, Rol.INSTRUCTOR);
+            UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ADMINISTRATOR, Rol.INSTRUCTOR);
             courseService.getById(courseId, actor);
             alumnos = enrollmentService.getStudentsOfCourse(courseId);
         }
@@ -66,7 +66,7 @@ public class StudentController {
     @GetMapping("/{id}")
     public StudentResponse getById(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         return respuesta(studentService.getById(id));
     }
 
@@ -85,7 +85,7 @@ public class StudentController {
     @PutMapping("/{id}")
     public StudentResponse update(@PathVariable Long id, @RequestBody StudentRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         validar(solicitud);
         Student alumno = studentService.getById(id);
         alumno.setFirstName(solicitud.getFirstName());
@@ -101,7 +101,7 @@ public class StudentController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         studentService.getById(id);
         studentService.delete(id);
     }

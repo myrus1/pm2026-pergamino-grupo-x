@@ -49,7 +49,7 @@ public class CourseController {
         if (studentId == null) {
             cursos = courseService.getAll();
         } else {
-            UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.ALUMNO, Rol.ADMINISTRADOR);
+            UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.STUDENT, Rol.ADMINISTRATOR);
             actor.exigirPropio(studentId, "Solo puede ver sus propios cursos");
             cursos = enrollmentService.getCoursesOfStudent(studentId);
         }
@@ -67,7 +67,7 @@ public class CourseController {
     @ResponseStatus(HttpStatus.CREATED)
     public CourseResponse create(@RequestBody CourseRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRATOR);
         validar(solicitud, actor);
         return respuesta(courseService.create(solicitud, actor));
     }
@@ -76,7 +76,7 @@ public class CourseController {
     @PutMapping("/{id}")
     public CourseResponse update(@PathVariable Long id, @RequestBody CourseRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRATOR);
         validar(solicitud, actor);
         return respuesta(courseService.update(id, solicitud, actor));
     }
@@ -86,7 +86,7 @@ public class CourseController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRADOR);
+        UsuarioAutenticado actor = authorizationService.autorizar(token, Rol.INSTRUCTOR, Rol.ADMINISTRATOR);
         courseService.delete(id, actor);
     }
 
@@ -101,7 +101,7 @@ public class CourseController {
         exigir(solicitud.getEndDate(), "endDate");
         exigir(solicitud.getMaxCapacity(), "maxCapacity");
         exigir(solicitud.getSpecialtyId(), "specialtyId");
-        if (actor.rol() == Rol.ADMINISTRADOR) {
+        if (actor.rol() == Rol.ADMINISTRATOR) {
             exigir(solicitud.getInstructorId(), "instructorId");
         }
     }

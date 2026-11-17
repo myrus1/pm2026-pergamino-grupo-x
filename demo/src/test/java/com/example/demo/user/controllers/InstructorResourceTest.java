@@ -65,8 +65,8 @@ class InstructorResourceTest {
     private CourseService courseService;
 
     private void dejarPasarComoAdministrador() throws Exception {
-        when(authorizationService.autorizar(TOKEN, Rol.ADMINISTRADOR))
-                .thenReturn(new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRADOR));
+        when(authorizationService.autorizar(TOKEN, Rol.ADMINISTRATOR))
+                .thenReturn(new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRATOR));
     }
 
     @Test
@@ -176,7 +176,7 @@ class InstructorResourceTest {
 
     @Test
     void createSinTokenResponde401SinLlamarAlServicio() throws Exception {
-        when(authorizationService.autorizar(isNull(), eq(Rol.ADMINISTRADOR)))
+        when(authorizationService.autorizar(isNull(), eq(Rol.ADMINISTRATOR)))
                 .thenThrow(new AuthenticationException("Token invalido o vencido"));
 
         mockMvc.perform(post(RUTA).contentType(MediaType.APPLICATION_JSON).content(CUERPO))
@@ -187,7 +187,7 @@ class InstructorResourceTest {
 
     @Test
     void createConRolQueNoEsAdministradorResponde403() throws Exception {
-        when(authorizationService.autorizar(TOKEN, Rol.ADMINISTRADOR))
+        when(authorizationService.autorizar(TOKEN, Rol.ADMINISTRATOR))
                 .thenThrow(new AuthorizationException("No tiene permisos para esta operacion"));
 
         mockMvc.perform(post(RUTA).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)

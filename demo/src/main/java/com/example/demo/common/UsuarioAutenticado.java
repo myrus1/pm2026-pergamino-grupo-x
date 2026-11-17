@@ -9,7 +9,7 @@ public record UsuarioAutenticado(Long id, String email, Rol rol) {
 
     // El administrador siempre pasa; los demas solo sobre lo que les pertenece.
     public void exigirPropio(Long idPropietario, String mensaje) {
-        if (rol == Rol.ADMINISTRADOR) {
+        if (rol == Rol.ADMINISTRATOR) {
             return;
         }
         if (!Objects.equals(id, idPropietario)) {

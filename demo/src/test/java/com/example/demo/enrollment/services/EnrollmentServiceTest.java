@@ -197,7 +197,7 @@ class EnrollmentServiceTest {
     }
 
     private UsuarioAutenticado administrador() {
-        return new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRADOR);
+        return new UsuarioAutenticado(3L, "ada@example.com", Rol.ADMINISTRATOR);
     }
 
     private UsuarioAutenticado instructor(Long id) {
@@ -205,7 +205,7 @@ class EnrollmentServiceTest {
     }
 
     private UsuarioAutenticado alumno(Long id) {
-        return new UsuarioAutenticado(id, "ana@example.com", Rol.ALUMNO);
+        return new UsuarioAutenticado(id, "ana@example.com", Rol.STUDENT);
     }
 
     private Enrollment inscripcionDe(Long studentId, Long instructorId) {

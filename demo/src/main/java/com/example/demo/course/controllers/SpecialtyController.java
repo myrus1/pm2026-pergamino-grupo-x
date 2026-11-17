@@ -50,7 +50,7 @@ public class SpecialtyController {
     @ResponseStatus(HttpStatus.CREATED)
     public SpecialtyResponse create(@RequestBody SpecialtyRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         validar(solicitud);
         return respuesta(specialtyService.save(new Specialty(solicitud.getName())));
     }
@@ -59,7 +59,7 @@ public class SpecialtyController {
     @PutMapping("/{id}")
     public SpecialtyResponse update(@PathVariable Long id, @RequestBody SpecialtyRequest solicitud,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         validar(solicitud);
         Specialty especialidad = specialtyService.getById(id);
         especialidad.setName(solicitud.getName());
@@ -71,7 +71,7 @@ public class SpecialtyController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.autorizar(token, Rol.ADMINISTRADOR);
+        authorizationService.autorizar(token, Rol.ADMINISTRATOR);
         specialtyService.getById(id);
         specialtyService.delete(id);
     }
