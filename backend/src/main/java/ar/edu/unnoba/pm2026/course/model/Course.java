@@ -1,6 +1,7 @@
 package ar.edu.unnoba.pm2026.course.model;
 
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -8,7 +9,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 import lombok.Getter;
 import lombok.Setter;
@@ -71,20 +71,35 @@ public class Course {
     public Course(String title, String description, BigDecimal basePrice,
                   LocalDate startDate, LocalDate endDate, Integer maxCapacity,
                   Specialty specialty, Instructor instructor) {
-        this.title = Objects.requireNonNull(title, "El titulo no puede ser nulo");
+        if (title == null) {
+            throw new ValidationException("El titulo no puede ser nulo");
+        }
+        this.title = title;
         this.description = description;
-        this.basePrice = Objects.requireNonNull(basePrice, "El precio base no puede ser nulo");
+        if (basePrice == null) {
+            throw new ValidationException("El precio base no puede ser nulo");
+        }
+        this.basePrice = basePrice;
         if (basePrice.signum() < 0) {
-            throw new IllegalArgumentException("El precio base no puede ser negativo");
+            throw new ValidationException("El precio base no puede ser negativo");
         }
-        this.startDate = Objects.requireNonNull(startDate, "La fecha de inicio no puede ser nula");
-        this.endDate = Objects.requireNonNull(endDate, "La fecha de fin no puede ser nula");
+        if (startDate == null) {
+            throw new ValidationException("La fecha de inicio no puede ser nula");
+        }
+        if (endDate == null) {
+            throw new ValidationException("La fecha de fin no puede ser nula");
+        }
+        this.startDate = startDate;
+        this.endDate = endDate;
         if (!endDate.isAfter(startDate)) {
-            throw new IllegalArgumentException("La fecha de fin debe ser posterior a la de inicio");
+            throw new ValidationException("La fecha de fin debe ser posterior a la de inicio");
         }
-        this.maxCapacity = Objects.requireNonNull(maxCapacity, "La capacidad no puede ser nula");
+        if (maxCapacity == null) {
+            throw new ValidationException("La capacidad no puede ser nula");
+        }
+        this.maxCapacity = maxCapacity;
         if (maxCapacity <= 0) {
-            throw new IllegalArgumentException("La capacidad debe ser mayor a cero");
+            throw new ValidationException("La capacidad debe ser mayor a cero");
         }
         setSpecialty(specialty);
         setInstructor(instructor);
@@ -94,7 +109,9 @@ public class Course {
         if (this.specialty == specialty) {
             return;
         }
-        Objects.requireNonNull(specialty, "La especialidad no puede ser nula");
+        if (specialty == null) {
+            throw new ValidationException("La especialidad no puede ser nula");
+        }
         Specialty previousSpecialty = this.specialty;
         this.specialty = specialty;
         if (previousSpecialty != null) {
@@ -107,7 +124,9 @@ public class Course {
         if (this.instructor == instructor) {
             return;
         }
-        Objects.requireNonNull(instructor, "Instructor no puede ser nulo");
+        if (instructor == null) {
+            throw new ValidationException("Instructor no puede ser nulo");
+        }
         Instructor previousInstructor = this.instructor;
         this.instructor = instructor;
         if (previousInstructor != null) {
@@ -117,7 +136,10 @@ public class Course {
     }
 
     public void setStatus(CourseStatus status) {
-        this.status = Objects.requireNonNull(status, "Estado no puede ser nulo");
+        if (status == null) {
+            throw new ValidationException("Estado no puede ser nulo");
+        }
+        this.status = status;
     }
 
     public Set<Enrollment> getEnrollments() {

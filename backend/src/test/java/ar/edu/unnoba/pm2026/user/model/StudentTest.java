@@ -7,6 +7,7 @@ import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.enrollment.exception.CourseEnrollmentException;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import java.math.BigDecimal;
@@ -170,10 +171,10 @@ class StudentTest {
     @Test
     void applyCourseRechazaArgumentosNulos() {
         assertThatThrownBy(() -> estudiante.applyCourse(null, HOY))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("curso no puede ser nulo");
         assertThatThrownBy(() -> estudiante.applyCourse(defaultPublishedCourse(), null))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("La fecha de inscripcion no puede ser nula");
     }
 

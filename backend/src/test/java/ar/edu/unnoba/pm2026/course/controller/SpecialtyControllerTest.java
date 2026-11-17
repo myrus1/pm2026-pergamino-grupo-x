@@ -15,7 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.course.service.SpecialtyService;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.sql.SQLException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -80,7 +80,7 @@ class SpecialtyControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(specialtyService.getById(99L)).thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -156,7 +156,7 @@ class SpecialtyControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(specialtyService.getById(99L)).thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"name":"Algoritmos"}"""))
@@ -174,7 +174,7 @@ class SpecialtyControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(specialtyService.getById(99L)).thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())

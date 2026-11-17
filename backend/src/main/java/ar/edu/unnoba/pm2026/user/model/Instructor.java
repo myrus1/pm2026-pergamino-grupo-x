@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.user.model;
 
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -42,10 +43,12 @@ public class Instructor extends User {
     }
 
     public void validateSpecialty(Specialty specialty) {
-        Objects.requireNonNull(specialty, "especialidad no puede ser nula");
+        if (specialty == null) {
+            throw new ValidationException("especialidad no puede ser nula");
+        }
         if (specialties.stream().noneMatch(own -> own == specialty
                 || (own.getId() != null && own.getId().equals(specialty.getId())))) {
-            throw new IllegalArgumentException("instructor debe tener la especialidad del curso");
+            throw new ValidationException("instructor debe tener la especialidad del curso");
         }
     }
 

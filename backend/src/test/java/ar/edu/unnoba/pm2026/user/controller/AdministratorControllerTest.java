@@ -14,7 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
 import ar.edu.unnoba.pm2026.user.service.AdministratorService;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,7 +77,7 @@ class AdministratorControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(administratorService.getById(99L)).thenThrow(new EntityNotFoundException("Administrador no encontrado con id 99"));
+        when(administratorService.getById(99L)).thenThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -120,7 +120,7 @@ class AdministratorControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(administratorService.getById(99L)).thenThrow(new EntityNotFoundException("Administrador no encontrado con id 99"));
+        when(administratorService.getById(99L)).thenThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Eva","lastName":"Sosa","email":"eva@example.com","password":"secret"}"""))
@@ -138,7 +138,7 @@ class AdministratorControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(administratorService.getById(99L)).thenThrow(new EntityNotFoundException("Administrador no encontrado con id 99"));
+        when(administratorService.getById(99L)).thenThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"));
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())

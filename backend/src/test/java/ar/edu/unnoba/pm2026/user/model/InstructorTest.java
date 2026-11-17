@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,7 +38,7 @@ class InstructorTest {
     void createCourseRechazaEspecialidadNula() {
         assertThatThrownBy(() -> instructor.createCourse("Curso", "Desc", new BigDecimal("100.00"), INICIO, FIN, 5,
                 null))
-                        .isInstanceOf(NullPointerException.class)
+                        .isInstanceOf(ValidationException.class)
                         .hasMessage("especialidad no puede ser nula");
     }
 
@@ -47,7 +48,7 @@ class InstructorTest {
 
         assertThatThrownBy(() -> instructor.createCourse("Curso", "Desc", new BigDecimal("100.00"), INICIO, FIN, 5,
                 otherSpecialty))
-                        .isInstanceOf(IllegalArgumentException.class)
+                        .isInstanceOf(ValidationException.class)
                         .hasMessage("instructor debe tener la especialidad del curso");
         assertThat(instructor.getCourses()).isEmpty();
     }
@@ -64,7 +65,7 @@ class InstructorTest {
 
         instructor.validateSpecialty(sameById);
         assertThatThrownBy(() -> instructor.validateSpecialty(otra))
-                .isInstanceOf(IllegalArgumentException.class);
+                .isInstanceOf(ValidationException.class);
     }
 
     @Test

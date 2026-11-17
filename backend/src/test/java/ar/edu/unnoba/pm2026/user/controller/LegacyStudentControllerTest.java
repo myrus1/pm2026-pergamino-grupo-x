@@ -71,4 +71,13 @@ class LegacyStudentControllerTest {
                 .andExpect(jsonPath("$.mensaje").value("El campo 'email' es obligatorio"));
         verify(authenticationService, never()).authenticate(any(Student.class));
     }
+
+    @Test
+    void authConEmailInvalidoResponde400SinLlamarAlServicio() throws Exception {
+        mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
+                {"email":"no-es-un-email","password":"secret"}"""))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.mensaje").value("El campo 'email' debe tener un formato valido"));
+        verify(authenticationService, never()).authenticate(any(Student.class));
+    }
 }

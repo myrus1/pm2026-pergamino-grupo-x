@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.model.Student;
 import java.math.BigDecimal;
@@ -48,48 +49,48 @@ class CourseTest {
     @Test
     void constructorRechazaTituloNulo() {
         assertThatThrownBy(() -> new Course(null, "Desc", PRICE, INICIO, FIN, 5, specialty, instructor))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("El titulo no puede ser nulo");
     }
 
     @Test
     void constructorRechazaPrecioNulo() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", null, INICIO, FIN, 5, specialty, instructor))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("El precio base no puede ser nulo");
     }
 
     @Test
     void constructorRechazaPrecioNegativo() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", new BigDecimal("-0.01"), INICIO, FIN, 5, specialty, instructor))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("El precio base no puede ser negativo");
     }
 
     @Test
     void constructorRechazaFechasNulas() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, null, FIN, 5, specialty, instructor))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("La fecha de inicio no puede ser nula");
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, null, 5, specialty, instructor))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("La fecha de fin no puede ser nula");
     }
 
     @Test
     void constructorRechazaQueLaFechaFinNoSeaPosteriorALaDeInicio() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, INICIO, 5, specialty, instructor))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("La fecha de fin debe ser posterior a la de inicio");
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, INICIO.minusDays(1), 5, specialty, instructor))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("La fecha de fin debe ser posterior a la de inicio");
     }
 
     @Test
     void constructorRechazaCapacidadNula() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, FIN, null, specialty, instructor))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("La capacidad no puede ser nula");
     }
 
@@ -97,7 +98,7 @@ class CourseTest {
     @ValueSource(ints = {0, -3})
     void constructorRechazaCapacidadNoPositiva(int capacity) {
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, FIN, capacity, specialty, instructor))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("La capacidad debe ser mayor a cero");
     }
 
@@ -137,7 +138,7 @@ class CourseTest {
         Course course = course(specialty, instructor, 5);
 
         assertThatThrownBy(() -> course.setSpecialty(null))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("La especialidad no puede ser nula");
     }
 
@@ -158,7 +159,7 @@ class CourseTest {
         Course course = course(specialty, instructor, 5);
 
         assertThatThrownBy(() -> course.setInstructor(null))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Instructor no puede ser nulo");
     }
 
@@ -167,7 +168,7 @@ class CourseTest {
         Course course = course(specialty, instructor, 5);
 
         assertThatThrownBy(() -> course.setStatus(null))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Estado no puede ser nulo");
     }
 
