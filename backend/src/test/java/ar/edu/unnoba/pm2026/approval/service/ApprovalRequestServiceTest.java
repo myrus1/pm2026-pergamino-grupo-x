@@ -22,7 +22,7 @@ import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.service.AdministratorService;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -163,10 +163,10 @@ class ApprovalRequestServiceTest {
         ApprovalRequest request = new ApprovalRequest(course, null);
         when(approvalRequestRepository.findById(5L)).thenReturn(Optional.of(request));
         when(administratorService.getById(99L))
-                .thenThrow(new EntityNotFoundException("Administrador no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"));
 
         assertThatThrownBy(() -> approvalRequestService.approve(5L, 99L, null))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOf(ResourceNotFoundException.class);
         assertThat(course.getStatus()).isEqualTo(CourseStatus.PENDING_APPROVAL);
         verify(approvalRequestRepository, never()).save(any());
     }
@@ -176,7 +176,7 @@ class ApprovalRequestServiceTest {
         when(approvalRequestRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> approvalRequestService.getById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Solicitud de aprobacion no encontrada con id 99");
     }
 }

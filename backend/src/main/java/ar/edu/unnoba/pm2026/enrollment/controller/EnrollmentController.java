@@ -1,8 +1,5 @@
 package ar.edu.unnoba.pm2026.enrollment.controller;
 
-import ar.edu.unnoba.pm2026.shared.validation.RequestValidator;
-import static ar.edu.unnoba.pm2026.shared.validation.RequestValidator.requireField;
-
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
@@ -12,6 +9,7 @@ import ar.edu.unnoba.pm2026.enrollment.dto.RevenueResponse;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
 import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -70,20 +68,10 @@ public class EnrollmentController {
     // Solo un alumno puede inscribirse, y solo a si mismo.
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public EnrollmentResponse create(@RequestBody EnrollmentRequest request,
+    public EnrollmentResponse create(@RequestBody @Valid EnrollmentRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.STUDENT, Role.ADMINISTRATOR);
-        validate(request, actor);
-        return response(enrollmentService.enroll(request.getStudentId(), request.getCourseId()));
-    }
-
-    private void validate(EnrollmentRequest request, AuthenticatedUser actor) {
-        if (request == null) {
-            throw new IllegalArgumentException("La solicitud no puede ser nula");
-        }
-        requireField(request.getStudentId(), "studentId");
-        requireField(request.getCourseId(), "courseId");
-        actor.requireOwnership(request.getStudentId(), "Solo puede inscribirse a si mismo");
+        return response(enrollmentService.enroll(request.getStudentId(), request.getCourseId(), actor));
     }
 
     private EnrollmentResponse response(Enrollment enrollment) {

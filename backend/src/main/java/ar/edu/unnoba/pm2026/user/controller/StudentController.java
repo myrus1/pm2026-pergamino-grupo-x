@@ -1,8 +1,5 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
-import ar.edu.unnoba.pm2026.shared.validation.RequestValidator;
-import static ar.edu.unnoba.pm2026.shared.validation.RequestValidator.requireField;
-
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
@@ -13,6 +10,7 @@ import ar.edu.unnoba.pm2026.user.dto.StudentResponse;
 import ar.edu.unnoba.pm2026.user.model.Student;
 import ar.edu.unnoba.pm2026.user.service.StudentService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -74,8 +72,7 @@ public class StudentController {
     // Registro publico: no pide token (los administradores se crean por /api/administrators).
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public StudentResponse create(@RequestBody StudentRequest request) {
-        validate(request);
+    public StudentResponse create(@RequestBody @Valid StudentRequest request) {
         Student student = new Student(request.getFirstName(), request.getLastName(), request.getEmail(),
                 request.getPassword(), request.getDni());
         return response(studentService.create(student));
@@ -84,10 +81,9 @@ public class StudentController {
     // El alumno no edita su perfil: lo hace un administrador.
     @SecurityRequirement(name = "token")
     @PutMapping("/{id}")
-    public StudentResponse update(@PathVariable Long id, @RequestBody StudentRequest request,
+    public StudentResponse update(@PathVariable Long id, @RequestBody @Valid StudentRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         authorizationService.authorize(token, Role.ADMINISTRATOR);
-        validate(request);
         Student student = studentService.getById(id);
         student.setFirstName(request.getFirstName());
         student.setLastName(request.getLastName());
@@ -105,17 +101,6 @@ public class StudentController {
         authorizationService.authorize(token, Role.ADMINISTRATOR);
         studentService.getById(id);
         studentService.delete(id);
-    }
-
-    private void validate(StudentRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("La solicitud no puede ser nula");
-        }
-        requireField(request.getFirstName(), "firstName");
-        requireField(request.getLastName(), "lastName");
-        requireField(request.getEmail(), "email");
-        requireField(request.getPassword(), "password");
-        requireField(request.getDni(), "dni");
     }
 
     private StudentResponse response(Student student) {

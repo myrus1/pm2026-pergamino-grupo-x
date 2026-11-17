@@ -8,9 +8,10 @@ import ar.edu.unnoba.pm2026.course.exception.CourseStateException;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.course.repository.CourseRepository;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,7 @@ public class CourseService {
 
     // El instructor siempre crea cursos suyos; el administrador crea el que indica el body.
     public Course create(CourseRequest request, AuthenticatedUser actor) {
+        validateRequest(request, actor);
         Specialty specialty = specialtyService.getById(request.getSpecialtyId());
         Instructor instructor = instructorService.getById(resolveInstructorId(request, actor));
         Course course = instructor.createCourse(request.getTitle(), request.getDescription(), request.getBasePrice(),
@@ -40,6 +42,7 @@ public class CourseService {
     }
 
     public Course update(Long id, CourseRequest request, AuthenticatedUser actor) {
+        validateRequest(request, actor);
         Course course = getById(id);
         requireModifiable(course, actor);
         Specialty specialty = specialtyService.getById(request.getSpecialtyId());
@@ -69,7 +72,7 @@ public class CourseService {
     @Transactional(readOnly = true)
     public Course getById(Long id) {
         return courseRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Curso no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado con id " + id));
     }
 
     // Igual que getById pero ademas exige que el curso le pertenezca al instructor del token.
@@ -93,6 +96,18 @@ public class CourseService {
 
     private Long resolveInstructorId(CourseRequest request, AuthenticatedUser actor) {
         return actor.role() == Role.INSTRUCTOR ? actor.id() : request.getInstructorId();
+    }
+
+    private void validateRequest(CourseRequest request, AuthenticatedUser actor) {
+        if (request == null) {
+            throw new ValidationException("La solicitud no puede ser nula");
+        }
+        if (actor == null) {
+            throw new ValidationException("El usuario autenticado no puede ser nulo");
+        }
+        if (actor.role() == Role.ADMINISTRATOR && request.getInstructorId() == null) {
+            throw new ValidationException("El campo 'instructorId' es obligatorio");
+        }
     }
 
     // Un curso ajeno es 403; uno que ya salio de borrador es 409 (hay que reenviarlo a aprobacion).

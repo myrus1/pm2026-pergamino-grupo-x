@@ -1,17 +1,12 @@
 package ar.edu.unnoba.pm2026.shared.exception;
 
-import ar.edu.unnoba.pm2026.approval.exception.ApprovalRequestException;
-import ar.edu.unnoba.pm2026.auth.exception.AuthenticationException;
-import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
-import ar.edu.unnoba.pm2026.course.exception.CourseStateException;
-import ar.edu.unnoba.pm2026.enrollment.exception.CourseEnrollmentException;
-import ar.edu.unnoba.pm2026.user.exception.InstructorEmailAlreadyExistsException;
-import jakarta.persistence.EntityNotFoundException;
 import java.sql.SQLException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -19,27 +14,29 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(EntityNotFoundException exception) {
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(exception.getMessage()));
     }
 
-    // Sin credenciales validas: header Authorization ausente, token vencido o firma invalida
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleUnauthenticated(AuthenticationException exception) {
+    @ExceptionHandler(UnauthenticatedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthenticated(UnauthenticatedException exception) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse(exception.getMessage()));
     }
 
-    // Credenciales validas pero sin permiso: rol equivocado o recurso que no le pertenece
-    @ExceptionHandler(AuthorizationException.class)
-    public ResponseEntity<ErrorResponse> handleForbidden(AuthorizationException exception) {
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException exception) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorResponse(exception.getMessage()));
     }
 
-    @ExceptionHandler(InstructorEmailAlreadyExistsException.class)
-    public ResponseEntity<ErrorResponse> handleDuplicateInstructorEmail(
-            InstructorEmailAlreadyExistsException exception) {
+    @ExceptionHandler(BusinessRuleException.class)
+    public ResponseEntity<ErrorResponse> handleBusinessRule(BusinessRuleException exception) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(exception.getMessage()));
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(ValidationException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(exception.getMessage()));
     }
 
     // 23505: valor duplicado, 23503: registro en uso por otro (clave foranea)
@@ -53,28 +50,14 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse("Datos invalidos"));
     }
 
-    @ExceptionHandler(ApprovalRequestException.class)
-    public ResponseEntity<ErrorResponse> handleApprovalRequestRule(ApprovalRequestException exception) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(exception.getMessage()));
-    }
-
-    // Reglas de negocio de inscripciones: curso no publicado, lleno, duplicado, etc.
-    @ExceptionHandler(CourseEnrollmentException.class)
-    public ResponseEntity<ErrorResponse> handleEnrollmentRule(CourseEnrollmentException exception) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(exception.getMessage()));
-    }
-
-    // El curso no esta en un estado que permita la operacion (p. ej. editar uno publicado)
-    @ExceptionHandler(CourseStateException.class)
-    public ResponseEntity<ErrorResponse> handleCourseState(CourseStateException exception) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(exception.getMessage()));
-    }
-
-    // Las entidades validan las entradas con requireNonNull e IllegalArgumentException;
-    // se mapean a 400 porque siempre responden a datos invalidos del cliente
-    @ExceptionHandler({ IllegalArgumentException.class, NullPointerException.class })
-    public ResponseEntity<ErrorResponse> handleBadRequest(RuntimeException exception) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(exception.getMessage()));
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidRequest(MethodArgumentNotValidException exception) {
+        FieldError error = exception.getBindingResult().getFieldErrors().get(0);
+        String message = error.getDefaultMessage();
+        if ("NotBlank".equals(error.getCode()) || "NotNull".equals(error.getCode())) {
+            message = "El campo '" + error.getField() + "' es obligatorio";
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(message));
     }
 
     // JSON mal formado o tipo de campo incompatible (p. ej. status invalido)

@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.enrollment.dto;
 
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -9,6 +10,8 @@ import lombok.Setter;
 @Setter
 public class EnrollmentRequest {
 
+    @NotNull
     private Long studentId;
+    @NotNull
     private Long courseId;
 }

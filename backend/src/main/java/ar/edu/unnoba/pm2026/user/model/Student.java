@@ -5,6 +5,7 @@ import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.enrollment.exception.CourseEnrollmentException;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -56,8 +57,12 @@ public class Student extends User {
     }
 
     Enrollment applyCourse(Course course, LocalDate enrollmentDate) {
-        Objects.requireNonNull(course, "curso no puede ser nulo");
-        Objects.requireNonNull(enrollmentDate, "La fecha de inscripcion no puede ser nula");
+        if (course == null) {
+            throw new ValidationException("curso no puede ser nulo");
+        }
+        if (enrollmentDate == null) {
+            throw new ValidationException("La fecha de inscripcion no puede ser nula");
+        }
 
         if (course.getStatus() != CourseStatus.PUBLISHED) {
             throw new CourseEnrollmentException("El curso no esta publicado");

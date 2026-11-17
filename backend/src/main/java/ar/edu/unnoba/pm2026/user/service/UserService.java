@@ -1,8 +1,8 @@
 package ar.edu.unnoba.pm2026.user.service;
 
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
 import ar.edu.unnoba.pm2026.user.model.User;
-import java.util.Objects;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,13 +18,17 @@ public abstract class UserService<T extends User> {
     }
 
     public T create(T user) {
-        Objects.requireNonNull(user, "El usuario no puede ser nulo");
+        if (user == null) {
+            throw new ValidationException("El usuario no puede ser nulo");
+        }
         validateEmailAvailable(user.getEmail(), null);
         return saveWithHashedPassword(user);
     }
 
     public T update(T user) {
-        Objects.requireNonNull(user, "El usuario no puede ser nulo");
+        if (user == null) {
+            throw new ValidationException("El usuario no puede ser nulo");
+        }
         validateEmailAvailable(user.getEmail(), user.getId());
         return saveWithHashedPassword(user);
     }

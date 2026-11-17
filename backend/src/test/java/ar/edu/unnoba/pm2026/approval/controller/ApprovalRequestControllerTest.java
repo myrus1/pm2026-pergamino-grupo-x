@@ -21,7 +21,7 @@ import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -152,7 +152,7 @@ class ApprovalRequestControllerTest {
     @Test
     void rejectDeSolicitudInexistenteResponde404() throws Exception {
         when(approvalRequestService.reject(99L, AuthTestSupport.ADMIN.id(), null))
-                .thenThrow(new EntityNotFoundException("Solicitud de aprobacion no encontrada con id 99"));
+                .thenThrow(new ResourceNotFoundException("Solicitud de aprobacion no encontrada con id 99"));
 
         mockMvc.perform(post(PATH + "/99/reject").contentType(MediaType.APPLICATION_JSON).content("""
                 {}"""))

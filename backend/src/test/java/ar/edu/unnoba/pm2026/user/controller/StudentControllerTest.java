@@ -17,7 +17,7 @@ import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Student;
 import ar.edu.unnoba.pm2026.user.service.StudentService;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -88,7 +88,7 @@ class StudentControllerTest {
 
     @Test
     void getAllConCursoInexistenteResponde404() throws Exception {
-        when(enrollmentService.getStudentsOfCourse(99L)).thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+        when(enrollmentService.getStudentsOfCourse(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
 
         mockMvc.perform(get(PATH).param("courseId", "99"))
                 .andExpect(status().isNotFound())
@@ -106,7 +106,7 @@ class StudentControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -151,7 +151,7 @@ class StudentControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Ana","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"11111111"}"""))
@@ -169,7 +169,7 @@ class StudentControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())

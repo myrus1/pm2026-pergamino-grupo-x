@@ -1,8 +1,5 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
-import ar.edu.unnoba.pm2026.shared.validation.RequestValidator;
-import static ar.edu.unnoba.pm2026.shared.validation.RequestValidator.requireField;
-
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
@@ -14,6 +11,7 @@ import ar.edu.unnoba.pm2026.user.dto.InstructorResponse;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -73,10 +71,9 @@ public class InstructorController {
     @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public InstructorResponse create(@RequestBody InstructorRequest request,
+    public InstructorResponse create(@RequestBody @Valid InstructorRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         authorizationService.authorize(token, Role.ADMINISTRATOR);
-        validate(request);
         Instructor instructor = new Instructor(request.getFirstName(), request.getLastName(),
                 request.getEmail(), request.getPassword());
         return response(instructorService.create(instructor));
@@ -84,11 +81,10 @@ public class InstructorController {
 
     @SecurityRequirement(name = "token")
     @PutMapping("/{id}")
-    public InstructorResponse update(@PathVariable Long id, @RequestBody InstructorRequest request,
+    public InstructorResponse update(@PathVariable Long id, @RequestBody @Valid InstructorRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
         actor.requireOwnership(id, "Solo puede modificar su propio perfil");
-        validate(request);
         Instructor instructor = instructorService.getById(id);
         instructor.setFirstName(request.getFirstName());
         instructor.setLastName(request.getLastName());
@@ -124,16 +120,6 @@ public class InstructorController {
             @RequestHeader(name = "Authorization", required = false) String token) {
         authorizationService.authorize(token, Role.ADMINISTRATOR);
         instructorService.removeSpecialty(id, specialtyId);
-    }
-
-    private void validate(InstructorRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("La solicitud no puede ser nula");
-        }
-        requireField(request.getFirstName(), "firstName");
-        requireField(request.getLastName(), "lastName");
-        requireField(request.getEmail(), "email");
-        requireField(request.getPassword(), "password");
     }
 
     private InstructorResponse response(Instructor instructor) {

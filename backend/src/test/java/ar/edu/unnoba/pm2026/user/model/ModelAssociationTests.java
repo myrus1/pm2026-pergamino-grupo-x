@@ -5,6 +5,7 @@ import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.enrollment.exception.CourseEnrollmentException;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -149,7 +150,7 @@ class ModelAssociationTests {
         Instructor instructor = new Instructor();
         Specialty specialty = new Specialty("Design");
 
-        assertThrows(IllegalArgumentException.class, () ->
+        assertThrows(ValidationException.class, () ->
                 instructor.createCourse("Design", "Course description", new BigDecimal("50.00"),
                         LocalDate.now(), LocalDate.now().plusDays(30), 10, specialty));
         assertTrue(instructor.getCourses().isEmpty());
@@ -199,7 +200,7 @@ class ModelAssociationTests {
         assertFalse(firstStudent.getEnrollments().contains(enrollment));
         assertTrue(secondStudent.getEnrollments().contains(enrollment));
         assertThrows(UnsupportedOperationException.class, () -> secondStudent.getEnrollments().clear());
-        assertThrows(NullPointerException.class, () -> enrollment.setStudent(null));
+        assertThrows(ValidationException.class, () -> enrollment.setStudent(null));
         assertTrue(secondStudent.getEnrollments().contains(enrollment));
         enrollment.setStudent(firstStudent);
         assertTrue(secondStudent.getEnrollments().isEmpty());

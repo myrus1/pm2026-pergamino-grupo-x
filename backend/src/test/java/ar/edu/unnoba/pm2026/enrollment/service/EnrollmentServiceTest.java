@@ -22,7 +22,7 @@ import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.model.Student;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
 import ar.edu.unnoba.pm2026.user.service.StudentService;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -98,10 +98,10 @@ class EnrollmentServiceTest {
 
     @Test
     void getStudentsOfCourseConCursoInexistenteLanzaExcepcion() {
-        when(courseService.getById(99L)).thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
 
         assertThatThrownBy(() -> enrollmentService.getStudentsOfCourse(99L))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
@@ -115,18 +115,18 @@ class EnrollmentServiceTest {
 
     @Test
     void getCoursesOfStudentConAlumnoInexistenteLanzaExcepcion() {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         assertThatThrownBy(() -> enrollmentService.getCoursesOfStudent(99L))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
     void instructorRevenueDeInstructorInexistenteLanzaExcepcion() {
-        when(instructorService.getById(99L)).thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
 
         assertThatThrownBy(() -> enrollmentService.instructorRevenue(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Instructor no encontrado con id 99");
     }
 
@@ -155,6 +155,15 @@ class EnrollmentServiceTest {
     }
 
     @Test
+    void enrollRechazaQueUnAlumnoSeInscribaPorOtro() {
+        assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, student(1L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo puede inscribirse a si mismo");
+        verify(studentService, never()).getById(any());
+        verify(enrollmentRepository, never()).save(any());
+    }
+
+    @Test
     void enrollNoGuardaNadaSiElCursoNoEstaPublicado() {
         when(studentService.getById(1L)).thenReturn(new Student("Ana", "Perez", "ana@example.com", "secret", "11111111"));
         when(courseService.getById(2L)).thenReturn(futureCourse(CourseStatus.DRAFT));
@@ -167,10 +176,10 @@ class EnrollmentServiceTest {
 
     @Test
     void enrollPropagaLaExcepcionSiElAlumnoNoExiste() {
-        when(studentService.getById(99L)).thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         assertThatThrownBy(() -> enrollmentService.enroll(99L, 2L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Estudiante no encontrado con id 99");
         verify(enrollmentRepository, never()).save(any());
     }
@@ -192,7 +201,7 @@ class EnrollmentServiceTest {
         when(enrollmentRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> enrollmentService.getById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Inscripcion no encontrada con id 99");
     }
 

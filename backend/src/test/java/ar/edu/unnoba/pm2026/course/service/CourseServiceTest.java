@@ -19,7 +19,8 @@ import ar.edu.unnoba.pm2026.course.repository.CourseRepository;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -82,11 +83,20 @@ class CourseServiceTest {
     }
 
     @Test
+    void createComoAdministradorSinInstructorLanzaValidacion() {
+        assertThatThrownBy(() -> courseService.create(request(1L, null), administrator()))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("El campo 'instructorId' es obligatorio");
+        verify(specialtyService, never()).getById(any());
+        verify(courseRepository, never()).save(any());
+    }
+
+    @Test
     void createConEspecialidadInexistenteNoGuardaNada() {
-        when(specialtyService.getById(99L)).thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
 
         assertThatThrownBy(() -> courseService.create(request(99L, 2L), administrator()))
-                .isInstanceOf(EntityNotFoundException.class);
+                .isInstanceOf(ResourceNotFoundException.class);
         verify(courseRepository, never()).save(any());
     }
 
@@ -96,7 +106,7 @@ class CourseServiceTest {
         when(instructorService.getById(2L)).thenReturn(new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
 
         assertThatThrownBy(() -> courseService.create(request(1L, 2L), administrator()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("instructor debe tener la especialidad del curso");
         verify(courseRepository, never()).save(any());
     }
@@ -150,7 +160,7 @@ class CourseServiceTest {
         when(instructorService.getById(2L)).thenReturn(instructor);
 
         assertThatThrownBy(() -> courseService.update(7L, request(1L, 2L), administrator()))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("instructor debe tener la especialidad del curso");
         assertThat(course.getTitle()).isEqualTo("Viejo");
         assertThat(course.getSpecialty()).isSameAs(specialty);
@@ -162,7 +172,7 @@ class CourseServiceTest {
         when(courseRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> courseService.update(99L, request(1L, 2L), administrator()))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Curso no encontrado con id 99");
     }
 
@@ -191,7 +201,7 @@ class CourseServiceTest {
         when(courseRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> courseService.getById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Curso no encontrado con id 99");
     }
 
