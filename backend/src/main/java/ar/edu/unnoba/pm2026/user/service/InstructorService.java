@@ -7,7 +7,7 @@ import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.course.service.SpecialtyService;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.repository.InstructorRepository;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
@@ -35,7 +35,7 @@ public class InstructorService extends UserService<Instructor> {
     @Transactional(readOnly = true)
     public Instructor getById(Long id) {
         return instructorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Instructor no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Instructor no encontrado con id " + id));
     }
 
     @Transactional(readOnly = true)

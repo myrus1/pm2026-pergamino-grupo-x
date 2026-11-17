@@ -7,6 +7,7 @@ import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.model.Student;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -84,7 +85,7 @@ class EnrollmentTest {
         Enrollment enrollment = new Enrollment(estudiante, course, IMPORTE);
 
         assertThatThrownBy(() -> enrollment.setStudent(null))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Estudiante no puede ser nulo");
     }
 
@@ -93,7 +94,7 @@ class EnrollmentTest {
         Enrollment enrollment = new Enrollment(estudiante, course, IMPORTE);
 
         assertThatThrownBy(() -> enrollment.setCourse(null))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("Curso no puede ser nulo");
     }
 }

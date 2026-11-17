@@ -1,8 +1,5 @@
 package ar.edu.unnoba.pm2026.course.controller;
 
-import ar.edu.unnoba.pm2026.shared.validation.RequestValidator;
-import static ar.edu.unnoba.pm2026.shared.validation.RequestValidator.requireField;
-
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
@@ -12,6 +9,7 @@ import ar.edu.unnoba.pm2026.course.dto.CourseRequest;
 import ar.edu.unnoba.pm2026.course.dto.CourseResponse;
 import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -66,19 +64,17 @@ public class CourseController {
     @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CourseResponse create(@RequestBody CourseRequest request,
+    public CourseResponse create(@RequestBody @Valid CourseRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
-        validate(request, actor);
         return response(courseService.create(request, actor));
     }
 
     @SecurityRequirement(name = "token")
     @PutMapping("/{id}")
-    public CourseResponse update(@PathVariable Long id, @RequestBody CourseRequest request,
+    public CourseResponse update(@PathVariable Long id, @RequestBody @Valid CourseRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
-        validate(request, actor);
         return response(courseService.update(id, request, actor));
     }
 
@@ -89,22 +85,6 @@ public class CourseController {
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
         courseService.delete(id, actor);
-    }
-
-    // instructorId solo lo pide el administrador: el instructor es el del token.
-    private void validate(CourseRequest request, AuthenticatedUser actor) {
-        if (request == null) {
-            throw new IllegalArgumentException("La solicitud no puede ser nula");
-        }
-        requireField(request.getTitle(), "title");
-        requireField(request.getBasePrice(), "basePrice");
-        requireField(request.getStartDate(), "startDate");
-        requireField(request.getEndDate(), "endDate");
-        requireField(request.getMaxCapacity(), "maxCapacity");
-        requireField(request.getSpecialtyId(), "specialtyId");
-        if (actor.role() == Role.ADMINISTRATOR) {
-            requireField(request.getInstructorId(), "instructorId");
-        }
     }
 
     private CourseResponse response(Course course) {

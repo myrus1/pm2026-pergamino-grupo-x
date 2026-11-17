@@ -1,24 +1,19 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
-import ar.edu.unnoba.pm2026.shared.validation.RequestValidator;
-import static ar.edu.unnoba.pm2026.shared.validation.RequestValidator.requireField;
-
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.auth.service.AuthenticationService;
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
-import ar.edu.unnoba.pm2026.shared.exception.ErrorResponse;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
 import ar.edu.unnoba.pm2026.auth.dto.AuthenticationRequest;
 import ar.edu.unnoba.pm2026.user.dto.CreateInstructorRequest;
 import ar.edu.unnoba.pm2026.user.dto.InstructorCourseResponse;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
-import ar.edu.unnoba.pm2026.user.exception.InstructorEmailAlreadyExistsException;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 // Recurso del instructor (TP4/TP5): registro, login y cursos propios.
@@ -49,31 +45,18 @@ public class LegacyInstructorController {
 
     @SecurityRequirement(name = "token")
     @PostMapping
-    public ResponseEntity<?> create(
+    @ResponseStatus(HttpStatus.CREATED)
+    public void create(
             @RequestHeader(value = "Authorization", required = false) String token,
-            @RequestBody CreateInstructorRequest request) {
+            @RequestBody @Valid CreateInstructorRequest request) {
         authorizationService.authorize(token, Role.ADMINISTRATOR);
-        validate(request);
         Instructor instructor = new Instructor(request.firstName(), request.lastName(), request.email(),
                 request.password());
-        try {
-            instructorService.create(instructor);
-        } catch (InstructorEmailAlreadyExistsException exception) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(exception.getMessage()));
-        } catch (DataIntegrityViolationException exception) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(new ErrorResponse("Ya existe un usuario con el email " + request.email()));
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        instructorService.create(instructor);
     }
 
     @PostMapping(value = "/auth", produces = "application/json")
-    public ResponseEntity<?> authentication(@RequestBody AuthenticationRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("La solicitud no puede ser nula");
-        }
-        requireField(request.email(), "email");
-        requireField(request.password(), "password");
+    public ResponseEntity<?> authentication(@RequestBody @Valid AuthenticationRequest request) {
         Instructor credentials = new Instructor(null, null, request.email(), request.password());
         return ResponseEntity.ok(Map.of("token", authenticationService.authenticate(credentials)));
     }
@@ -88,13 +71,4 @@ public class LegacyInstructorController {
                 .toList();
     }
 
-    private void validate(CreateInstructorRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("La solicitud no puede ser nula");
-        }
-        requireField(request.email(), "email");
-        requireField(request.password(), "password");
-        requireField(request.firstName(), "firstName");
-        requireField(request.lastName(), "lastName");
-    }
 }

@@ -28,6 +28,7 @@ import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.exception.InstructorEmailAlreadyExistsException;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -212,12 +213,13 @@ class LegacyInstructorControllerTest {
     @Test
     void createConEmailUsadoPorOtroUsuarioResponde409DesdeElRecurso() throws Exception {
         allowAsAdministrator();
-        when(instructorService.create(any(Instructor.class))).thenThrow(new DataIntegrityViolationException("duplicado"));
+        when(instructorService.create(any(Instructor.class))).thenThrow(
+                new DataIntegrityViolationException("duplicado", new SQLException("duplicado", "23505")));
 
         mockMvc.perform(post(PATH).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("Ya existe un usuario con el email iris@example.com"));
+                .andExpect(jsonPath("$.mensaje").value("Los datos ya existen o estan en uso por otro registro"));
     }
 
     @Test

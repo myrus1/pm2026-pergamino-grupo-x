@@ -19,7 +19,7 @@ import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.model.Student;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -102,7 +102,7 @@ class EnrollmentControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(enrollmentService.getById(99L, AuthTestSupport.ADMIN)).thenThrow(new EntityNotFoundException("Inscripcion no encontrada con id 99"));
+        when(enrollmentService.getById(99L, AuthTestSupport.ADMIN)).thenThrow(new ResourceNotFoundException("Inscripcion no encontrada con id 99"));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -111,7 +111,7 @@ class EnrollmentControllerTest {
 
     @Test
     void createValidoResponde201ConLaInscripcionGenerada() throws Exception {
-        when(enrollmentService.enroll(1L, 2L)).thenReturn(enrollment());
+        when(enrollmentService.enroll(1L, 2L, AuthTestSupport.ADMIN)).thenReturn(enrollment());
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))
@@ -125,7 +125,8 @@ class EnrollmentControllerTest {
 
     @Test
     void createConCursoNoPublicadoResponde409() throws Exception {
-        when(enrollmentService.enroll(1L, 2L)).thenThrow(new CourseEnrollmentException("El curso no esta publicado"));
+        when(enrollmentService.enroll(1L, 2L, AuthTestSupport.ADMIN))
+                .thenThrow(new CourseEnrollmentException("El curso no esta publicado"));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))
@@ -135,8 +136,8 @@ class EnrollmentControllerTest {
 
     @Test
     void createConAlumnoInexistenteResponde404() throws Exception {
-        when(enrollmentService.enroll(99L, 2L))
-                .thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+        when(enrollmentService.enroll(99L, 2L, AuthTestSupport.ADMIN))
+                .thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":99,"courseId":2}"""))
@@ -149,7 +150,7 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("studentId")));
+                .andExpect(jsonPath("$.mensaje", containsString("obligatorio")));
     }
 
     @Test
@@ -240,7 +241,7 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"studentId\":1,\"courseId\":2}"))
                 .andExpect(status().isUnauthorized());
-        verify(enrollmentService, never()).enroll(any(), any());
+        verify(enrollmentService, never()).enroll(any(), any(), any());
     }
 
     @Test
@@ -250,29 +251,32 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"studentId\":1,\"courseId\":2}"))
                 .andExpect(status().isForbidden());
-        verify(enrollmentService, never()).enroll(any(), any());
+        verify(enrollmentService, never()).enroll(any(), any(), any());
     }
 
     @Test
     void createDeOtroAlumnoResponde403() throws Exception {
         AuthTestSupport.asStudent(authorizationService, 9L);
+        when(enrollmentService.enroll(7L, 2L, new AuthenticatedUser(9L, "ana@example.com", Role.STUDENT)))
+                .thenThrow(new AuthorizationException("Solo puede inscribirse a si mismo"));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"studentId\":7,\"courseId\":2}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.mensaje").value("Solo puede inscribirse a si mismo"));
-        verify(enrollmentService, never()).enroll(any(), any());
+        verify(enrollmentService).enroll(7L, 2L, new AuthenticatedUser(9L, "ana@example.com", Role.STUDENT));
     }
 
     @Test
     void createDeSiMismoResponde201() throws Exception {
         AuthTestSupport.asStudent(authorizationService, 9L);
-        when(enrollmentService.enroll(9L, 2L)).thenReturn(enrollment());
+        when(enrollmentService.enroll(9L, 2L, new AuthenticatedUser(9L, "ana@example.com", Role.STUDENT)))
+                .thenReturn(enrollment());
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"studentId\":9,\"courseId\":2}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(9));
-        verify(enrollmentService).enroll(9L, 2L);
+        verify(enrollmentService).enroll(9L, 2L, new AuthenticatedUser(9L, "ana@example.com", Role.STUDENT));
     }
 }

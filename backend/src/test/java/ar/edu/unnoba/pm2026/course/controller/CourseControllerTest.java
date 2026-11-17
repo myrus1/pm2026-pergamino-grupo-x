@@ -22,7 +22,7 @@ import ar.edu.unnoba.pm2026.course.service.CourseService;
 import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -109,7 +109,7 @@ class CourseControllerTest {
     @Test
     void getAllConAlumnoInexistenteResponde404() throws Exception {
         when(enrollmentService.getCoursesOfStudent(99L))
-                .thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         mockMvc.perform(get(PATH).param("studentId", "99"))
                 .andExpect(status().isNotFound())
@@ -128,7 +128,7 @@ class CourseControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(courseService.getById(99L)).thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -163,7 +163,7 @@ class CourseControllerTest {
     @Test
     void createConEspecialidadInexistenteResponde404() throws Exception {
         when(courseService.create(any(CourseRequest.class), any(AuthenticatedUser.class)))
-                .thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 1"));
+                .thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 1"));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isNotFound())
@@ -191,7 +191,7 @@ class CourseControllerTest {
     @Test
     void updateInexistenteResponde404() throws Exception {
         when(courseService.update(eq(99L), any(CourseRequest.class), any(AuthenticatedUser.class)))
-                .thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isNotFound())
@@ -206,7 +206,7 @@ class CourseControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        doThrow(new EntityNotFoundException("Curso no encontrado con id 99"))
+        doThrow(new ResourceNotFoundException("Curso no encontrado con id 99"))
                 .when(courseService).delete(99L, AuthTestSupport.ADMIN);
 
         mockMvc.perform(delete(PATH + "/99"))

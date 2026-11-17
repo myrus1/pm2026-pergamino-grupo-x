@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
 import ar.edu.unnoba.pm2026.user.repository.AdministratorRepository;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +67,7 @@ class AdministratorServiceTest {
         when(administratorRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> administratorService.getById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Administrador no encontrado con id 99");
     }
 

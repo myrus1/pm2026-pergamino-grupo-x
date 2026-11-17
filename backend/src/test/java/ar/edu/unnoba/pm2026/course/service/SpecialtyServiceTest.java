@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.course.repository.SpecialtyRepository;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,7 +40,7 @@ class SpecialtyServiceTest {
         when(specialtyRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> specialtyService.getById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Especialidad no encontrada con id 99");
     }
 }
