@@ -51,7 +51,7 @@ class LegacyStudentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"ana@example.com","password":"otra"}"""))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensaje").value("Email o contraseña incorrectos"));
+                .andExpect(jsonPath("$.detail").value("Email o contraseña incorrectos"));
     }
 
     @Test
@@ -59,7 +59,7 @@ class LegacyStudentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"ana@example.com"}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje").value("El campo 'password' es obligatorio"));
+                .andExpect(jsonPath("$.detail").value("El campo 'password' es obligatorio"));
         verify(authenticationService, never()).authenticate(any(Student.class));
     }
 
@@ -68,7 +68,7 @@ class LegacyStudentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"password":"secret"}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje").value("El campo 'email' es obligatorio"));
+                .andExpect(jsonPath("$.detail").value("El campo 'email' es obligatorio"));
         verify(authenticationService, never()).authenticate(any(Student.class));
     }
 
@@ -77,7 +77,7 @@ class LegacyStudentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"no-es-un-email","password":"secret"}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje").value("El campo 'email' debe tener un formato valido"));
+                .andExpect(jsonPath("$.detail").value("El campo 'email' debe tener un formato valido"));
         verify(authenticationService, never()).authenticate(any(Student.class));
     }
 }

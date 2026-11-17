@@ -7,6 +7,6 @@ import ar.edu.unnoba.pm2026.shared.exception.BusinessRuleException;
 public class CourseStateException extends BusinessRuleException {
 
     public CourseStateException(String message) {
-        super(message);
+        super("course.state.not-editable", message);
     }
 }

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -94,7 +95,7 @@ class LegacyInstructorControllerTest {
         mockMvc.perform(post(PATH + "/auth").contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"iris@example.com","password":"otra"}"""))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensaje").value("Email o contraseña incorrectos"));
+                .andExpect(jsonPath("$.detail").value("Email o contraseña incorrectos"));
     }
 
     @Test
@@ -132,7 +133,7 @@ class LegacyInstructorControllerTest {
 
         mockMvc.perform(get(PATH + "/courses").header("Authorization", "Bearer vencido"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+                .andExpect(jsonPath("$.detail").value("Token invalido o vencido"));
         verify(courseService, never()).getCoursesByInstructorId(any());
     }
 
@@ -143,7 +144,7 @@ class LegacyInstructorControllerTest {
 
         mockMvc.perform(get(PATH + "/courses"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+                .andExpect(jsonPath("$.detail").value("Token invalido o vencido"));
     }
 
     @Test
@@ -153,18 +154,23 @@ class LegacyInstructorControllerTest {
 
         mockMvc.perform(get(PATH + "/courses").header("Authorization", TOKEN))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+                .andExpect(jsonPath("$.detail").value("No tiene permisos para esta operacion"));
         verify(courseService, never()).getCoursesByInstructorId(any());
     }
 
     @Test
     void createComoAdministradorResponde201YDelegaEnElServicioConLosDatosDelDto() throws Exception {
         allowAsAdministrator();
-        when(instructorService.create(any(Instructor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(instructorService.create(any(Instructor.class))).thenAnswer(invocation -> {
+            Instructor created = invocation.getArgument(0);
+            TestIds.setId(created, 7L);
+            return created;
+        });
 
         mockMvc.perform(post(PATH).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/instructor/7"))
                 .andExpect(content().string(""));
 
         ArgumentCaptor<Instructor> created = ArgumentCaptor.forClass(Instructor.class);
@@ -182,7 +188,7 @@ class LegacyInstructorControllerTest {
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+                .andExpect(jsonPath("$.detail").value("Token invalido o vencido"));
         verify(instructorService, never()).create(any());
     }
 
@@ -194,7 +200,7 @@ class LegacyInstructorControllerTest {
         mockMvc.perform(post(PATH).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+                .andExpect(jsonPath("$.detail").value("No tiene permisos para esta operacion"));
         verify(instructorService, never()).create(any());
     }
 
@@ -207,7 +213,7 @@ class LegacyInstructorControllerTest {
         mockMvc.perform(post(PATH).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("Ya existe un instructor con el email iris@example.com"));
+                .andExpect(jsonPath("$.detail").value("Ya existe un instructor con el email iris@example.com"));
     }
 
     @Test
@@ -219,7 +225,7 @@ class LegacyInstructorControllerTest {
         mockMvc.perform(post(PATH).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON)
                 .content(BODY))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("Los datos ya existen o estan en uso por otro registro"));
+                .andExpect(jsonPath("$.detail").value("Los datos ya existen o estan en uso por otro registro"));
     }
 
     @Test
@@ -229,7 +235,7 @@ class LegacyInstructorControllerTest {
         mockMvc.perform(post(PATH).header("Authorization", TOKEN).contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"iris@example.com","firstName":"Iris","lastName":"Ruiz"}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("password")));
+                .andExpect(jsonPath("$.detail", containsString("password")));
         verify(instructorService, never()).create(any());
     }
 }

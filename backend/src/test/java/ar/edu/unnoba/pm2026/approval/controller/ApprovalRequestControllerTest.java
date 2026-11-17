@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import ar.edu.unnoba.pm2026.approval.model.ApprovalRequest;
@@ -101,6 +102,7 @@ class ApprovalRequestControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"courseId":3,"instructorComment":"Listo"}"""))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/approval-requests/1"))
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.status").value("SUBMITTED"))
                 .andExpect(jsonPath("$.administratorId").doesNotExist());
@@ -110,7 +112,7 @@ class ApprovalRequestControllerTest {
     void submitSinCursoResponde400() throws Exception {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("courseId")));
+                .andExpect(jsonPath("$.detail", containsString("courseId")));
     }
 
     @Test
@@ -121,7 +123,7 @@ class ApprovalRequestControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"courseId":3}"""))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("Solo se puede solicitar la aprobacion de un curso en borrador"));
+                .andExpect(jsonPath("$.detail").value("Solo se puede solicitar la aprobacion de un curso en borrador"));
     }
 
     @Test
@@ -146,7 +148,7 @@ class ApprovalRequestControllerTest {
         mockMvc.perform(post(PATH + "/1/reject").contentType(MediaType.APPLICATION_JSON).content("""
                 {}"""))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("La solicitud ya fue resuelta"));
+                .andExpect(jsonPath("$.detail").value("La solicitud ya fue resuelta"));
     }
 
     @Test
@@ -157,7 +159,7 @@ class ApprovalRequestControllerTest {
         mockMvc.perform(post(PATH + "/99/reject").contentType(MediaType.APPLICATION_JSON).content("""
                 {}"""))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Solicitud de aprobacion no encontrada con id 99"));
+                .andExpect(jsonPath("$.detail").value("Solicitud de aprobacion no encontrada con id 99"));
     }
 
     @Test
@@ -166,7 +168,7 @@ class ApprovalRequestControllerTest {
 
         mockMvc.perform(get(PATH))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+                .andExpect(jsonPath("$.detail").value("Token invalido o vencido"));
         verify(approvalRequestService, never()).getAll();
     }
 
@@ -176,7 +178,7 @@ class ApprovalRequestControllerTest {
 
         mockMvc.perform(get(PATH))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+                .andExpect(jsonPath("$.detail").value("No tiene permisos para esta operacion"));
         verify(approvalRequestService, never()).getAll();
     }
 
@@ -208,7 +210,7 @@ class ApprovalRequestControllerTest {
 
         mockMvc.perform(get(PATH + "/1"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("La solicitud de aprobacion no le pertenece"));
+                .andExpect(jsonPath("$.detail").value("La solicitud de aprobacion no le pertenece"));
     }
 
     @Test
@@ -231,7 +233,7 @@ class ApprovalRequestControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"courseId\":3,\"instructorComment\":\"Listo\"}"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("El curso pertenece a otro instructor"));
+                .andExpect(jsonPath("$.detail").value("El curso pertenece a otro instructor"));
     }
 
     @Test
@@ -251,7 +253,7 @@ class ApprovalRequestControllerTest {
         mockMvc.perform(post(PATH + "/1/approve").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"administratorComment\":\"Ok\"}"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+                .andExpect(jsonPath("$.detail").value("No tiene permisos para esta operacion"));
         verify(approvalRequestService, never()).approve(any(), any(), any());
     }
 }

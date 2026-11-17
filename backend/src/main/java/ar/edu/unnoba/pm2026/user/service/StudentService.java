@@ -27,7 +27,8 @@ public class StudentService extends UserService<Student> {
     @Transactional(readOnly = true)
     public Student getById(Long id) {
         return studentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Estudiante no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("student.not-found",
+                        "Estudiante no encontrado con id " + id));
     }
 
     @Transactional(readOnly = true)

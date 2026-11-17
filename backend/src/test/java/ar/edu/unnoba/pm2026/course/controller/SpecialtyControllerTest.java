@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -84,7 +85,7 @@ class SpecialtyControllerTest {
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 99"));
+                .andExpect(jsonPath("$.detail").value("Especialidad no encontrada con id 99"));
     }
 
     @Test
@@ -98,6 +99,7 @@ class SpecialtyControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name":"Bases de datos"}"""))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/specialties/7"))
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.name").value("Bases de datos"));
     }
@@ -113,7 +115,7 @@ class SpecialtyControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name":"Programacion"}"""))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("Los datos ya existen o estan en uso por otro registro"));
+                .andExpect(jsonPath("$.detail").value("Los datos ya existen o estan en uso por otro registro"));
     }
 
     @Test
@@ -132,7 +134,7 @@ class SpecialtyControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"name":"Programacion"}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje").value("Datos invalidos"));
+                .andExpect(jsonPath("$.detail").value("Datos invalidos"));
     }
 
     @Test
@@ -140,7 +142,7 @@ class SpecialtyControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("name")));
+                .andExpect(jsonPath("$.detail", containsString("name")));
     }
 
     @Test
@@ -161,7 +163,7 @@ class SpecialtyControllerTest {
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"name":"Algoritmos"}"""))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 99"));
+                .andExpect(jsonPath("$.detail").value("Especialidad no encontrada con id 99"));
     }
 
     @Test
@@ -178,7 +180,7 @@ class SpecialtyControllerTest {
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 99"));
+                .andExpect(jsonPath("$.detail").value("Especialidad no encontrada con id 99"));
     }
 
     @Test
@@ -206,7 +208,7 @@ class SpecialtyControllerTest {
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+                .andExpect(jsonPath("$.detail").value("No tiene permisos para esta operacion"));
         verify(specialtyService, never()).save(any());
     }
 

@@ -35,7 +35,8 @@ public class InstructorService extends UserService<Instructor> {
     @Transactional(readOnly = true)
     public Instructor getById(Long id) {
         return instructorRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Instructor no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("instructor.not-found",
+                        "Instructor no encontrado con id " + id));
     }
 
     @Transactional(readOnly = true)

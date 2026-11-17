@@ -25,7 +25,8 @@ public class SpecialtyService {
     @Transactional(readOnly = true)
     public Specialty getById(Long id) {
         return specialtyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Especialidad no encontrada con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("specialty.not-found",
+                        "Especialidad no encontrada con id " + id));
     }
 
     public Specialty save(Specialty specialty) {

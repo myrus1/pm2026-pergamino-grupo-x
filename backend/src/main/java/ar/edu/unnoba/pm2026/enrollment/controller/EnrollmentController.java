@@ -3,15 +3,18 @@ package ar.edu.unnoba.pm2026.enrollment.controller;
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.enrollment.dto.EnrollmentRequest;
 import ar.edu.unnoba.pm2026.enrollment.dto.EnrollmentResponse;
 import ar.edu.unnoba.pm2026.enrollment.dto.RevenueResponse;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
 import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -66,12 +69,14 @@ public class EnrollmentController {
     }
 
     // Solo un alumno puede inscribirse, y solo a si mismo.
+    @ApiResponse(responseCode = "404", description = "Alumno o curso no encontrados")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public EnrollmentResponse create(@RequestBody @Valid EnrollmentRequest request,
+    public ResponseEntity<EnrollmentResponse> create(@RequestBody @Valid EnrollmentRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.STUDENT, Role.ADMINISTRATOR);
-        return response(enrollmentService.enroll(request.getStudentId(), request.getCourseId(), actor));
+        EnrollmentResponse created = response(enrollmentService.enroll(request.getStudentId(), request.getCourseId(), actor));
+        return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
     }
 
     private EnrollmentResponse response(Enrollment enrollment) {
