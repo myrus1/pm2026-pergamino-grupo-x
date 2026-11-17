@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -106,7 +107,7 @@ class EnrollmentControllerTest {
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Inscripcion no encontrada con id 99"));
+                .andExpect(jsonPath("$.detail").value("Inscripcion no encontrada con id 99"));
     }
 
     @Test
@@ -116,6 +117,7 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/enrollments/9"))
                 .andExpect(jsonPath("$.id").value(9))
                 .andExpect(jsonPath("$.studentId").value(1))
                 .andExpect(jsonPath("$.courseId").value(2))
@@ -131,7 +133,7 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("El curso no esta publicado"));
+                .andExpect(jsonPath("$.detail").value("El curso no esta publicado"));
     }
 
     @Test
@@ -142,7 +144,7 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":99,"courseId":2}"""))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Estudiante no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Estudiante no encontrado con id 99"));
     }
 
     @Test
@@ -150,7 +152,7 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("obligatorio")));
+                .andExpect(jsonPath("$.detail", containsString("obligatorio")));
     }
 
     @Test
@@ -181,7 +183,7 @@ class EnrollmentControllerTest {
 
         mockMvc.perform(get(PATH))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+                .andExpect(jsonPath("$.detail").value("Token invalido o vencido"));
         verify(enrollmentService, never()).getAll();
     }
 
@@ -231,7 +233,7 @@ class EnrollmentControllerTest {
 
         mockMvc.perform(get(PATH + "/9"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("La inscripcion no le pertenece"));
+                .andExpect(jsonPath("$.detail").value("La inscripcion no le pertenece"));
     }
 
     @Test
@@ -263,7 +265,7 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"studentId\":7,\"courseId\":2}"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("Solo puede inscribirse a si mismo"));
+                .andExpect(jsonPath("$.detail").value("Solo puede inscribirse a si mismo"));
         verify(enrollmentService).enroll(7L, 2L, new AuthenticatedUser(9L, "ana@example.com", Role.STUDENT));
     }
 

@@ -65,26 +65,29 @@ public class Student extends User {
         }
 
         if (course.getStatus() != CourseStatus.PUBLISHED) {
-            throw new CourseEnrollmentException("El curso no esta publicado");
+            throw new CourseEnrollmentException("enrollment.course-not-published", "El curso no esta publicado");
         }
         if (course.getStartDate() == null || !enrollmentDate.isBefore(course.getStartDate())) {
-            throw new CourseEnrollmentException("La inscripcion debe ser antes de que comience el curso");
+            throw new CourseEnrollmentException("enrollment.registration-closed",
+                    "La inscripcion debe ser antes de que comience el curso");
         }
         if (!course.hasAvailableCapacity()) {
-            throw new CourseEnrollmentException("El curso esta lleno");
+            throw new CourseEnrollmentException("enrollment.course-full", "El curso esta lleno");
         }
         if (course.getSpecialty() == null) {
-            throw new CourseEnrollmentException("Especialidad del curso no definida");
+            throw new CourseEnrollmentException("enrollment.course-specialty-missing",
+                    "Especialidad del curso no definida");
         }
         if (enrollments.stream().anyMatch(enrollment -> enrollment.getCourse() == course
                 || (enrollment.getCourse().getId() != null
                 && enrollment.getCourse().getId().equals(course.getId())))) {
-            throw new CourseEnrollmentException("Estudiante inscripto en el curso");
+            throw new CourseEnrollmentException("enrollment.already-enrolled", "Estudiante inscripto en el curso");
         }
 
         BigDecimal finalAmount = course.getBasePrice();
         if (finalAmount == null) {
-            throw new CourseEnrollmentException("No se establecio el precio base del curso");
+            throw new CourseEnrollmentException("enrollment.course-price-missing",
+                    "No se establecio el precio base del curso");
         }
         if (hasPreviousEnrollmentForSpecialtyInMonth(course, enrollmentDate)) {
             finalAmount = finalAmount.multiply(FULL_PRICE_FACTOR).setScale(2, RoundingMode.HALF_UP);

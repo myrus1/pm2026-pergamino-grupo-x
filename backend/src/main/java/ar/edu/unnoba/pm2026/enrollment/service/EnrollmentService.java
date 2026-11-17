@@ -87,7 +87,8 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public Enrollment getById(Long id) {
         return enrollmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Inscripcion no encontrada con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("enrollment.not-found",
+                        "Inscripcion no encontrada con id " + id));
     }
 
     // El alumno solo ve su inscripcion; el instructor solo las de sus cursos; el admin, cualquiera.

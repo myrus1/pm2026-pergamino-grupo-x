@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.course.controller;
 
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
+import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.course.service.SpecialtyService;
 import ar.edu.unnoba.pm2026.course.dto.SpecialtyRequest;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,10 +49,11 @@ public class SpecialtyController {
     @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public SpecialtyResponse create(@RequestBody @Valid SpecialtyRequest request,
+    public ResponseEntity<SpecialtyResponse> create(@RequestBody @Valid SpecialtyRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         authorizationService.authorize(token, Role.ADMINISTRATOR);
-        return response(specialtyService.save(new Specialty(request.getName())));
+        SpecialtyResponse created = response(specialtyService.save(new Specialty(request.getName())));
+        return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
     }
 
     @SecurityRequirement(name = "token")

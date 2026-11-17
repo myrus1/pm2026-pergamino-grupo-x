@@ -7,6 +7,6 @@ import ar.edu.unnoba.pm2026.shared.exception.ForbiddenException;
 public class AuthorizationException extends ForbiddenException {
 
     public AuthorizationException(String message) {
-        super(message);
+        super("authorization.denied", message);
     }
 }

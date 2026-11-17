@@ -7,6 +7,6 @@ import ar.edu.unnoba.pm2026.shared.exception.UnauthenticatedException;
 public class AuthenticationException extends UnauthenticatedException {
 
     public AuthenticationException(String message) {
-        super(message);
+        super("authentication.failed", message);
     }
 }

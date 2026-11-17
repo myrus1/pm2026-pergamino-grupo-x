@@ -1,8 +1,12 @@
 package ar.edu.unnoba.pm2026.shared.exception;
 
-public class UnauthenticatedException extends RuntimeException {
+public class UnauthenticatedException extends ApiException {
 
     public UnauthenticatedException(String message) {
-        super(message);
+        this("authentication.unauthenticated", message);
+    }
+
+    public UnauthenticatedException(String code, String message) {
+        super(code, message);
     }
 }

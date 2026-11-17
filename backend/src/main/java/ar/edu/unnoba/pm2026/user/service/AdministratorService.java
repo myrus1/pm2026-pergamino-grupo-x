@@ -27,7 +27,8 @@ public class AdministratorService extends UserService<Administrator> {
     @Transactional(readOnly = true)
     public Administrator getById(Long id) {
         return administratorRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Administrador no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("administrator.not-found",
+                        "Administrador no encontrado con id " + id));
     }
 
     @Transactional(readOnly = true)

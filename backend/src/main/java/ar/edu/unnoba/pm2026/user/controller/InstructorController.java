@@ -3,6 +3,7 @@ package ar.edu.unnoba.pm2026.user.controller;
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.course.dto.SpecialtyResponse;
 import ar.edu.unnoba.pm2026.enrollment.dto.RevenueResponse;
 import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -71,12 +73,13 @@ public class InstructorController {
     @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public InstructorResponse create(@RequestBody @Valid InstructorRequest request,
+    public ResponseEntity<InstructorResponse> create(@RequestBody @Valid InstructorRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         authorizationService.authorize(token, Role.ADMINISTRATOR);
         Instructor instructor = new Instructor(request.getFirstName(), request.getLastName(),
                 request.getEmail(), request.getPassword());
-        return response(instructorService.create(instructor));
+        InstructorResponse created = response(instructorService.create(instructor));
+        return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
     }
 
     @SecurityRequirement(name = "token")

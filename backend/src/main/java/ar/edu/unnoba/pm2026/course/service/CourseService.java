@@ -72,7 +72,8 @@ public class CourseService {
     @Transactional(readOnly = true)
     public Course getById(Long id) {
         return courseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Curso no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("course.not-found",
+                        "Curso no encontrado con id " + id));
     }
 
     // Igual que getById pero ademas exige que el curso le pertenezca al instructor del token.

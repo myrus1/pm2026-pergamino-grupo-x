@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -113,7 +114,7 @@ class CourseControllerTest {
 
         mockMvc.perform(get(PATH).param("studentId", "99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Estudiante no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Estudiante no encontrado con id 99"));
     }
 
     @Test
@@ -132,7 +133,7 @@ class CourseControllerTest {
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Curso no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Curso no encontrado con id 99"));
     }
 
     @Test
@@ -145,6 +146,7 @@ class CourseControllerTest {
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/courses/7"))
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.specialtyId").value(1))
@@ -157,7 +159,7 @@ class CourseControllerTest {
                 {"description":"Desc","basePrice":100.00,"startDate":"2026-06-01",
                  "endDate":"2026-06-20","maxCapacity":5,"specialtyId":1,"instructorId":2}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("title")));
+                .andExpect(jsonPath("$.detail", containsString("title")));
     }
 
     @Test
@@ -167,7 +169,7 @@ class CourseControllerTest {
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 1"));
+                .andExpect(jsonPath("$.detail").value("Especialidad no encontrada con id 1"));
     }
 
     @Test
@@ -195,7 +197,7 @@ class CourseControllerTest {
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Curso no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Curso no encontrado con id 99"));
     }
 
     @Test
@@ -211,7 +213,7 @@ class CourseControllerTest {
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Curso no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Curso no encontrado con id 99"));
     }
 
     @Test
@@ -248,7 +250,7 @@ class CourseControllerTest {
 
         mockMvc.perform(get(PATH).param("studentId", "7"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("Solo puede ver sus propios cursos"));
+                .andExpect(jsonPath("$.detail").value("Solo puede ver sus propios cursos"));
         verify(enrollmentService, never()).getCoursesOfStudent(any());
     }
 
@@ -287,7 +289,7 @@ class CourseControllerTest {
 
         mockMvc.perform(put(PATH + "/5").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("El curso pertenece a otro instructor"));
+                .andExpect(jsonPath("$.detail").value("El curso pertenece a otro instructor"));
     }
 
     @Test

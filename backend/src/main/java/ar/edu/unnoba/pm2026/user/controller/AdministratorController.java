@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.user.controller;
 
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
+import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.user.dto.AdministratorRequest;
 import ar.edu.unnoba.pm2026.user.dto.AdministratorResponse;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,12 +54,13 @@ public class AdministratorController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public AdministratorResponse create(@RequestBody @Valid AdministratorRequest request,
+    public ResponseEntity<AdministratorResponse> create(@RequestBody @Valid AdministratorRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         authorizationService.authorize(token, Role.ADMINISTRATOR);
         Administrator administrator = new Administrator(request.getFirstName(), request.getLastName(),
                 request.getEmail(), request.getPassword());
-        return response(administratorService.create(administrator));
+        AdministratorResponse created = response(administratorService.create(administrator));
+        return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
     }
 
     @PutMapping("/{id}")

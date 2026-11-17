@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -90,7 +91,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -104,6 +105,7 @@ class InstructorControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/instructors/7"))
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
@@ -116,7 +118,7 @@ class InstructorControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("Ya existe un instructor con el email iris@example.com"));
+                .andExpect(jsonPath("$.detail").value("Ya existe un instructor con el email iris@example.com"));
     }
 
     @Test
@@ -124,7 +126,7 @@ class InstructorControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("firstName")));
+                .andExpect(jsonPath("$.detail", containsString("firstName")));
     }
 
     @Test
@@ -152,7 +154,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -185,7 +187,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(get(PATH + "/99/specialties"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -204,7 +206,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(get(PATH + "/99/revenue"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -222,7 +224,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(put(PATH + "/1/specialties/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 99"));
+                .andExpect(jsonPath("$.detail").value("Especialidad no encontrada con id 99"));
     }
 
     @Test
@@ -240,7 +242,7 @@ class InstructorControllerTest {
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -277,7 +279,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(get(PATH + "/99/revenue"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("La recaudacion no le pertenece"));
+                .andExpect(jsonPath("$.detail").value("La recaudacion no le pertenece"));
         verify(enrollmentService, never()).instructorRevenue(any());
     }
 
@@ -324,7 +326,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("Solo puede modificar su propio perfil"));
+                .andExpect(jsonPath("$.detail").value("Solo puede modificar su propio perfil"));
         verify(instructorService, never()).update(any());
     }
 

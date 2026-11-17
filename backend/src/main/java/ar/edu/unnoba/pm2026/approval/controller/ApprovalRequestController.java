@@ -7,12 +7,15 @@ import ar.edu.unnoba.pm2026.approval.model.ApprovalRequest;
 import ar.edu.unnoba.pm2026.approval.model.ApprovalStatus;
 import ar.edu.unnoba.pm2026.approval.service.ApprovalRequestService;
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -65,13 +68,15 @@ public class ApprovalRequestController {
         return response(approvalRequestService.getById(id, actor));
     }
 
+    @ApiResponse(responseCode = "404", description = "Curso no encontrado")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ApprovalRequestResponse submit(@RequestBody @Valid ApprovalSubmitRequest request,
+    public ResponseEntity<ApprovalRequestResponse> submit(@RequestBody @Valid ApprovalSubmitRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
-        return response(approvalRequestService.submit(request.getCourseId(), request.getInstructorComment(),
-                actor));
+        ApprovalRequestResponse created = response(approvalRequestService.submit(request.getCourseId(),
+                request.getInstructorComment(), actor));
+        return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
     }
 
     @PostMapping("/{id}/approve")

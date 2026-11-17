@@ -40,7 +40,7 @@ public class ApprovalRequestService {
     @Transactional(readOnly = true)
     public ApprovalRequest getById(Long id) {
         return approvalRequestRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
+                .orElseThrow(() -> new ResourceNotFoundException("approval-request.not-found",
                         "Solicitud de aprobacion no encontrada con id " + id));
     }
 
