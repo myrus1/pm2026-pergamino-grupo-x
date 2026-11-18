@@ -3,6 +3,7 @@ package ar.edu.unnoba.pm2026;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -47,13 +49,17 @@ class ObservabilityIntegrationTest {
         for (String path : new String[] {"/actuator/prometheus", "/actuator/metrics", "/actuator/info"}) {
             mockMvc.perform(get(path))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.mensaje").value("Token invalido o vencido"));
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.detail").value("Token invalido o vencido"))
+                    .andExpect(jsonPath("$.code").value("authentication.failed"))
+                    .andExpect(jsonPath("$.instance").value(path));
         }
 
         String instructorToken = jwtTokenUtil.generateToken("iris@example.com", Role.INSTRUCTOR, 4L);
         mockMvc.perform(get("/actuator/prometheus").header("Authorization", instructorToken))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("No tiene permisos para esta operacion"));
+                .andExpect(jsonPath("$.detail").value("No tiene permisos para esta operacion"))
+                .andExpect(jsonPath("$.code").value("authorization.denied"));
     }
 
     @Test

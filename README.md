@@ -28,6 +28,7 @@ DB_PASSWORD=pass
 Para la base del grupo en Aiven, pedí los datos al grupo y agregá `?sslmode=require` al final de `DB_URL`. El `.env` no se sube al repositorio.
 
 `JWT_SECRET` (opcional) es la clave con la que se firman los tokens de login; si no está, se usa una de desarrollo.
+`JWT_EXPIRATION` (opcional) es la duración de los tokens en segundos; por defecto `864000` (10 días).
 
 Las tablas se crean y actualizan solas al levantar la app (`spring.jpa.hibernate.ddl-auto=update`).
 
@@ -130,11 +131,17 @@ Para logs en JSON, agregá `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs` al entorno.
 
 ## Probar la API
 
+El login único es `POST /api/auth/token` con `{"email", "password"}` y sirve para los tres roles. Devuelve
+`accessToken` (el JWT sin prefijo), `tokenType` (`Bearer`), `expiresIn` (segundos) y `role` (`STUDENT`,
+`INSTRUCTOR` o `ADMINISTRATOR`). En Swagger UI se pega `Bearer <accessToken>` en **Authorize**. Los logins de
+cada rol del TP6 (`/students/auth`, `/auth`, `/admin/auth`) siguen igual; los viejos (`/student/auth`,
+`/instructor/auth`, `/administrator/auth`) siguen andando pero quedan deprecados.
+
 En `Docs/Postman` hay una colección con todas las reglas de negocio. Importala en Postman y correla con el Collection Runner. Cada corrida crea sus propios datos de prueba.
 
 ## Documentación
 
-- `Docs/UML`: diagrama de clases
+- `Docs/UML`: diagrama de clases y diagrama de secuencia del login único (`login.md`)
 - `Docs/SQL`: modelo relacional (DER) y script del esquema
 - `AGENTS.md`: estructura del proyecto, convenciones y estado actual
 

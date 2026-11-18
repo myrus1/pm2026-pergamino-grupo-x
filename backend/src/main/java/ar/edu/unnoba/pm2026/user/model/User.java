@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.user.model;
 
+import ar.edu.unnoba.pm2026.shared.security.Role;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -44,4 +45,8 @@ public abstract class User {
         this.password = password;
     }
 
+    // Rol del usuario para el login unico. Sale del tipo de la subclase: con la herencia JOINED,
+    // buscar por email en users ya devuelve Student, Instructor o Administrator, asi que no hace
+    // falta guardar el rol en una columna (y no se toca el esquema de la base compartida).
+    public abstract Role getRole();
 }
