@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.course.service;
 
+import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.course.dto.CourseRequest;
@@ -31,23 +32,25 @@ public class CourseService {
         this.instructorService = instructorService;
     }
 
-    // El instructor siempre crea cursos suyos; el administrador crea el que indica el body.
+    // Crear y editar cursos es solo del instructor, y siempre sobre los suyos: el TP6 no deja que el
+    // administrador haga acciones de instructor.
     public Course create(CourseRequest request, AuthenticatedUser actor) {
-        validateRequest(request, actor);
+        requireInstructor(actor);
+        validateRequest(request);
         Specialty specialty = specialtyService.getById(request.getSpecialtyId());
-        Instructor instructor = instructorService.getById(resolveInstructorId(request, actor));
+        Instructor instructor = instructorService.getById(actor.id());
         Course course = instructor.createCourse(request.getTitle(), request.getDescription(), request.getBasePrice(),
                 request.getStartDate(), request.getEndDate(), request.getMaxCapacity(), specialty);
         return courseRepository.save(course);
     }
 
     public Course update(Long id, CourseRequest request, AuthenticatedUser actor) {
-        validateRequest(request, actor);
+        requireInstructor(actor);
+        validateRequest(request);
         Course course = getById(id);
         requireModifiable(course, actor);
         Specialty specialty = specialtyService.getById(request.getSpecialtyId());
-        Instructor instructor = instructorService.getById(resolveInstructorId(request, actor));
-        instructor.validateSpecialty(specialty);
+        course.getInstructor().validateSpecialty(specialty);
         course.setTitle(request.getTitle());
         course.setDescription(request.getDescription());
         course.setBasePrice(request.getBasePrice());
@@ -55,7 +58,6 @@ public class CourseService {
         course.setEndDate(request.getEndDate());
         course.setMaxCapacity(request.getMaxCapacity());
         course.setSpecialty(specialty);
-        course.setInstructor(instructor);
         return courseRepository.save(course);
     }
 
@@ -95,23 +97,23 @@ public class CourseService {
         courseRepository.deleteById(id);
     }
 
-    private Long resolveInstructorId(CourseRequest request, AuthenticatedUser actor) {
-        return actor.role() == Role.INSTRUCTOR ? actor.id() : request.getInstructorId();
-    }
-
-    private void validateRequest(CourseRequest request, AuthenticatedUser actor) {
-        if (request == null) {
-            throw new ValidationException("La solicitud no puede ser nula");
-        }
+    private void requireInstructor(AuthenticatedUser actor) {
         if (actor == null) {
             throw new ValidationException("El usuario autenticado no puede ser nulo");
         }
-        if (actor.role() == Role.ADMINISTRATOR && request.getInstructorId() == null) {
-            throw new ValidationException("El campo 'instructorId' es obligatorio");
+        if (actor.role() != Role.INSTRUCTOR) {
+            throw new AuthorizationException("Solo un instructor puede crear o modificar cursos");
+        }
+    }
+
+    private void validateRequest(CourseRequest request) {
+        if (request == null) {
+            throw new ValidationException("La solicitud no puede ser nula");
         }
     }
 
     // Un curso ajeno es 403; uno que ya salio de borrador es 409 (hay que reenviarlo a aprobacion).
+    // El administrador solo llega aca para borrar: puede sacar cualquier curso.
     private void requireModifiable(Course course, AuthenticatedUser actor) {
         actor.requireOwnership(course.getInstructor() == null ? null : course.getInstructor().getId(),
                 "El curso pertenece a otro instructor");

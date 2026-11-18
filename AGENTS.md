@@ -211,20 +211,24 @@ el id coincide.
 | `GET /api/students` (lista), `GET /api/students/{id}`, `PUT/DELETE /api/students/{id}` | ❌ | ❌ | ✅ | ❌ |
 | `GET /api/students?courseId=` | ❌ | solo su curso | ✅ | ❌ |
 | `GET /api/courses?studentId=` | solo el suyo | ❌ | ✅ | ❌ |
-| `POST/PUT/DELETE /api/courses` | ❌ | solo los suyos, y solo en **DRAFT** | ✅ | ❌ |
-| `POST /api/enrollments` | solo a sí mismo | ❌ | ✅ (inscribe a cualquiera) | ❌ |
+| `POST /api/courses`, `PUT /api/courses/{id}` | ❌ | solo los suyos, y solo en **DRAFT** | ❌ | ❌ |
+| `DELETE /api/courses/{id}` | ❌ | solo los suyos, y solo en **DRAFT** | ✅ (cualquiera) | ❌ |
+| `POST /api/enrollments` | solo a sí mismo | ❌ | ❌ | ❌ |
 | `GET /api/enrollments`, `GET /api/enrollments/revenue` | ❌ | ❌ | ✅ | ❌ |
 | `GET /api/enrollments/{id}` | solo la suya | solo las de sus cursos | ✅ | ❌ |
 | `GET /api/instructors/{id}/revenue` | ❌ | solo la suya | ✅ | ❌ |
-| `POST /api/approval-requests` | ❌ | solo de sus cursos | ✅ | ❌ |
+| `POST /api/approval-requests` | ❌ | solo de sus cursos | ❌ | ❌ |
 | `GET /api/approval-requests` (`?status=`/`?instructorId=`) | ❌ | solo las suyas (ignora el filtro) | ✅ | ❌ |
 | `GET /api/approval-requests/{id}`, `.../{id}/approve`, `.../{id}/reject` | ❌ | solo lectura de las suyas | ✅ | ❌ |
 
 - Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
   (los tres reciben `AuthenticationRequest`: `email` + `password` y devuelven
   `{"token": "Bearer ..."}`).
-- El instructor **no** elige el dueño de un curso: `CourseService` usa el id del token y solo
-  el administrador puede mandar `instructorId` en el body.
+- TP6 (#38): **el administrador no hace acciones de instructor ni de alumno**. No crea ni edita
+  cursos, no pide aprobaciones y no inscribe alumnos (403); `CourseService`, `ApprovalRequestService` y
+  `EnrollmentService` lo vuelven a chequear. Solo conserva el borrado de cursos, que no es una acción
+  del instructor en el TP6 y que usa la pantalla de cursos del admin en el front.
+- El dueño de un curso es siempre el instructor del token: `CourseRequest` no tiene `instructorId`.
 - Un curso que salió de DRAFT no se edita ni se borra: `CourseStateException` → 409.
 - `administratorId` ya no se manda en `ApprovalResolveRequest`; sale del token.
 - Pruebas: `testutil/AuthTestSupport` (`asDefaultAdministrator`, `withoutToken`, `withoutPermission`,

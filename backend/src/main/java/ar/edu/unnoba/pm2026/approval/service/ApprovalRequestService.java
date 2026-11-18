@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.approval.service;
 
 import ar.edu.unnoba.pm2026.approval.model.ApprovalRequest;
 import ar.edu.unnoba.pm2026.approval.repository.ApprovalRequestRepository;
+import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
 import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
@@ -58,8 +59,11 @@ public class ApprovalRequestService {
         return request;
     }
 
-    // Solo el dueño del curso puede enviarlo a aprobacion.
+    // Solo el instructor dueño del curso puede enviarlo a aprobacion; el administrador solo resuelve.
     public ApprovalRequest submit(Long courseId, String instructorComment, AuthenticatedUser actor) {
+        if (actor.role() != Role.INSTRUCTOR) {
+            throw new AuthorizationException("Solo el instructor del curso puede pedir su aprobacion");
+        }
         Course course = courseService.getById(courseId);
         actor.requireOwnership(course.getInstructor().getId(), "El curso pertenece a otro instructor");
         ApprovalRequest request = new ApprovalRequest(course, instructorComment);

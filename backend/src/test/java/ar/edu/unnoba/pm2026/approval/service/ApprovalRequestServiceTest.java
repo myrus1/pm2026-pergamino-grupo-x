@@ -109,6 +109,15 @@ class ApprovalRequestServiceTest {
     }
 
     @Test
+    void submitComoAdministradorNoGuardaNada() {
+        assertThatThrownBy(() -> approvalRequestService.submit(1L, "Listo", administrator()))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo el instructor del curso puede pedir su aprobacion");
+        verify(courseService, never()).getById(any());
+        verify(approvalRequestRepository, never()).save(any());
+    }
+
+    @Test
     void submitComoInstructorDeCursoAjenoNoGuardaNada() {
         when(courseService.getById(1L)).thenReturn(courseOfInstructor(5L));
 

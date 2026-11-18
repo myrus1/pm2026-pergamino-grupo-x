@@ -50,7 +50,7 @@ class CourseServiceTest {
         courseService = new CourseService(courseRepository, specialtyService, instructorService);
     }
 
-    private CourseRequest request(Long specialtyId, Long instructorId) {
+    private CourseRequest request(Long specialtyId) {
         CourseRequest request = new CourseRequest();
         request.setTitle("Java");
         request.setDescription("Desc");
@@ -59,7 +59,6 @@ class CourseServiceTest {
         request.setEndDate(LocalDate.of(2026, 6, 20));
         request.setMaxCapacity(5);
         request.setSpecialtyId(specialtyId);
-        request.setInstructorId(instructorId);
         return request;
     }
 
@@ -72,7 +71,7 @@ class CourseServiceTest {
         when(instructorService.getById(2L)).thenReturn(instructor);
         when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Course course = courseService.create(request(1L, 2L), administrator());
+        Course course = courseService.create(request(1L), instructor(2L));
 
         assertThat(course.getTitle()).isEqualTo("Java");
         assertThat(course.getStatus()).isEqualTo(CourseStatus.DRAFT);
@@ -82,11 +81,12 @@ class CourseServiceTest {
         assertThat(instructor.getCourses()).containsExactly(course);
     }
 
+    // TP6: el administrador no hace acciones de instructor
     @Test
-    void createComoAdministradorSinInstructorLanzaValidacion() {
-        assertThatThrownBy(() -> courseService.create(request(1L, null), administrator()))
-                .isInstanceOf(ValidationException.class)
-                .hasMessage("El campo 'instructorId' es obligatorio");
+    void createComoAdministradorLanzaAutorizacionYNoGuardaNada() {
+        assertThatThrownBy(() -> courseService.create(request(1L), administrator()))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo un instructor puede crear o modificar cursos");
         verify(specialtyService, never()).getById(any());
         verify(courseRepository, never()).save(any());
     }
@@ -95,7 +95,7 @@ class CourseServiceTest {
     void createConEspecialidadInexistenteNoGuardaNada() {
         when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
 
-        assertThatThrownBy(() -> courseService.create(request(99L, 2L), administrator()))
+        assertThatThrownBy(() -> courseService.create(request(99L), instructor(2L)))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(courseRepository, never()).save(any());
     }
@@ -105,7 +105,7 @@ class CourseServiceTest {
         when(specialtyService.getById(1L)).thenReturn(new Specialty("Marketing"));
         when(instructorService.getById(2L)).thenReturn(new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
 
-        assertThatThrownBy(() -> courseService.create(request(1L, 2L), administrator()))
+        assertThatThrownBy(() -> courseService.create(request(1L), instructor(2L)))
                 .isInstanceOf(ValidationException.class)
                 .hasMessage("instructor debe tener la especialidad del curso");
         verify(courseRepository, never()).save(any());
@@ -114,17 +114,16 @@ class CourseServiceTest {
     @Test
     void updateCambiaLosDatosYMueveElCursoALaNuevaEspecialidad() {
         Specialty anterior = new Specialty("Diseno");
-        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        Instructor instructor = instructorEntity(2L);
         Course course = new Course("Viejo", "Desc", new BigDecimal("50.00"), LocalDate.of(2026, 5, 1),
                 LocalDate.of(2026, 5, 20), 3, anterior, instructor);
         Specialty nueva = new Specialty("Programacion");
         instructor.addSpecialty(nueva);
         when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
         when(specialtyService.getById(1L)).thenReturn(nueva);
-        when(instructorService.getById(2L)).thenReturn(instructor);
         when(courseRepository.save(course)).thenReturn(course);
 
-        Course updated = courseService.update(7L, request(1L, 2L), administrator());
+        Course updated = courseService.update(7L, request(1L), instructor(2L));
 
         assertThat(updated.getTitle()).isEqualTo("Java");
         assertThat(updated.getBasePrice()).isEqualByComparingTo("100.00");
@@ -134,32 +133,27 @@ class CourseServiceTest {
     }
 
     @Test
-    void updateNoCambiaElEstadoDelCurso() {
-        Specialty specialty = new Specialty("Programacion");
-        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
-        instructor.addSpecialty(specialty);
-        Course course = new Course("Viejo", "Desc", new BigDecimal("50.00"), LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 20), 3, specialty, instructor);
-        course.setStatus(CourseStatus.PENDING_APPROVAL);
+    void updateNoCambiaElEstadoNiElInstructorDelCurso() {
+        Course course = courseOf(instructorEntity(2L));
+        Instructor owner = course.getInstructor();
         when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
-        when(specialtyService.getById(1L)).thenReturn(specialty);
-        when(instructorService.getById(2L)).thenReturn(instructor);
+        when(specialtyService.getById(1L)).thenReturn(course.getSpecialty());
         when(courseRepository.save(course)).thenReturn(course);
 
-        assertThat(courseService.update(7L, request(1L, 2L), administrator()).getStatus()).isEqualTo(CourseStatus.PENDING_APPROVAL);
+        Course updated = courseService.update(7L, request(1L), instructor(2L));
+
+        assertThat(updated.getStatus()).isEqualTo(CourseStatus.DRAFT);
+        assertThat(updated.getInstructor()).isSameAs(owner);
     }
 
     @Test
     void updateAUnaEspecialidadQueElInstructorNoTieneNoModificaElCurso() {
-        Specialty specialty = new Specialty("Programacion");
-        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
-        Course course = new Course("Viejo", "Desc", new BigDecimal("50.00"), LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 20), 3, specialty, instructor);
+        Course course = courseOf(instructorEntity(2L));
+        Specialty specialty = course.getSpecialty();
         when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
         when(specialtyService.getById(1L)).thenReturn(new Specialty("Marketing"));
-        when(instructorService.getById(2L)).thenReturn(instructor);
 
-        assertThatThrownBy(() -> courseService.update(7L, request(1L, 2L), administrator()))
+        assertThatThrownBy(() -> courseService.update(7L, request(1L), instructor(2L)))
                 .isInstanceOf(ValidationException.class)
                 .hasMessage("instructor debe tener la especialidad del curso");
         assertThat(course.getTitle()).isEqualTo("Viejo");
@@ -171,7 +165,7 @@ class CourseServiceTest {
     void updateDeCursoInexistenteLanzaExcepcion() {
         when(courseRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> courseService.update(99L, request(1L, 2L), administrator()))
+        assertThatThrownBy(() -> courseService.update(99L, request(1L), instructor(2L)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Curso no encontrado con id 99");
     }
@@ -229,7 +223,7 @@ class CourseServiceTest {
     }
 
     @Test
-    void createComoInstructorUsaElInstructorDelTokenYNoElDelBody() {
+    void createComoInstructorLoCreaASuNombre() {
         Specialty specialty = new Specialty("Programacion");
         Instructor own = instructorEntity(2L);
         own.addSpecialty(specialty);
@@ -237,10 +231,9 @@ class CourseServiceTest {
         when(instructorService.getById(2L)).thenReturn(own);
         when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Course course = courseService.create(request(1L, 99L), instructor(2L));
+        Course course = courseService.create(request(1L), instructor(2L));
 
         assertThat(course.getInstructor()).isSameAs(own);
-        verify(instructorService, never()).getById(99L);
     }
 
     @Test
@@ -248,7 +241,7 @@ class CourseServiceTest {
         Course course = courseOf(instructorEntity(5L));
         when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
 
-        assertThatThrownBy(() -> courseService.update(7L, request(1L, 2L), instructor(2L)))
+        assertThatThrownBy(() -> courseService.update(7L, request(1L), instructor(2L)))
                 .isInstanceOf(AuthorizationException.class)
                 .hasMessage("El curso pertenece a otro instructor");
         assertThat(course.getTitle()).isEqualTo("Viejo");
@@ -261,23 +254,21 @@ class CourseServiceTest {
         course.setStatus(CourseStatus.PUBLISHED);
         when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
 
-        assertThatThrownBy(() -> courseService.update(7L, request(1L, 2L), instructor(2L)))
+        assertThatThrownBy(() -> courseService.update(7L, request(1L), instructor(2L)))
                 .isInstanceOf(CourseStateException.class)
                 .hasMessage("El curso solo se puede modificar mientras este en borrador");
         assertThat(course.getTitle()).isEqualTo("Viejo");
         verify(courseRepository, never()).save(any());
     }
 
+    // TP6: el administrador no edita cursos, ni siquiera publicados
     @Test
-    void updateComoAdministradorDeCursoPublicadoEstaPermitido() {
-        Course course = courseOf(instructorEntity(5L));
-        course.setStatus(CourseStatus.PUBLISHED);
-        when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
-        when(specialtyService.getById(1L)).thenReturn(course.getSpecialty());
-        when(instructorService.getById(5L)).thenReturn(course.getInstructor());
-        when(courseRepository.save(course)).thenReturn(course);
-
-        assertThat(courseService.update(7L, request(1L, 5L), administrator()).getTitle()).isEqualTo("Java");
+    void updateComoAdministradorLanzaAutorizacionYNoModificaNada() {
+        assertThatThrownBy(() -> courseService.update(7L, request(1L), administrator()))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo un instructor puede crear o modificar cursos");
+        verify(courseRepository, never()).findById(any());
+        verify(courseRepository, never()).save(any());
     }
 
     @Test

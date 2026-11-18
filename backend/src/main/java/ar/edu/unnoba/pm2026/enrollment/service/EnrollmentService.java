@@ -78,7 +78,11 @@ public class EnrollmentService {
         if (actor == null) {
             throw new ValidationException("El usuario autenticado no puede ser nulo");
         }
-        if (actor.role() == Role.STUDENT && !Objects.equals(actor.id(), studentId)) {
+        // Inscribirse es una accion del alumno: el TP6 no deja que el admin la haga por el.
+        if (actor.role() != Role.STUDENT) {
+            throw new AuthorizationException("Solo un alumno puede inscribirse a un curso");
+        }
+        if (!Objects.equals(actor.id(), studentId)) {
             throw new AuthorizationException("Solo puede inscribirse a si mismo");
         }
         return enroll(studentId, courseId);

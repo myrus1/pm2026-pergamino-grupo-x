@@ -164,6 +164,15 @@ class EnrollmentServiceTest {
     }
 
     @Test
+    void enrollRechazaQueUnAdministradorInscribaAUnAlumno() {
+        assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, administrator()))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo un alumno puede inscribirse a un curso");
+        verify(studentService, never()).getById(any());
+        verify(enrollmentRepository, never()).save(any());
+    }
+
+    @Test
     void enrollRechazaQueUnAlumnoSeInscribaPorOtro() {
         assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, student(1L)))
                 .isInstanceOf(AuthorizationException.class)

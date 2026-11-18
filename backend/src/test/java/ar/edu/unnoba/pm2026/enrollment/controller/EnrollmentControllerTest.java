@@ -44,6 +44,8 @@ import org.junit.jupiter.api.BeforeEach;
 @WebMvcTest(EnrollmentController.class)
 class EnrollmentControllerTest {
 
+    private static final AuthenticatedUser STUDENT = new AuthenticatedUser(1L, "ana@example.com", Role.STUDENT);
+
     private static final String PATH = "/api/enrollments";
 
     @Autowired
@@ -112,7 +114,8 @@ class EnrollmentControllerTest {
 
     @Test
     void createValidoResponde201ConLaInscripcionGenerada() throws Exception {
-        when(enrollmentService.enroll(1L, 2L, AuthTestSupport.ADMIN)).thenReturn(enrollment());
+        AuthTestSupport.as(authorizationService, STUDENT);
+        when(enrollmentService.enroll(1L, 2L, STUDENT)).thenReturn(enrollment());
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))
@@ -127,7 +130,8 @@ class EnrollmentControllerTest {
 
     @Test
     void createConCursoNoPublicadoResponde409() throws Exception {
-        when(enrollmentService.enroll(1L, 2L, AuthTestSupport.ADMIN))
+        AuthTestSupport.as(authorizationService, STUDENT);
+        when(enrollmentService.enroll(1L, 2L, STUDENT))
                 .thenThrow(new CourseEnrollmentException("El curso no esta publicado"));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
@@ -138,7 +142,9 @@ class EnrollmentControllerTest {
 
     @Test
     void createConAlumnoInexistenteResponde404() throws Exception {
-        when(enrollmentService.enroll(99L, 2L, AuthTestSupport.ADMIN))
+        AuthenticatedUser missing = new AuthenticatedUser(99L, "ana@example.com", Role.STUDENT);
+        AuthTestSupport.as(authorizationService, missing);
+        when(enrollmentService.enroll(99L, 2L, missing))
                 .thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
@@ -243,6 +249,15 @@ class EnrollmentControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"studentId\":1,\"courseId\":2}"))
                 .andExpect(status().isUnauthorized());
+        verify(enrollmentService, never()).enroll(any(), any(), any());
+    }
+
+    // TP6: el administrador no inscribe alumnos
+    @Test
+    void createComoAdministradorResponde403() throws Exception {
+        mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"studentId\":1,\"courseId\":2}"))
+                .andExpect(status().isForbidden());
         verify(enrollmentService, never()).enroll(any(), any(), any());
     }
 
