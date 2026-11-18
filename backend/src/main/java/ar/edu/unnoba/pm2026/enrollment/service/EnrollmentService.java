@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.enrollment.service;
 
+import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.course.model.Course;
@@ -23,13 +24,15 @@ public class EnrollmentService {
     private final StudentService studentService;
     private final CourseService courseService;
     private final InstructorService instructorService;
+    private final BusinessMetrics businessMetrics;
 
     public EnrollmentService(EnrollmentRepository enrollmentRepository, StudentService studentService,
-            CourseService courseService, InstructorService instructorService) {
+            CourseService courseService, InstructorService instructorService, BusinessMetrics businessMetrics) {
         this.enrollmentRepository = enrollmentRepository;
         this.studentService = studentService;
         this.courseService = courseService;
         this.instructorService = instructorService;
+        this.businessMetrics = businessMetrics;
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +66,9 @@ public class EnrollmentService {
         Student student = studentService.getById(studentId);
         Course course = courseService.getById(courseId);
         Enrollment enrollment = student.applyCourse(course);
-        return enrollmentRepository.save(enrollment);
+        Enrollment saved = enrollmentRepository.save(enrollment);
+        businessMetrics.enrollmentCreated();
+        return saved;
     }
 
     @Transactional(readOnly = true)

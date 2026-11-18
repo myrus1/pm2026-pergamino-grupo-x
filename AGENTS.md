@@ -60,6 +60,7 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │       ├── config/           # CorsConfig, OpenApiConfig
 │   │       ├── security/         # JwtTokenUtil, PasswordEncoder, Role, AuthenticatedUser
 │   │       ├── exception/        # ApiExceptionHandler, ErrorResponse
+│   │       ├── observability/    # BusinessMetrics, CorrelationIdFilter, ActuatorAccessFilter
 │   │       └── validation/       # RequestValidator
 │   ├── src/main/resources/application.properties
 │   └── src/test/java/ar/edu/unnoba/pm2026/   # tests por feature (dominio, servicios, controladores) + testutil/
@@ -71,7 +72,7 @@ Importante: **el directorio Maven es `backend/`, no la raíz**. No existe `mvnw`
 Al agregar una feature nueva: crear `<feature>/model`, `<feature>/service`,
 `<feature>/repository`, `<feature>/controller`, `<feature>/dto` y `<feature>/exception` bajo
 `ar.edu.unnoba.pm2026`. Lo transversal a todas las features vive en `shared/`
-(`config`, `security`, `exception`, `validation`).
+(`config`, `security`, `exception`, `observability`, `validation`).
 
 ## Convención de nombres
 
@@ -128,6 +129,20 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `spring-boot-starter-webmvc`, Lombok, PostgreSQL driver, Password4j (BCrypt en
   `shared/security/PasswordEncoder`), DevTools, springdoc-openapi **3.2.0** (Swagger UI/OpenAPI).
   `java.version` en `pom.xml` = **17**.
+- Observabilidad (#28, `shared/observability/`): `spring-boot-starter-actuator` +
+  `micrometer-registry-prometheus`. Expone `/actuator/health` (público, con el estado de la BD
+  sin detalles), `/actuator/info`, `/actuator/metrics` y `/actuator/prometheus` (solo admin, lo
+  controla `ActuatorAccessFilter` porque Actuator no pasa por los controllers).
+  - Métricas de negocio en `BusinessMetrics`: `pm2026_auth_logins_total{role,result}`,
+    `pm2026_enrollments_total` y `pm2026_course_approvals_total{result}`. Las de inscripciones y
+    aprobaciones se cuentan recién después del commit. Para una métrica nueva, agregar un método ahí
+    e inyectar `BusinessMetrics` en el service. No terminar el nombre de un contador en `_created`:
+    Prometheus lo reserva y descarta la métrica.
+  - `CorrelationIdFilter`: header `X-Correlation-Id` (lo reusa si es válido o genera un UUID), MDC
+    `correlationId` en cada línea de log y una línea por request con método, ruta, estado y ms.
+    Logs en JSON con `LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs`.
+  - El health de la BD usa una conexión del pool de Hikari (no abre conexiones extra);
+    `hikaricp_connections_*` muestra el uso del pool.
 
 ## Convenciones de dominio (seguir el patrón de `<feature>/model`)
 

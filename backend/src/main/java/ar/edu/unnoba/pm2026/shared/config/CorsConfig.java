@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.shared.config;
 
+import ar.edu.unnoba.pm2026.shared.observability.CorrelationIdFilter;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +30,7 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedOriginPatterns(allowedOrigins.toArray(String[]::new))
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .exposedHeaders("Location")
+                .exposedHeaders("Location", CorrelationIdFilter.HEADER)
                 .allowCredentials(false)
                 .maxAge(3600);
     }

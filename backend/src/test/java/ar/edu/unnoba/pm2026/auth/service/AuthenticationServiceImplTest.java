@@ -15,6 +15,8 @@ import ar.edu.unnoba.pm2026.user.model.Student;
 import ar.edu.unnoba.pm2026.user.service.AdministratorService;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
 import ar.edu.unnoba.pm2026.user.service.StudentService;
+import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,13 +37,19 @@ class AuthenticationServiceImplTest {
 
     private final PasswordEncoder passwordEncoder = new PasswordEncoder();
     private final JwtTokenUtil jwtTokenUtil = new JwtTokenUtil("clave-de-prueba");
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
 
     private AuthenticationServiceImpl authenticationService;
 
     @BeforeEach
     void setUp() {
         authenticationService = new AuthenticationServiceImpl(instructorService, studentService,
-                administratorService, passwordEncoder, jwtTokenUtil);
+                administratorService, passwordEncoder, jwtTokenUtil, new BusinessMetrics(meterRegistry));
+    }
+
+    private double logins(Role role, String result) {
+        return meterRegistry.get("pm2026.auth.logins").tag("role", role.name()).tag("result", result).counter()
+                .count();
     }
 
     private Instructor credentials(String email, String password) {
@@ -62,6 +70,8 @@ class AuthenticationServiceImplTest {
         assertThat(jwtTokenUtil.getSubject(token)).isEqualTo("iris@example.com");
         assertThat(jwtTokenUtil.getRole(token)).isEqualTo(Role.INSTRUCTOR);
         assertThat(jwtTokenUtil.getUserId(token)).isEqualTo(4L);
+        assertThat(logins(Role.INSTRUCTOR, "success")).isEqualTo(1);
+        assertThat(logins(Role.INSTRUCTOR, "failure")).isZero();
     }
 
     @Test
@@ -111,6 +121,8 @@ class AuthenticationServiceImplTest {
                 .authenticate(new Student(null, null, "ana@example.com", "otra", null)))
                 .isInstanceOf(AuthenticationException.class)
                 .hasMessage("Email o contraseña incorrectos");
+        assertThat(logins(Role.STUDENT, "failure")).isEqualTo(1);
+        assertThat(logins(Role.STUDENT, "success")).isZero();
     }
 
     @Test

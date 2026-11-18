@@ -27,6 +27,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,10 +52,16 @@ class EnrollmentServiceTest {
 
     private EnrollmentService enrollmentService;
 
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     @BeforeEach
     void setUp() {
         enrollmentService = new EnrollmentService(enrollmentRepository, studentService, courseService,
-                instructorService);
+                instructorService, new BusinessMetrics(meterRegistry));
+    }
+
+    private double enrollmentsCreated() {
+        return meterRegistry.get("pm2026.enrollments").counter().count();
     }
 
     private Enrollment enrollment(String basePrice, String paid) {
@@ -152,6 +160,7 @@ class EnrollmentServiceTest {
         assertThat(enrollment.getCourse()).isSameAs(course);
         assertThat(enrollment.getFinalAmount()).isEqualByComparingTo("100.00");
         verify(enrollmentRepository).save(enrollment);
+        assertThat(enrollmentsCreated()).isEqualTo(1);
     }
 
     @Test
@@ -163,6 +172,7 @@ class EnrollmentServiceTest {
                 .isInstanceOf(CourseEnrollmentException.class)
                 .hasMessage("El curso no esta publicado");
         verify(enrollmentRepository, never()).save(any());
+        assertThat(enrollmentsCreated()).isZero();
     }
 
     @Test
