@@ -44,6 +44,14 @@ class CorsConfigTest {
         assertThat(configuration.getMaxAge()).isEqualTo(3600L);
     }
 
+    // El front puede leer Location (altas) y X-Correlation-Id (para reportar un error con su id)
+    @Test
+    void exponeLosHeadersLocationYCorrelationId() {
+        CorsConfiguration configuration = configurationOf(new CorsConfig("*"));
+
+        assertThat(configuration.getExposedHeaders()).containsExactlyInAnyOrder("Location", "X-Correlation-Id");
+    }
+
     private CorsConfiguration configurationOf(CorsConfig config) {
         RegistroVisible registry = new RegistroVisible();
         config.addCorsMappings(registry);
