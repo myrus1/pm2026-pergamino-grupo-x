@@ -1,0 +1,92 @@
+package ar.edu.unnoba.pm2026.user.controller;
+
+import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
+import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.shared.security.Role;
+import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
+import ar.edu.unnoba.pm2026.user.dto.AdministratorRequest;
+import ar.edu.unnoba.pm2026.user.dto.AdministratorResponse;
+import ar.edu.unnoba.pm2026.user.model.Administrator;
+import ar.edu.unnoba.pm2026.user.service.AdministratorService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
+import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+// API REST de administradores: /api/administrators (todo es de administrador)
+@SecurityRequirement(name = "token")
+@RestController
+@RequestMapping("/api/administrators")
+public class AdministratorController {
+
+    private final AdministratorService administratorService;
+    private final AuthorizationService authorizationService;
+
+    public AdministratorController(AdministratorService administratorService,
+            AuthorizationService authorizationService) {
+        this.administratorService = administratorService;
+        this.authorizationService = authorizationService;
+    }
+
+    @GetMapping
+    public List<AdministratorResponse> getAll(
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.authorize(token, Role.ADMINISTRATOR);
+        return administratorService.getAll().stream().map(this::response).toList();
+    }
+
+    @GetMapping("/{id}")
+    public AdministratorResponse getById(@PathVariable Long id,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.authorize(token, Role.ADMINISTRATOR);
+        return response(administratorService.getById(id));
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<AdministratorResponse> create(@RequestBody @Valid AdministratorRequest request,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.authorize(token, Role.ADMINISTRATOR);
+        Administrator administrator = new Administrator(request.getFirstName(), request.getLastName(),
+                request.getEmail(), request.getPassword());
+        AdministratorResponse created = response(administratorService.create(administrator));
+        return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
+    }
+
+    @PutMapping("/{id}")
+    public AdministratorResponse update(@PathVariable Long id, @RequestBody @Valid AdministratorRequest request,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        authorizationService.authorize(token, Role.ADMINISTRATOR);
+        Administrator administrator = administratorService.getById(id);
+        administrator.setFirstName(request.getFirstName());
+        administrator.setLastName(request.getLastName());
+        administrator.setEmail(request.getEmail());
+        administrator.setPassword(request.getPassword());
+        return response(administratorService.update(administrator));
+    }
+
+    // 404 si no existe; 409 si el administrador intenta borrarse a si mismo (regla del TP6)
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id,
+            @RequestHeader(name = "Authorization", required = false) String token) {
+        AuthenticatedUser actor = authorizationService.authorize(token, Role.ADMINISTRATOR);
+        administratorService.delete(id, actor);
+    }
+
+    private AdministratorResponse response(Administrator administrator) {
+        return new AdministratorResponse(administrator.getId(), administrator.getFirstName(),
+                administrator.getLastName(), administrator.getEmail());
+    }
+}

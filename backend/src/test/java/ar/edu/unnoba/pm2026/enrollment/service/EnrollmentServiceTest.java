@@ -1,0 +1,374 @@
+package ar.edu.unnoba.pm2026.enrollment.service;
+
+import ar.edu.unnoba.pm2026.enrollment.dto.StudentEnrollmentResponse;
+import java.time.LocalDateTime;
+import ar.edu.unnoba.pm2026.testutil.Fixtures;
+import ar.edu.unnoba.pm2026.enrollment.dto.EnrolledStudentResponse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
+import ar.edu.unnoba.pm2026.shared.security.Role;
+import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.course.model.Course;
+import ar.edu.unnoba.pm2026.course.model.CourseStatus;
+import ar.edu.unnoba.pm2026.course.model.Specialty;
+import ar.edu.unnoba.pm2026.course.service.CourseService;
+import ar.edu.unnoba.pm2026.enrollment.exception.CourseEnrollmentException;
+import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.enrollment.repository.EnrollmentRepository;
+import ar.edu.unnoba.pm2026.testutil.TestIds;
+import ar.edu.unnoba.pm2026.user.model.Instructor;
+import ar.edu.unnoba.pm2026.user.model.Student;
+import ar.edu.unnoba.pm2026.user.service.InstructorService;
+import ar.edu.unnoba.pm2026.user.service.StudentService;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+@ExtendWith(MockitoExtension.class)
+class EnrollmentServiceTest {
+
+    @Mock
+    private EnrollmentRepository enrollmentRepository;
+
+    @Mock
+    private StudentService studentService;
+
+    @Mock
+    private CourseService courseService;
+
+    @Mock
+    private InstructorService instructorService;
+
+    private EnrollmentService enrollmentService;
+
+    private final SimpleMeterRegistry meterRegistry = new SimpleMeterRegistry();
+
+    @BeforeEach
+    void setUp() {
+        enrollmentService = new EnrollmentService(enrollmentRepository, studentService, courseService,
+                instructorService, new BusinessMetrics(meterRegistry));
+    }
+
+    private double enrollmentsCreated() {
+        return meterRegistry.get("pm2026.enrollments").counter().count();
+    }
+
+    private Enrollment enrollment(String basePrice, String paid) {
+        Course course = new Course("Curso", "Desc", new BigDecimal(basePrice), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"),
+                new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
+        return new Enrollment(new Student("Ana", "Perez", "ana@example.com", "secret", "11111111"), course,
+                new BigDecimal(paid));
+    }
+
+    @Test
+    void totalRevenueSumaLoQuePagaronLosAlumnos() {
+        when(enrollmentRepository.findAll()).thenReturn(List.of(enrollment("100.00", "100.00"),
+                enrollment("80.00", "60.00")));
+
+        assertThat(enrollmentService.totalRevenue()).isEqualByComparingTo("160.00");
+    }
+
+    @Test
+    void totalRevenueSinInscripcionesEsCero() {
+        when(enrollmentRepository.findAll()).thenReturn(List.of());
+
+        assertThat(enrollmentService.totalRevenue()).isEqualByComparingTo("0");
+    }
+
+    @Test
+    void instructorRevenueSumaEl65PorCientoDelPrecioBaseDeCadaInscripcion() {
+        when(enrollmentRepository.findByCourseInstructorId(4L)).thenReturn(List.of(enrollment("100.00", "100.00"),
+                enrollment("80.00", "60.00")));
+
+        assertThat(enrollmentService.instructorRevenue(4L)).isEqualByComparingTo("117.00");
+    }
+
+    @Test
+    void getStudentsOfCourseDevuelveLosInscriptosDelCurso() {
+        Student student = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
+        when(enrollmentRepository.findStudentsByCourseId(3L)).thenReturn(List.of(student));
+
+        assertThat(enrollmentService.getStudentsOfCourse(3L)).containsExactly(student);
+        verify(courseService).getById(3L);
+    }
+
+    @Test
+    void getStudentsOfCourseConCursoInexistenteLanzaExcepcion() {
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.getStudentsOfCourse(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void getCoursesOfStudentDevuelveLosCursosDelAlumno() {
+        Course course = futureCourse(CourseStatus.PUBLISHED);
+        when(enrollmentRepository.findCoursesByStudentId(8L)).thenReturn(List.of(course));
+
+        assertThat(enrollmentService.getCoursesOfStudent(8L)).containsExactly(course);
+        verify(studentService).getById(8L);
+    }
+
+    @Test
+    void getCoursesOfStudentConAlumnoInexistenteLanzaExcepcion() {
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.getCoursesOfStudent(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void instructorRevenueDeInstructorInexistenteLanzaExcepcion() {
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.instructorRevenue(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Instructor no encontrado con id 99");
+    }
+
+    private Course futureCourse(CourseStatus sqlState) {
+        Course course = new Course("Curso", "Desc", new BigDecimal("100.00"), LocalDate.now().plusWeeks(2),
+                LocalDate.now().plusWeeks(6), 5, new Specialty("Programacion"),
+                new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
+        course.setStatus(sqlState);
+        return course;
+    }
+
+    @Test
+    void enrollAplicaLasReglasDelAlumnoYGuardaLaInscripcion() {
+        Student estudiante = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
+        Course course = futureCourse(CourseStatus.PUBLISHED);
+        when(studentService.getById(1L)).thenReturn(estudiante);
+        when(courseService.getById(2L)).thenReturn(course);
+        when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Enrollment enrollment = enrollmentService.enroll(1L, 2L);
+
+        assertThat(enrollment.getStudent()).isSameAs(estudiante);
+        assertThat(enrollment.getCourse()).isSameAs(course);
+        assertThat(enrollment.getFinalAmount()).isEqualByComparingTo("100.00");
+        verify(enrollmentRepository).save(enrollment);
+        assertThat(enrollmentsCreated()).isEqualTo(1);
+    }
+
+    @Test
+    void enrollRechazaQueUnAdministradorInscribaAUnAlumno() {
+        assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, administrator()))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo un alumno puede inscribirse a un curso");
+        verify(studentService, never()).getById(any());
+        verify(enrollmentRepository, never()).save(any());
+    }
+
+    @Test
+    void enrollRechazaQueUnAlumnoSeInscribaPorOtro() {
+        assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, student(1L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo puede inscribirse a si mismo");
+        verify(studentService, never()).getById(any());
+        verify(enrollmentRepository, never()).save(any());
+    }
+
+    @Test
+    void enrollNoGuardaNadaSiElCursoNoEstaPublicado() {
+        when(studentService.getById(1L)).thenReturn(new Student("Ana", "Perez", "ana@example.com", "secret", "11111111"));
+        when(courseService.getById(2L)).thenReturn(futureCourse(CourseStatus.DRAFT));
+
+        assertThatThrownBy(() -> enrollmentService.enroll(1L, 2L))
+                .isInstanceOf(CourseEnrollmentException.class)
+                .hasMessage("El curso no esta publicado");
+        verify(enrollmentRepository, never()).save(any());
+        assertThat(enrollmentsCreated()).isZero();
+    }
+
+    @Test
+    void enrollPropagaLaExcepcionSiElAlumnoNoExiste() {
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.enroll(99L, 2L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Estudiante no encontrado con id 99");
+        verify(enrollmentRepository, never()).save(any());
+    }
+
+    @Test
+    void getByIdDevuelveLaInscripcionExistente() {
+        Student estudiante = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
+        Course course = new Course("Curso", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"),
+                new Instructor("Iris", "Ruiz", "iris@example.com", "secret"));
+        Enrollment enrollment = new Enrollment(estudiante, course, new BigDecimal("100.00"));
+        when(enrollmentRepository.findById(1L)).thenReturn(Optional.of(enrollment));
+
+        assertThat(enrollmentService.getById(1L)).isSameAs(enrollment);
+    }
+
+    @Test
+    void getByIdLanzaExceptionCuandoLaInscripcionNoExiste() {
+        when(enrollmentRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> enrollmentService.getById(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Inscripcion no encontrada con id 99");
+    }
+
+    private AuthenticatedUser administrator() {
+        return new AuthenticatedUser(3L, "ada@example.com", Role.ADMINISTRATOR);
+    }
+
+    private AuthenticatedUser instructor(Long id) {
+        return new AuthenticatedUser(id, "iris@example.com", Role.INSTRUCTOR);
+    }
+
+    private AuthenticatedUser student(Long id) {
+        return new AuthenticatedUser(id, "ana@example.com", Role.STUDENT);
+    }
+
+    private Enrollment enrollmentOf(Long studentId, Long instructorId) {
+        Student estudiante = new Student("Ana", "Perez", "ana@example.com", "secret", "11111111");
+        TestIds.setId(estudiante, studentId);
+        Instructor instructor = new Instructor("Iris", "Ruiz", "iris@example.com", "secret");
+        TestIds.setId(instructor, instructorId);
+        Course course = new Course("Curso", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
+                LocalDate.of(2026, 6, 20), 5, new Specialty("Programacion"), instructor);
+        TestIds.setId(course, instructorId + 100);
+        return new Enrollment(estudiante, course, new BigDecimal("100.00"));
+    }
+
+    @Test
+    void getAllDeAlumnoDevuelveSoloSusInscripciones() {
+        Enrollment own = enrollmentOf(9L, 4L);
+        when(enrollmentRepository.findByStudentId(9L)).thenReturn(List.of(own));
+
+        assertThat(enrollmentService.getAllByStudent(9L)).containsExactly(own);
+    }
+
+    @Test
+    void getAllDeInstructorDevuelveSoloLasDeSusCursos() {
+        Enrollment suya = enrollmentOf(9L, 4L);
+        when(enrollmentRepository.findByCourseInstructorId(4L)).thenReturn(List.of(suya));
+
+        assertThat(enrollmentService.getAllByInstructor(4L)).containsExactly(suya);
+    }
+
+    @Test
+    void getByIdDeAlumnoConInscripcionAjenaLanzaExcepcion() {
+        when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(enrollmentOf(7L, 4L)));
+
+        assertThatThrownBy(() -> enrollmentService.getById(5L, student(9L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("La inscripcion no le pertenece");
+    }
+
+    @Test
+    void getByIdDeAlumnoConSuInscripcionLaDevuelve() {
+        Enrollment own = enrollmentOf(9L, 4L);
+        when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(own));
+
+        assertThat(enrollmentService.getById(5L, student(9L))).isSameAs(own);
+    }
+
+    @Test
+    void getByIdDeInstructorConInscripcionDeOtroCursoLanzaExcepcion() {
+        when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(enrollmentOf(9L, 5L)));
+
+        assertThatThrownBy(() -> enrollmentService.getById(5L, instructor(4L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("La inscripcion no le pertenece a sus cursos");
+    }
+
+    @Test
+    void getByIdDeAdministradorConInscripcionAjenaLaDevuelve() {
+        Enrollment foreign = enrollmentOf(9L, 5L);
+        when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(foreign));
+
+        assertThat(enrollmentService.getById(5L, administrator())).isSameAs(foreign);
+    }
+
+    @Test
+    void getEnrolledStudentsDevuelveFechaYPrecioPagadoDeCadaAlumno() {
+        Course course = Fixtures.course(7L, CourseStatus.PUBLISHED);
+        Enrollment enrollment = new Enrollment(Fixtures.student(1L), course, new BigDecimal("75.00"),
+                LocalDateTime.of(2026, 5, 10, 0, 0));
+        when(courseService.getById(7L)).thenReturn(course);
+        when(enrollmentRepository.findByCourseIdOrderByEnrollmentDateAsc(7L)).thenReturn(List.of(enrollment));
+
+        List<EnrolledStudentResponse> students = enrollmentService.getEnrolledStudents(7L);
+
+        assertThat(students).hasSize(1);
+        assertThat(students.get(0).studentId()).isEqualTo(1L);
+        assertThat(students.get(0).finalAmount()).isEqualByComparingTo("75.00");
+        assertThat(students.get(0).enrollmentDate()).isEqualTo(LocalDateTime.of(2026, 5, 10, 0, 0));
+    }
+
+    @Test
+    void getEnrolledStudentsDeCursoInexistenteLanzaNotFound() {
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(enrollmentRepository, never()).findByCourseIdOrderByEnrollmentDateAsc(any());
+    }
+
+    @Test
+    void getEnrolledStudentsComoInstructorDeCursoAjenoNoConsultaLasInscripciones() {
+        when(courseService.getById(7L, instructor(2L)))
+                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+
+        assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(7L, instructor(2L)))
+                .isInstanceOf(AuthorizationException.class);
+        verify(enrollmentRepository, never()).findByCourseIdOrderByEnrollmentDateAsc(any());
+    }
+
+    @Test
+    void getStudentEnrollmentsVaDeLaMasNuevaALaMasViejaConElDescuento() {
+        Student ana = Fixtures.student(1L);
+        Enrollment vieja = new Enrollment(ana, Fixtures.course(7L, CourseStatus.PUBLISHED), new BigDecimal("100.00"),
+                LocalDateTime.of(2026, 4, 1, 0, 0));
+        TestIds.setId(vieja, 1L);
+        Enrollment nueva = new Enrollment(ana, Fixtures.course(8L, CourseStatus.PUBLISHED), new BigDecimal("75.00"),
+                LocalDateTime.of(2026, 5, 1, 0, 0));
+        TestIds.setId(nueva, 2L);
+        when(enrollmentRepository.findByStudentId(1L)).thenReturn(List.of(vieja, nueva));
+
+        List<StudentEnrollmentResponse> enrollments = enrollmentService.getStudentEnrollments(1L);
+
+        assertThat(enrollments).extracting(StudentEnrollmentResponse::enrollmentId).containsExactly(2L, 1L);
+        assertThat(enrollments.get(0).discount()).isEqualByComparingTo("25.00");
+        assertThat(enrollments.get(0).course().title()).isEqualTo("Curso de Java");
+        assertThat(enrollments.get(0).course().instructor()).isEqualTo("Iris Ruiz");
+    }
+
+    @Test
+    void enrollStudentInscribeAlAlumnoDelToken() {
+        Student ana = Fixtures.student(1L);
+        Course course = Fixtures.course(7L, Fixtures.instructor(2L),
+                Fixtures.specialty(1L, "Programacion"), LocalDate.now().plusDays(30));
+        course.setStatus(CourseStatus.PUBLISHED);
+        when(studentService.getById(1L)).thenReturn(ana);
+        when(courseService.getById(7L)).thenReturn(course);
+        when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StudentEnrollmentResponse response = enrollmentService.enrollStudent(7L, student(1L));
+
+        assertThat(response.course().id()).isEqualTo(7L);
+        assertThat(response.finalAmount()).isEqualByComparingTo("100.00");
+        assertThat(response.discount()).isEqualByComparingTo("0");
+    }
+}

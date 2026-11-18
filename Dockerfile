@@ -18,14 +18,14 @@ WORKDIR /build
 
 # Primero solo el pom: si no cambia, esta capa se reutiliza y no se vuelven a
 # resolver las dependencias.
-COPY demo/pom.xml ./
+COPY backend/pom.xml ./
 RUN mvn -B -ntp -DskipTests dependency:go-offline
 
 # Recién ahora el código: un cambio en src/ no invalida la descarga anterior.
-COPY demo/src ./src
+COPY backend/src ./src
 
-# -Dmaven.test.skip: DemoApplicationTests es @SpringBootTest y necesita una
-# PostgreSQL accesible; además así no se compilan las 28 clases de test (menos
+# -Dmaven.test.skip: Pm2026ApplicationTests es @SpringBootTest y necesita una
+# PostgreSQL accesible; además así no se compilan las clases de test (menos
 # tiempo y menos RAM de build).
 RUN mvn -B -ntp -Dmaven.test.skip=true package
 
@@ -40,9 +40,9 @@ RUN addgroup -S -g 10001 app \
 
 WORKDIR /app
 
-# El glob matchea el jar repackageado (demo-0.0.1-SNAPSHOT.jar) y no el
+# El glob matchea el jar repackageado (pm2026-backend-0.0.1-SNAPSHOT.jar) y no el
 # .jar.original que deja spring-boot-maven-plugin.
-COPY --from=build --chown=app:app /build/target/demo-*.jar /app/app.jar
+COPY --from=build --chown=app:app /build/target/pm2026-backend-*.jar /app/app.jar
 
 USER app
 
