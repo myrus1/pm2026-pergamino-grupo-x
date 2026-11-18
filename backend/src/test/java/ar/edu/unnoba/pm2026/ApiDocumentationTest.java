@@ -83,6 +83,7 @@ class ApiDocumentationTest {
         assertRequiresToken(paths, "/admin/courses/{id}/students", "get");
         assertRequiresToken(paths, "/admin/instructors/{id}/courses/pending", "get");
         assertRequiresToken(paths, "/admin/students/{id}/courses", "get");
+        assertRequiresToken(paths, "/admin/reports/revenue", "get");
     }
 
     @Test
@@ -255,7 +256,11 @@ class ApiDocumentationTest {
                 expected("/admin/instructors/{id}/courses/pending", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
                 expected("/admin/students", "get", "200", "401", "403", "405", "406", "500"),
                 expected("/admin/students/{id}", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
-                expected("/admin/students/{id}/courses", "get", "200", "400", "401", "403", "404", "405", "406", "500"));
+                expected("/admin/students/{id}/courses", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                // TP6 (#40): reportes con fromDate/toDate obligatorios
+                expected("/admin/reports/revenue", "get", "200", "400", "401", "403", "405", "406", "500"),
+                expected("/admin/reports/courses-revenue", "get", "200", "400", "401", "403", "405", "406", "500"),
+                expected("/admin/reports/enrollments", "get", "200", "400", "401", "403", "405", "406", "500"));
 
         Set<String> expectedOperations = new HashSet<>();
         for (OpenApiResponseExpectation expectation : matrix) {

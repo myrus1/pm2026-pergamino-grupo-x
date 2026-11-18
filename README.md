@@ -225,3 +225,15 @@ responder además `405`, `406` y `500`.
 | `GET /admin/students` | alumnos registrados | `200, 401, 403` |
 | `GET /admin/students/{id}` | datos, `enrolledCourses` y `totalPaid` | `200, 400, 401, 403, 404` |
 | `GET /admin/students/{id}/courses` | cursos en los que se inscribió | `200, 400, 401, 403, 404` |
+
+#### Reportes del administrador (#40)
+
+Los tres piden `fromDate` y `toDate` (`YYYY-MM-DD`, los dos días incluidos) y filtran por la fecha de inscripción.
+Responden `400` si falta una fecha (`request.missing-parameter`), si no es una fecha válida
+(`request.invalid-parameter`) o si `fromDate` es posterior a `toDate` (`request.invalid-date-range`).
+
+| Endpoint | Qué devuelve | Códigos posibles |
+| --- | --- | --- |
+| `GET /admin/reports/revenue` | `fromDate`, `toDate`, `enrollments` y `total` pagado en el rango | `200, 400, 401, 403` |
+| `GET /admin/reports/courses-revenue` | por curso con inscripciones en el rango: `enrollments` y `total`, del que más facturó al que menos | `200, 400, 401, 403` |
+| `GET /admin/reports/enrollments` | cada inscripción con `basePrice` (el actual del curso), `finalAmount` y `discount` | `200, 400, 401, 403` |

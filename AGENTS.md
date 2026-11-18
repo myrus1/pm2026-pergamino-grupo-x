@@ -225,7 +225,7 @@ el id coincide.
 | `GET /api/approval-requests` (`?status=`/`?instructorId=`) | ❌ | solo las suyas (ignora el filtro) | ✅ | ❌ |
 | `GET /api/approval-requests/{id}`, `.../{id}/approve`, `.../{id}/reject` | ❌ | solo lectura de las suyas | ✅ | ❌ |
 | `POST /admin/auth` (TP6) | ✅ | ✅ | ✅ | ✅ **sin token** |
-| Resto de `/admin/...` (TP6, #39) | ❌ | ❌ | ✅ | ❌ |
+| Resto de `/admin/...` (TP6, #39), incluidos los reportes `/admin/reports/...` (#40) | ❌ | ❌ | ✅ | ❌ |
 | `DELETE /admin/accounts/{id}`, `DELETE /api/administrators/{id}` | ❌ | ❌ | ✅ (no a sí mismo: 409) | ❌ |
 
 - Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
@@ -236,6 +236,10 @@ el id coincide.
   `EnrollmentService` lo vuelven a chequear. Solo conserva el borrado de cursos, que no es una acción
   del instructor en el TP6 y que usa la pantalla de cursos del admin en el front.
 - El dueño de un curso es siempre el instructor del token: `CourseRequest` no tiene `instructorId`.
+- Rangos de fechas de los reportes (TP6, #40): `shared/web/DateRange` (`fromDate`/`toDate`, los dos inclusive;
+  un extremo nulo queda abierto; 400 `request.invalid-date-range` si `fromDate > toDate`). Los reportes viven en
+  `enrollment/service/EnrollmentReportService`. `ApiExceptionHandler` responde `request.missing-parameter` y
+  `request.invalid-parameter` para parámetros de consulta faltantes o mal formados.
 - Un curso que salió de DRAFT no se edita ni se borra: `CourseStateException` → 409.
 - `administratorId` ya no se manda en `ApprovalResolveRequest`; sale del token.
 - Pruebas: `testutil/AuthTestSupport` (`asDefaultAdministrator`, `withoutToken`, `withoutPermission`,

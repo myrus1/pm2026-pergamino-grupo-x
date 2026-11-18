@@ -8,6 +8,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpHeaders;
@@ -19,6 +20,8 @@ import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
@@ -121,6 +124,13 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         if (exception instanceof HttpMediaTypeNotAcceptableException) {
             return "http.not-acceptable";
         }
+        // Parametros de consulta (p. ej. fromDate/toDate de los reportes del TP6)
+        if (exception instanceof MissingServletRequestParameterException) {
+            return "request.missing-parameter";
+        }
+        if (exception instanceof TypeMismatchException) {
+            return "request.invalid-parameter";
+        }
         return "http." + status.value();
     }
 
@@ -143,6 +153,12 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
         }
         if (exception instanceof HttpMediaTypeNotAcceptableException) {
             return "El formato de respuesta solicitado no esta soportado";
+        }
+        if (exception instanceof MissingServletRequestParameterException missing) {
+            return "Falta el parametro '" + missing.getParameterName() + "'";
+        }
+        if (exception instanceof MethodArgumentTypeMismatchException mismatch) {
+            return "El parametro '" + mismatch.getName() + "' tiene un valor invalido";
         }
         return status.getReasonPhrase();
     }
