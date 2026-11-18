@@ -3,6 +3,8 @@ package ar.edu.unnoba.pm2026.enrollment.service;
 import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
@@ -10,9 +12,10 @@ import ar.edu.unnoba.pm2026.enrollment.repository.EnrollmentRepository;
 import ar.edu.unnoba.pm2026.user.model.Student;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
 import ar.edu.unnoba.pm2026.user.service.StudentService;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,6 +74,16 @@ public class EnrollmentService {
         return saved;
     }
 
+    public Enrollment enroll(Long studentId, Long courseId, AuthenticatedUser actor) {
+        if (actor == null) {
+            throw new ValidationException("El usuario autenticado no puede ser nulo");
+        }
+        if (actor.role() == Role.STUDENT && !Objects.equals(actor.id(), studentId)) {
+            throw new AuthorizationException("Solo puede inscribirse a si mismo");
+        }
+        return enroll(studentId, courseId);
+    }
+
     @Transactional(readOnly = true)
     public List<Enrollment> getAll() {
         return enrollmentRepository.findAll();
@@ -79,7 +92,8 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public Enrollment getById(Long id) {
         return enrollmentRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Inscripcion no encontrada con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("enrollment.not-found",
+                        "Inscripcion no encontrada con id " + id));
     }
 
     // El alumno solo ve su inscripcion; el instructor solo las de sus cursos; el admin, cualquiera.

@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -22,7 +23,7 @@ import ar.edu.unnoba.pm2026.course.service.CourseService;
 import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -109,11 +110,11 @@ class CourseControllerTest {
     @Test
     void getAllConAlumnoInexistenteResponde404() throws Exception {
         when(enrollmentService.getCoursesOfStudent(99L))
-                .thenThrow(new EntityNotFoundException("Estudiante no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
 
         mockMvc.perform(get(PATH).param("studentId", "99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Estudiante no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Estudiante no encontrado con id 99"));
     }
 
     @Test
@@ -128,11 +129,11 @@ class CourseControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(courseService.getById(99L)).thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Curso no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Curso no encontrado con id 99"));
     }
 
     @Test
@@ -145,6 +146,7 @@ class CourseControllerTest {
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/courses/7"))
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.specialtyId").value(1))
@@ -157,17 +159,17 @@ class CourseControllerTest {
                 {"description":"Desc","basePrice":100.00,"startDate":"2026-06-01",
                  "endDate":"2026-06-20","maxCapacity":5,"specialtyId":1,"instructorId":2}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("title")));
+                .andExpect(jsonPath("$.detail", containsString("title")));
     }
 
     @Test
     void createConEspecialidadInexistenteResponde404() throws Exception {
         when(courseService.create(any(CourseRequest.class), any(AuthenticatedUser.class)))
-                .thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 1"));
+                .thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 1"));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 1"));
+                .andExpect(jsonPath("$.detail").value("Especialidad no encontrada con id 1"));
     }
 
     @Test
@@ -191,11 +193,11 @@ class CourseControllerTest {
     @Test
     void updateInexistenteResponde404() throws Exception {
         when(courseService.update(eq(99L), any(CourseRequest.class), any(AuthenticatedUser.class)))
-                .thenThrow(new EntityNotFoundException("Curso no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Curso no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Curso no encontrado con id 99"));
     }
 
     @Test
@@ -206,12 +208,12 @@ class CourseControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        doThrow(new EntityNotFoundException("Curso no encontrado con id 99"))
+        doThrow(new ResourceNotFoundException("Curso no encontrado con id 99"))
                 .when(courseService).delete(99L, AuthTestSupport.ADMIN);
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Curso no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Curso no encontrado con id 99"));
     }
 
     @Test
@@ -248,7 +250,7 @@ class CourseControllerTest {
 
         mockMvc.perform(get(PATH).param("studentId", "7"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("Solo puede ver sus propios cursos"));
+                .andExpect(jsonPath("$.detail").value("Solo puede ver sus propios cursos"));
         verify(enrollmentService, never()).getCoursesOfStudent(any());
     }
 
@@ -287,7 +289,7 @@ class CourseControllerTest {
 
         mockMvc.perform(put(PATH + "/5").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("El curso pertenece a otro instructor"));
+                .andExpect(jsonPath("$.detail").value("El curso pertenece a otro instructor"));
     }
 
     @Test

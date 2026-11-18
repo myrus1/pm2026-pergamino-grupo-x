@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
 import ar.edu.unnoba.pm2026.user.model.Student;
 import ar.edu.unnoba.pm2026.user.repository.StudentRepository;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +67,7 @@ class StudentServiceTest {
         when(studentRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> studentService.getById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Estudiante no encontrado con id 99");
     }
 

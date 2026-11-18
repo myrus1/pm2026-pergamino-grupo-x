@@ -1,19 +1,20 @@
 package ar.edu.unnoba.pm2026.course.controller;
 
-import ar.edu.unnoba.pm2026.shared.validation.RequestValidator;
-import static ar.edu.unnoba.pm2026.shared.validation.RequestValidator.requireField;
-
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
 import ar.edu.unnoba.pm2026.course.dto.CourseRequest;
 import ar.edu.unnoba.pm2026.course.dto.CourseResponse;
 import ar.edu.unnoba.pm2026.enrollment.service.EnrollmentService;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -43,6 +44,9 @@ public class CourseController {
     }
 
     // El listado es publico; con ?studentId= solo lo puede pedir ese alumno o un administrador.
+    @ApiResponse(responseCode = "401", description = "Autenticación requerida o inválida")
+    @ApiResponse(responseCode = "403", description = "El alumno solicitado no coincide con el token")
+    @ApiResponse(responseCode = "404", description = "Alumno no encontrado")
     @GetMapping
     public List<CourseResponse> getAll(@RequestParam(required = false) Long studentId,
             @RequestHeader(name = "Authorization", required = false) String token) {
@@ -63,22 +67,22 @@ public class CourseController {
     }
 
     // Solo instructores y administradores crean; el instructor crea los suyos siempre.
+    @ApiResponse(responseCode = "404", description = "Instructor o especialidad no encontrados")
     @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CourseResponse create(@RequestBody CourseRequest request,
+    public ResponseEntity<CourseResponse> create(@RequestBody @Valid CourseRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
-        validate(request, actor);
-        return response(courseService.create(request, actor));
+        CourseResponse created = response(courseService.create(request, actor));
+        return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
     }
 
     @SecurityRequirement(name = "token")
     @PutMapping("/{id}")
-    public CourseResponse update(@PathVariable Long id, @RequestBody CourseRequest request,
+    public CourseResponse update(@PathVariable Long id, @RequestBody @Valid CourseRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
-        validate(request, actor);
         return response(courseService.update(id, request, actor));
     }
 
@@ -89,22 +93,6 @@ public class CourseController {
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
         courseService.delete(id, actor);
-    }
-
-    // instructorId solo lo pide el administrador: el instructor es el del token.
-    private void validate(CourseRequest request, AuthenticatedUser actor) {
-        if (request == null) {
-            throw new IllegalArgumentException("La solicitud no puede ser nula");
-        }
-        requireField(request.getTitle(), "title");
-        requireField(request.getBasePrice(), "basePrice");
-        requireField(request.getStartDate(), "startDate");
-        requireField(request.getEndDate(), "endDate");
-        requireField(request.getMaxCapacity(), "maxCapacity");
-        requireField(request.getSpecialtyId(), "specialtyId");
-        if (actor.role() == Role.ADMINISTRATOR) {
-            requireField(request.getInstructorId(), "instructorId");
-        }
     }
 
     private CourseResponse response(Course course) {

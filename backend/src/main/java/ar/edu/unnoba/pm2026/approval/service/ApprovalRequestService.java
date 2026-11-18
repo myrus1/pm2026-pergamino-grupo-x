@@ -8,7 +8,7 @@ import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
 import ar.edu.unnoba.pm2026.user.service.AdministratorService;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,7 +43,8 @@ public class ApprovalRequestService {
     @Transactional(readOnly = true)
     public ApprovalRequest getById(Long id) {
         return approvalRequestRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Solicitud de aprobacion no encontrada con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("approval-request.not-found",
+                        "Solicitud de aprobacion no encontrada con id " + id));
     }
 
     // El instructor solo consulta sus solicitudes; el administrador, cualquiera.

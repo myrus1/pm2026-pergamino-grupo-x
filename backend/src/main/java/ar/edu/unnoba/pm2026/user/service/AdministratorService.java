@@ -1,9 +1,9 @@
 package ar.edu.unnoba.pm2026.user.service;
 
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
 import ar.edu.unnoba.pm2026.user.repository.AdministratorRepository;
-import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +27,8 @@ public class AdministratorService extends UserService<Administrator> {
     @Transactional(readOnly = true)
     public Administrator getById(Long id) {
         return administratorRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Administrador no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("administrator.not-found",
+                        "Administrador no encontrado con id " + id));
     }
 
     @Transactional(readOnly = true)

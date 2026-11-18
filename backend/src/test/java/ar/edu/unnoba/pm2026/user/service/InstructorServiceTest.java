@@ -15,7 +15,7 @@ import ar.edu.unnoba.pm2026.course.service.SpecialtyService;
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.repository.InstructorRepository;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,7 +65,7 @@ class InstructorServiceTest {
         when(instructorRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> instructorService.getSpecialties(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Instructor no encontrado con id 99");
     }
 
@@ -90,7 +90,7 @@ class InstructorServiceTest {
         when(instructorRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> instructorService.getById(99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Instructor no encontrado con id 99");
     }
 
@@ -166,10 +166,10 @@ class InstructorServiceTest {
     void addSpecialtyConEspecialidadInexistenteNoGuardaNada() {
         when(instructorRepository.findById(1L))
                 .thenReturn(Optional.of(new Instructor("Iris", "Ruiz", "iris@example.com", "secret")));
-        when(specialtyService.getById(99L)).thenThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
 
         assertThatThrownBy(() -> instructorService.addSpecialty(1L, 99L))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Especialidad no encontrada con id 99");
         verify(instructorRepository, never()).save(any());
     }

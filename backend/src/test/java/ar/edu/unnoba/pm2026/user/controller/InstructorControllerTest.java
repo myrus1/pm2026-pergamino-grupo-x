@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,7 +20,7 @@ import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.exception.InstructorEmailAlreadyExistsException;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
-import jakarta.persistence.EntityNotFoundException;
+import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -86,11 +87,11 @@ class InstructorControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(instructorService.getById(99L)).thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -104,6 +105,7 @@ class InstructorControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isCreated())
+                .andExpect(header().string("Location", "http://localhost/api/instructors/7"))
                 .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.password").doesNotExist());
     }
@@ -116,7 +118,7 @@ class InstructorControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.mensaje").value("Ya existe un instructor con el email iris@example.com"));
+                .andExpect(jsonPath("$.detail").value("Ya existe un instructor con el email iris@example.com"));
     }
 
     @Test
@@ -124,7 +126,7 @@ class InstructorControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.mensaje", containsString("firstName")));
+                .andExpect(jsonPath("$.detail", containsString("firstName")));
     }
 
     @Test
@@ -148,11 +150,11 @@ class InstructorControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(instructorService.getById(99L)).thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -181,11 +183,11 @@ class InstructorControllerTest {
     @Test
     void getSpecialtiesDeInstructorInexistenteResponde404() throws Exception {
         when(instructorService.getSpecialties(99L))
-                .thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
 
         mockMvc.perform(get(PATH + "/99/specialties"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -200,11 +202,11 @@ class InstructorControllerTest {
     @Test
     void revenueDeInstructorInexistenteResponde404() throws Exception {
         when(enrollmentService.instructorRevenue(99L))
-                .thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
 
         mockMvc.perform(get(PATH + "/99/revenue"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -217,12 +219,12 @@ class InstructorControllerTest {
 
     @Test
     void asignarEspecialidadInexistenteResponde404() throws Exception {
-        doThrow(new EntityNotFoundException("Especialidad no encontrada con id 99"))
+        doThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"))
                 .when(instructorService).addSpecialty(1L, 99L);
 
         mockMvc.perform(put(PATH + "/1/specialties/99"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Especialidad no encontrada con id 99"));
+                .andExpect(jsonPath("$.detail").value("Especialidad no encontrada con id 99"));
     }
 
     @Test
@@ -235,12 +237,12 @@ class InstructorControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(instructorService.getById(99L)).thenThrow(new EntityNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.mensaje").value("Instructor no encontrado con id 99"));
+                .andExpect(jsonPath("$.detail").value("Instructor no encontrado con id 99"));
     }
 
     @Test
@@ -277,7 +279,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(get(PATH + "/99/revenue"))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("La recaudacion no le pertenece"));
+                .andExpect(jsonPath("$.detail").value("La recaudacion no le pertenece"));
         verify(enrollmentService, never()).instructorRevenue(any());
     }
 
@@ -324,7 +326,7 @@ class InstructorControllerTest {
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.mensaje").value("Solo puede modificar su propio perfil"));
+                .andExpect(jsonPath("$.detail").value("Solo puede modificar su propio perfil"));
         verify(instructorService, never()).update(any());
     }
 

@@ -137,3 +137,63 @@ En `Docs/Postman` hay una colección con todas las reglas de negocio. Importala 
 - `Docs/UML`: diagrama de clases
 - `Docs/SQL`: modelo relacional (DER) y script del esquema
 - `AGENTS.md`: estructura del proyecto, convenciones y estado actual
+
+### API REST
+
+Con la aplicación en ejecución, Swagger UI está disponible en
+[http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) y el contrato OpenAPI en
+[http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs). Los endpoints protegidos usan el esquema
+`token` del botón **Authorize**; se ingresa el valor completo `Bearer <jwt>`.
+
+Las respuestas de error usan `application/problem+json` y el esquema `ProblemDetail` (RFC 7807), con los campos
+estándar `type`, `title`, `status`, `detail` e `instance`, más `code` y `timestamp`. Los errores de validación pueden
+incluir `errors`, una lista de objetos con `field` y `message`.
+
+La tabla muestra los códigos de cada operación. Todas también pueden responder `405` (método no permitido), `406`
+(formato de respuesta no aceptable) y `500` (error inesperado). `Location` apunta al recurso recién creado.
+
+| Endpoint | Códigos posibles |
+| --- | --- |
+| `GET /api/students` (opcional `courseId`) | `200, 400, 401, 403, 404` |
+| `GET /api/students/{id}` | `200, 400, 401, 403, 404` |
+| `POST /api/students` | `201 + Location, 400, 409, 415` |
+| `PUT /api/students/{id}` | `200, 400, 401, 403, 404, 409, 415` |
+| `DELETE /api/students/{id}` | `204, 400, 401, 403, 404, 409` |
+| `GET /api/instructors` | `200` |
+| `GET /api/instructors/{id}`, `GET /api/instructors/{id}/specialties` | `200, 400, 404` |
+| `GET /api/instructors/{id}/revenue` | `200, 400, 401, 403, 404` |
+| `POST /api/instructors` | `201 + Location, 400, 401, 403, 409, 415` |
+| `PUT /api/instructors/{id}` | `200, 400, 401, 403, 404, 409, 415` |
+| `DELETE /api/instructors/{id}` | `204, 400, 401, 403, 404, 409` |
+| `PUT`/`DELETE /api/instructors/{id}/specialties/{specialtyId}` | `204, 400, 401, 403, 404, 409` |
+| `GET /api/administrators` | `200, 401, 403` |
+| `GET /api/administrators/{id}` | `200, 400, 401, 403, 404` |
+| `POST /api/administrators` | `201 + Location, 400, 401, 403, 409, 415` |
+| `PUT /api/administrators/{id}` | `200, 400, 401, 403, 404, 409, 415` |
+| `DELETE /api/administrators/{id}` | `204, 400, 401, 403, 404, 409` |
+| `GET /api/courses` (con `studentId`) | `200, 400, 401, 403, 404` |
+| `GET /api/courses/{id}` | `200, 400, 404` |
+| `POST /api/courses` | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `PUT /api/courses/{id}` | `200, 400, 401, 403, 404, 409, 415` |
+| `DELETE /api/courses/{id}` | `204, 400, 401, 403, 404, 409` |
+| `GET /api/specialties` | `200` |
+| `GET /api/specialties/{id}` | `200, 400, 404` |
+| `POST /api/specialties` | `201 + Location, 400, 401, 403, 409, 415` |
+| `PUT /api/specialties/{id}` | `200, 400, 401, 403, 404, 409, 415` |
+| `DELETE /api/specialties/{id}` | `204, 400, 401, 403, 404, 409` |
+| `GET /api/enrollments`, `GET /api/enrollments/revenue` | `200, 401, 403` |
+| `GET /api/enrollments/{id}` | `200, 400, 401, 403, 404` |
+| `POST /api/enrollments` | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `GET /api/approval-requests` | `200, 400, 401, 403` |
+| `GET /api/approval-requests/{id}` | `200, 400, 401, 403, 404` |
+| `POST /api/approval-requests` | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `POST /api/approval-requests/{id}/approve`, `POST /api/approval-requests/{id}/reject` | `200, 400, 401, 403, 404, 409, 415` |
+| `POST /student/auth`, `POST /instructor/auth`, `POST /administrator/auth` | `200, 400, 401, 415` |
+| `POST /instructor` (alta heredada) | `201 + Location, 400, 401, 403, 409, 415` |
+| `GET /instructor`, `GET /instructor/courses` | `200, 401, 403` |
+
+`400` corresponde a entradas inválidas; `401` a falta o invalidez de autenticación; `403` a permisos insuficientes;
+`404` a recursos inexistentes; `409` a conflictos de dominio o integridad; y `415` a un tipo de contenido no
+soportado. `400` se documenta donde hay cuerpo, parámetros de ruta o de consulta; `415`, donde hay cuerpo. En
+`GET /api/students`, el `404` aplica si se envía un `courseId` inexistente. En `GET /api/courses`, `401`, `403` y
+`404` aplican cuando se envía `studentId`; el listado sin ese filtro es público.

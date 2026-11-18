@@ -3,10 +3,10 @@ package ar.edu.unnoba.pm2026.approval.model;
 import ar.edu.unnoba.pm2026.approval.exception.ApprovalRequestException;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.Objects;
 import lombok.Getter;
 
 // Entidad para la solicitud de revision de un curso
@@ -47,7 +47,9 @@ public class ApprovalRequest {
 
     // Constructor para iniciar una solicitud sobre un curso
     public ApprovalRequest(Course course, String instructorComment) {
-        Objects.requireNonNull(course, "El curso no puede ser nulo");
+        if (course == null) {
+            throw new ValidationException("El curso no puede ser nulo");
+        }
         if (course.getStatus() != CourseStatus.DRAFT) {
             throw new ApprovalRequestException("Solo se puede solicitar la aprobacion de un curso en borrador");
         }
@@ -67,7 +69,9 @@ public class ApprovalRequest {
     }
 
     private void resolve(Administrator administrator, String administratorComment, ApprovalStatus newStatus) {
-        Objects.requireNonNull(administrator, "El administrador no puede ser nulo");
+        if (administrator == null) {
+            throw new ValidationException("El administrador no puede ser nulo");
+        }
         if (status != ApprovalStatus.SUBMITTED) {
             throw new ApprovalRequestException("La solicitud ya fue resuelta");
         }

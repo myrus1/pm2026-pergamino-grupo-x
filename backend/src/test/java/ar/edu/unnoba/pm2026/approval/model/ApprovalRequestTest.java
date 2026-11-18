@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import java.math.BigDecimal;
@@ -53,7 +54,7 @@ class ApprovalRequestTest {
     @Test
     void solicitarAprobacionRechazaCursoNulo() {
         assertThatThrownBy(() -> new ApprovalRequest(null, null))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("El curso no puede ser nulo");
     }
 
@@ -113,7 +114,7 @@ class ApprovalRequestTest {
         ApprovalRequest request = new ApprovalRequest(course(), null);
 
         assertThatThrownBy(() -> request.approve(null, null))
-                .isInstanceOf(NullPointerException.class)
+                .isInstanceOf(ValidationException.class)
                 .hasMessage("El administrador no puede ser nulo");
         assertThat(request.getStatus()).isEqualTo(ApprovalStatus.SUBMITTED);
     }
