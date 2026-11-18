@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.enrollment.service;
 
+import ar.edu.unnoba.pm2026.enrollment.dto.StudentEnrollmentResponse;
 import java.time.LocalDateTime;
 import ar.edu.unnoba.pm2026.testutil.Fixtures;
 import ar.edu.unnoba.pm2026.enrollment.dto.EnrolledStudentResponse;
@@ -333,5 +334,41 @@ class EnrollmentServiceTest {
         assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(7L, instructor(2L)))
                 .isInstanceOf(AuthorizationException.class);
         verify(enrollmentRepository, never()).findByCourseIdOrderByEnrollmentDateAsc(any());
+    }
+
+    @Test
+    void getStudentEnrollmentsVaDeLaMasNuevaALaMasViejaConElDescuento() {
+        Student ana = Fixtures.student(1L);
+        Enrollment vieja = new Enrollment(ana, Fixtures.course(7L, CourseStatus.PUBLISHED), new BigDecimal("100.00"),
+                LocalDateTime.of(2026, 4, 1, 0, 0));
+        TestIds.setId(vieja, 1L);
+        Enrollment nueva = new Enrollment(ana, Fixtures.course(8L, CourseStatus.PUBLISHED), new BigDecimal("75.00"),
+                LocalDateTime.of(2026, 5, 1, 0, 0));
+        TestIds.setId(nueva, 2L);
+        when(enrollmentRepository.findByStudentId(1L)).thenReturn(List.of(vieja, nueva));
+
+        List<StudentEnrollmentResponse> enrollments = enrollmentService.getStudentEnrollments(1L);
+
+        assertThat(enrollments).extracting(StudentEnrollmentResponse::enrollmentId).containsExactly(2L, 1L);
+        assertThat(enrollments.get(0).discount()).isEqualByComparingTo("25.00");
+        assertThat(enrollments.get(0).course().title()).isEqualTo("Curso de Java");
+        assertThat(enrollments.get(0).course().instructor()).isEqualTo("Iris Ruiz");
+    }
+
+    @Test
+    void enrollStudentInscribeAlAlumnoDelToken() {
+        Student ana = Fixtures.student(1L);
+        Course course = Fixtures.course(7L, Fixtures.instructor(2L),
+                Fixtures.specialty(1L, "Programacion"), LocalDate.now().plusDays(30));
+        course.setStatus(CourseStatus.PUBLISHED);
+        when(studentService.getById(1L)).thenReturn(ana);
+        when(courseService.getById(7L)).thenReturn(course);
+        when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StudentEnrollmentResponse response = enrollmentService.enrollStudent(7L, student(1L));
+
+        assertThat(response.course().id()).isEqualTo(7L);
+        assertThat(response.finalAmount()).isEqualByComparingTo("100.00");
+        assertThat(response.discount()).isEqualByComparingTo("0");
     }
 }

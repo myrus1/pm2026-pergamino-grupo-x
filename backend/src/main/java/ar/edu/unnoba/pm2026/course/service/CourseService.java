@@ -16,6 +16,7 @@ import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,6 +96,12 @@ public class CourseService {
     @Transactional(readOnly = true)
     public List<Course> getPublished() {
         return courseRepository.findByStatusOrderByStartDateDesc(CourseStatus.PUBLISHED);
+    }
+
+    // TP6: cursos publicados que empiezan despues de esa fecha, del mas proximo al mas lejano
+    @Transactional(readOnly = true)
+    public List<Course> getPublishedStartingAfter(LocalDate date) {
+        return courseRepository.findByStatusAndStartDateAfterOrderByStartDateAsc(CourseStatus.PUBLISHED, date);
     }
 
     // 404 si el instructor no existe, aunque no tenga cursos en ese estado

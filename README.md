@@ -257,3 +257,18 @@ editar o borrar uno que ya salió de borrador responde `409`. Un administrador r
 | `GET /instructor/courses/{id}/students` | inscriptos de un curso suyo | `200, 400, 401, 403, 404` |
 | `GET /instructors/me/revenue` | lo acumulado: 65% del precio base por inscripción | `200, 401, 403` |
 | `GET /instructor/revenue/enrollments` | total y detalle por inscripción; `fromDate` y `toDate` opcionales | `200, 400, 401, 403` |
+
+#### Alumno (#42)
+
+Salvo el registro y el login, piden token de alumno. El precio con descuento (`applicablePrice`) sale de la misma
+regla que la inscripción (25% menos si ya se inscribió a otro curso de la misma especialidad en el mes), así el
+precio que se muestra es el que se cobra.
+
+| Endpoint | Qué hace | Códigos posibles |
+| --- | --- | --- |
+| `POST /students` | registro sin token (`name`, `lastName`, `dni`, `email`, `password`) | `201 + Location, 400, 409, 415` |
+| `POST /students/auth` | login: `{"token": "Bearer ..."}` | `200, 400, 401, 415` |
+| `GET /student/courses/available` | publicados que no empezaron, con cupo y sin los que ya cursa, con `basePrice`, `applicablePrice` y `loyaltyDiscount` | `200, 401, 403` |
+| `GET /student/courses/{id}` | detalle con instructor, `availableSeats`, precios y `enrolled`; `404` si no está publicado | `200, 400, 401, 403, 404` |
+| `POST /student/enrollments` | inscripción (`courseId`): `basePrice`, `finalAmount` y `discount` | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `GET /students/enrollments` | sus inscripciones de la más nueva a la más vieja, con el curso y lo pagado | `200, 401, 403` |

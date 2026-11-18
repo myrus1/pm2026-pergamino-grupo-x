@@ -46,6 +46,9 @@ class ApiDocumentationTest {
         // TP6 (#41): el registro y el login del instructor no piden token
         assertPublic(paths, "/instructor", "post");
         assertPublic(paths, "/auth", "post");
+        // TP6 (#42): el registro y el login del alumno no piden token
+        assertPublic(paths, "/students", "post");
+        assertPublic(paths, "/students/auth", "post");
 
         // Consultas publicas (hacen falta para mostrar los cursos)
         assertPublic(paths, "/api/courses", "get");
@@ -93,6 +96,10 @@ class ApiDocumentationTest {
         assertRequiresToken(paths, "/instructor/approval-requests", "get");
         assertRequiresToken(paths, "/instructors/me/revenue", "get");
         assertRequiresToken(paths, "/instructor/revenue/enrollments", "get");
+        assertRequiresToken(paths, "/student/courses/available", "get");
+        assertRequiresToken(paths, "/student/courses/{id}", "get");
+        assertRequiresToken(paths, "/student/enrollments", "post");
+        assertRequiresToken(paths, "/students/enrollments", "get");
     }
 
     @Test
@@ -285,7 +292,15 @@ class ApiDocumentationTest {
                         "405", "406", "409", "415", "500"),
                 expected("/instructor/approval-requests", "get", "200", "401", "403", "405", "406", "500"),
                 expected("/instructors/me/revenue", "get", "200", "401", "403", "405", "406", "500"),
-                expected("/instructor/revenue/enrollments", "get", "200", "400", "401", "403", "405", "406", "500"));
+                expected("/instructor/revenue/enrollments", "get", "200", "400", "401", "403", "405", "406", "500"),
+                // TP6 (#42): rutas del alumno
+                expected("/students", "post", "201", "400", "405", "406", "409", "415", "500"),
+                expected("/students/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
+                expected("/student/courses/available", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/student/courses/{id}", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/student/enrollments", "post", "201", "400", "401", "403", "404", "405", "406", "409",
+                        "415", "500"),
+                expected("/students/enrollments", "get", "200", "401", "403", "405", "406", "500"));
 
         Set<String> expectedOperations = new HashSet<>();
         for (OpenApiResponseExpectation expectation : matrix) {

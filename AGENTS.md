@@ -228,6 +228,8 @@ el id coincide.
 | Resto de `/admin/...` (TP6, #39), incluidos los reportes `/admin/reports/...` (#40) | ❌ | ❌ | ✅ | ❌ |
 | `POST /instructor` (registro) y `POST /auth` (login del instructor) (TP6, #41) | ✅ | ✅ | ✅ | ✅ **sin token** |
 | `/instructor/courses/...`, `/instructor/approval-requests`, `/instructor/revenue/...`, `/instructors/me/revenue` (TP6, #41) | ❌ | solo sobre los suyos | ❌ | ❌ |
+| `POST /students` (registro) y `POST /students/auth` (TP6, #42) | ✅ | ✅ | ✅ | ✅ **sin token** |
+| `/student/courses/...`, `POST /student/enrollments`, `GET /students/enrollments` (TP6, #42) | solo lo suyo | ❌ | ❌ | ❌ |
 | `DELETE /admin/accounts/{id}`, `DELETE /api/administrators/{id}` | ❌ | ❌ | ✅ (no a sí mismo: 409) | ❌ |
 
 - Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
@@ -238,6 +240,9 @@ el id coincide.
   `EnrollmentService` lo vuelven a chequear. Solo conserva el borrado de cursos, que no es una acción
   del instructor en el TP6 y que usa la pantalla de cursos del admin en el front.
 - El dueño de un curso es siempre el instructor del token: `CourseRequest` no tiene `instructorId`.
+- Catálogo del alumno (TP6, #42): `Student.canApplyTo(curso, fecha)` y `Student.priceFor(curso, fecha)` usan las
+  mismas reglas que `applyCourse`, así los cursos "disponibles" y el precio con descuento que se muestran
+  coinciden con lo que se cobra. Viven en `enrollment/service/StudentCatalogService`.
 - Rangos de fechas de los reportes (TP6, #40): `shared/web/DateRange` (`fromDate`/`toDate`, los dos inclusive;
   un extremo nulo queda abierto; 400 `request.invalid-date-range` si `fromDate > toDate`). Los reportes viven en
   `enrollment/service/EnrollmentReportService`. `ApiExceptionHandler` responde `request.missing-parameter` y

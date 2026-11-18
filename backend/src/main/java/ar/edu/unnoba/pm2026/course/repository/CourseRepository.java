@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.course.repository;
 
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -15,4 +16,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findByStatusOrderByStartDateDesc(CourseStatus status);
 
     List<Course> findByInstructorIdAndStatusOrderByStartDateDesc(Long instructorId, CourseStatus status);
+
+    // Catalogo del alumno: los que todavia no empezaron, del mas proximo al mas lejano
+    List<Course> findByStatusAndStartDateAfterOrderByStartDateAsc(CourseStatus status, LocalDate date);
 }
