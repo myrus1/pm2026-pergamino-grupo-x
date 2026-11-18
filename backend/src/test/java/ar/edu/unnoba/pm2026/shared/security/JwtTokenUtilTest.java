@@ -116,4 +116,41 @@ class JwtTokenUtilTest {
         assertThat(jwtTokenUtil.verify("Bearer cualquier-cosa")).isFalse();
         assertThat(jwtTokenUtil.verify(null)).isFalse();
     }
+
+    // Login unico (#27): el accessToken va sin prefijo y la duracion sale de jwt.expiration
+
+    @Test
+    void generateRawTokenNoAnteponeBearerYSeVerificaIgual() {
+        String token = jwtTokenUtil.generateRawToken("iris@example.com", Role.INSTRUCTOR, 4L);
+
+        assertThat(token).doesNotStartWith("Bearer ");
+        assertThat(jwtTokenUtil.verify(token)).isTrue();
+        assertThat(jwtTokenUtil.verify("Bearer " + token)).isTrue();
+        assertThat(jwtTokenUtil.getRole(token)).isEqualTo(Role.INSTRUCTOR);
+        assertThat(jwtTokenUtil.getUserId(token)).isEqualTo(4L);
+    }
+
+    @Test
+    void laDuracionDelTokenEsConfigurable() {
+        JwtTokenUtil shortLived = new JwtTokenUtil(CLAVE, Duration.ofSeconds(3600));
+
+        DecodedJWT decoded = JWT.decode(shortLived.generateRawToken("iris@example.com", Role.INSTRUCTOR, 4L));
+
+        assertThat(shortLived.getExpirationSeconds()).isEqualTo(3600);
+        assertThat(Duration.between(decoded.getIssuedAtAsInstant(), decoded.getExpiresAtAsInstant()))
+                .isEqualTo(Duration.ofSeconds(3600));
+    }
+
+    @Test
+    void porDefectoElTokenDura10Dias() {
+        assertThat(jwtTokenUtil.getExpirationSeconds()).isEqualTo(Duration.ofDays(10).getSeconds());
+    }
+
+    @Test
+    void noAceptaUnaDuracionNulaNiNoPositiva() {
+        assertThatThrownBy(() -> new JwtTokenUtil(CLAVE, null)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> new JwtTokenUtil(CLAVE, Duration.ZERO)).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new JwtTokenUtil(CLAVE, Duration.ofSeconds(-1)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

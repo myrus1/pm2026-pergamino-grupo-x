@@ -42,16 +42,19 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("PM2026 - API de la academia")
                         .description("API REST del trabajo practico: cursos, especialidades, inscripciones, "
-                                + "aprobaciones de cursos y usuarios. La autenticacion es por JWT: se llama a "
-                                + "POST /student/auth, POST /instructor/auth o POST /administrator/auth y el "
-                                + "token obtenido se envía en el header Authorization (con el prefijo Bearer).")
+                                + "aprobaciones de cursos y usuarios. La autenticacion es por JWT: se llama al "
+                                + "login unico POST /api/auth/token o al login de cada rol (POST /students/auth, "
+                                + "POST /auth o POST /admin/auth) y el token se envía en el header Authorization "
+                                + "con el prefijo Bearer. Los logins viejos POST /student/auth, /instructor/auth "
+                                + "y /administrator/auth siguen andando pero quedan deprecados.")
                         .version("1.0.0"))
                 .components(new Components()
                         .addSecuritySchemes(ESQUEMA_TOKEN, new SecurityScheme()
                                 .type(SecurityScheme.Type.APIKEY)
                                 .in(SecurityScheme.In.HEADER)
                                 .name("Authorization")
-                                .description("Token JWT devuelto por los logins, con el prefijo Bearer"))
+                                .description("Valor completo \"Bearer <jwt>\": el token de los logins por rol, "
+                                        + "o el accessToken de POST /api/auth/token con el prefijo agregado"))
                         .addSchemas("ProblemDetail", problemDetailSchema()));
     }
 
@@ -213,7 +216,8 @@ public class OpenApiConfig {
         private boolean isAuthenticationEndpoint(HandlerMethod handlerMethod) {
             RequestMapping mapping = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(),
                     RequestMapping.class);
-            return mapping != null && Arrays.stream(mapping.path()).anyMatch(path -> path.endsWith("/auth"));
+            return mapping != null && Arrays.stream(mapping.path())
+                    .anyMatch(path -> path.endsWith("/auth") || path.endsWith("/auth/token"));
         }
     }
 }

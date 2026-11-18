@@ -49,6 +49,8 @@ class ApiDocumentationTest {
         // TP6 (#42): el registro y el login del alumno no piden token
         assertPublic(paths, "/students", "post");
         assertPublic(paths, "/students/auth", "post");
+        // #27: login unico
+        assertPublic(paths, "/api/auth/token", "post");
 
         // Consultas publicas (hacen falta para mostrar los cursos)
         assertPublic(paths, "/api/courses", "get");
@@ -173,6 +175,10 @@ class ApiDocumentationTest {
         JsonNode login = operationOf(doc.get("paths"), "/student/auth", "post").get("responses");
         assertProblemResponse(login, "401");
 
+        JsonNode tokenLogin = operationOf(doc.get("paths"), "/api/auth/token", "post").get("responses");
+        assertProblemResponse(tokenLogin, "400");
+        assertProblemResponse(tokenLogin, "401");
+
         JsonNode legacyAlta = operationOf(doc.get("paths"), "/instructor", "post").get("responses");
         assertThat(legacyAlta.get("201").get("headers").has("Location")).isTrue();
 
@@ -182,6 +188,20 @@ class ApiDocumentationTest {
         for (String property : List.of("type", "title", "status", "detail", "instance", "code", "timestamp",
                 "errors")) {
             assertThat(properties.has(property)).as("falta la propiedad " + property).isTrue();
+        }
+    }
+
+    // #27: los logins viejos quedan deprecados; los del TP6 y el login unico no
+    @Test
+    void marcaComoDeprecadosSoloLosLoginsViejos() throws Exception {
+        JsonNode paths = doc().get("paths");
+        for (String path : List.of("/student/auth", "/instructor/auth", "/administrator/auth")) {
+            assertThat(operationOf(paths, path, "post").path("deprecated").asBoolean())
+                    .as(path + " deberia estar deprecado").isTrue();
+        }
+        for (String path : List.of("/api/auth/token", "/students/auth", "/auth", "/admin/auth", "/instructor")) {
+            assertThat(operationOf(paths, path, "post").path("deprecated").asBoolean())
+                    .as(path + " no deberia estar deprecado").isFalse();
         }
     }
 
@@ -248,6 +268,7 @@ class ApiDocumentationTest {
                         "406", "409", "415", "500"),
                 expected("/api/approval-requests/{id}/reject", "post", "200", "400", "401", "403", "404", "405",
                         "406", "409", "415", "500"),
+                expected("/api/auth/token", "post", "200", "400", "401", "405", "406", "415", "500"),
                 expected("/student/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
                 expected("/instructor/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
                 expected("/administrator/auth", "post", "200", "400", "401", "405", "406", "415", "500"),

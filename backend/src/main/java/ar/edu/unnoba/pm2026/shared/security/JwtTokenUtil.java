@@ -11,31 +11,51 @@ import java.util.Objects;
 public class JwtTokenUtil {
 
     private static final String PREFIX = "Bearer ";
-    private static final Duration EXPIRATION = Duration.ofDays(10);
+    private static final Duration DEFAULT_EXPIRATION = Duration.ofDays(10);
     private static final String CLAIM_ROLE = "rol";
     private static final String CLAIM_USER_ID = "userId";
 
     private final Algorithm algorithm;
     private final JWTVerifier verifier;
+    private final Duration expiration;
 
     public JwtTokenUtil(String secret) {
-        Objects.requireNonNull(secret, "La clave del token no puede ser nula");
-        this.algorithm = Algorithm.HMAC512(secret);
-        this.verifier = JWT.require(algorithm).build();
+        this(secret, DEFAULT_EXPIRATION);
     }
 
+    public JwtTokenUtil(String secret, Duration expiration) {
+        Objects.requireNonNull(secret, "La clave del token no puede ser nula");
+        Objects.requireNonNull(expiration, "La duracion del token no puede ser nula");
+        if (expiration.isNegative() || expiration.isZero()) {
+            throw new IllegalArgumentException("La duracion del token tiene que ser positiva");
+        }
+        this.algorithm = Algorithm.HMAC512(secret);
+        this.verifier = JWT.require(algorithm).build();
+        this.expiration = expiration;
+    }
+
+    // Token con el prefijo "Bearer ": es lo que devuelven los logins por rol ({"token": "Bearer ..."}).
     public String generateToken(String subject, Role role, Long userId) {
+        return PREFIX + generateRawToken(subject, role, userId);
+    }
+
+    // JWT sin el prefijo: el login unico lo devuelve en accessToken y manda el tipo aparte (tokenType).
+    public String generateRawToken(String subject, Role role, Long userId) {
         Objects.requireNonNull(subject, "El subject no puede ser nulo");
         Objects.requireNonNull(role, "El rol no puede ser nulo");
         Objects.requireNonNull(userId, "El id del usuario no puede ser nulo");
         Instant now = Instant.now();
-        return PREFIX + JWT.create()
+        return JWT.create()
                 .withSubject(subject)
                 .withClaim(CLAIM_ROLE, role.claimValue())
                 .withClaim(CLAIM_USER_ID, userId)
                 .withIssuedAt(now)
-                .withExpiresAt(now.plus(EXPIRATION))
+                .withExpiresAt(now.plus(expiration))
                 .sign(algorithm);
+    }
+
+    public long getExpirationSeconds() {
+        return expiration.getSeconds();
     }
 
     public boolean verify(String token) {
