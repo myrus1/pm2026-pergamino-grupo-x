@@ -59,7 +59,8 @@ public class AdminAccountController {
         Administrator administrator = new Administrator(request.getName(), request.getLastName(),
                 request.getEmail(), request.getPassword());
         AdminAccountResponse created = AdminAccountResponse.from(administratorService.create(administrator));
-        return ResponseEntity.created(ResourceLocation.forId(created.id())).body(created);
+        // /admin/accounts no tiene GET por id: el recurso se consulta en /api/administrators/{id}
+        return ResponseEntity.created(ResourceLocation.forPath("/api/administrators/{id}", created.id())).body(created);
     }
 
     @SecurityRequirement(name = "token")

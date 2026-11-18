@@ -83,7 +83,7 @@ class AdminAccountControllerTest {
 
         mockMvc.perform(post("/admin/accounts").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isCreated())
-                .andExpect(header().string("Location", "http://localhost/admin/accounts/5"))
+                .andExpect(header().string("Location", "http://localhost/api/administrators/5"))
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.name").value("Eva"))
                 .andExpect(jsonPath("$.lastName").value("Sosa"))
