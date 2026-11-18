@@ -1,5 +1,10 @@
 package ar.edu.unnoba.pm2026.user.service;
 
+import java.math.BigDecimal;
+import ar.edu.unnoba.pm2026.user.dto.StudentDetailResponse;
+import ar.edu.unnoba.pm2026.testutil.Fixtures;
+import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
@@ -84,5 +89,19 @@ class StudentServiceTest {
         when(studentRepository.findByEmail("nadie@example.com")).thenReturn(null);
 
         assertThat(studentService.findByEmail("nadie@example.com")).isNull();
+    }
+
+    @Test
+    void getDetailSumaLoPagadoEnTodasSusInscripciones() {
+        Student student = Fixtures.student(1L);
+        new Enrollment(student, Fixtures.course(7L, CourseStatus.PUBLISHED), new BigDecimal("100.00"));
+        new Enrollment(student, Fixtures.course(8L, CourseStatus.PUBLISHED), new BigDecimal("75.00"));
+        when(studentRepository.findById(1L)).thenReturn(Optional.of(student));
+
+        StudentDetailResponse detail = studentService.getDetail(1L);
+
+        assertThat(detail.name()).isEqualTo("Ana");
+        assertThat(detail.enrolledCourses()).isEqualTo(2);
+        assertThat(detail.totalPaid()).isEqualByComparingTo("175.00");
     }
 }

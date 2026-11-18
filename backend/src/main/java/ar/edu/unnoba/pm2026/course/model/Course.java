@@ -147,7 +147,16 @@ public class Course {
     }
 
     public boolean hasAvailableCapacity() {
-        return maxCapacity != null && enrollments.size() < maxCapacity;
+        return availableSeats() > 0;
+    }
+
+    public int enrolledStudents() {
+        return enrollments.size();
+    }
+
+    // Lugares que quedan; nunca negativo aunque se haya bajado el cupo con inscriptos
+    public int availableSeats() {
+        return maxCapacity == null ? 0 : Math.max(maxCapacity - enrollments.size(), 0);
     }
 
     public void addEnrollment(Enrollment enrollment) {

@@ -1,5 +1,8 @@
 package ar.edu.unnoba.pm2026.course.service;
 
+import ar.edu.unnoba.pm2026.testutil.Fixtures;
+import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.course.dto.CourseDetailResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -320,5 +323,37 @@ class CourseServiceTest {
         when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
 
         assertThat(courseService.getById(7L, administrator())).isSameAs(course);
+    }
+
+    @Test
+    void getDetailCuentaInscriptosYLugaresLibres() {
+        Course course = Fixtures.course(7L, CourseStatus.PUBLISHED);
+        new Enrollment(Fixtures.student(1L), course, new BigDecimal("100.00"));
+        new Enrollment(Fixtures.student(2L), course, new BigDecimal("75.00"));
+        when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
+
+        CourseDetailResponse detail = courseService.getDetail(7L);
+
+        assertThat(detail.enrolledStudents()).isEqualTo(2);
+        assertThat(detail.availableSeats()).isEqualTo(3);
+        assertThat(detail.instructor().name()).isEqualTo("Iris");
+        assertThat(detail.specialty().getName()).isEqualTo("Programacion");
+    }
+
+    @Test
+    void getPublishedPideLosPublicadosOrdenadosPorFecha() {
+        Course course = Fixtures.course(7L, CourseStatus.PUBLISHED);
+        when(courseRepository.findByStatusOrderByStartDateDesc(CourseStatus.PUBLISHED)).thenReturn(List.of(course));
+
+        assertThat(courseService.getPublished()).containsExactly(course);
+    }
+
+    @Test
+    void getByInstructorAndStatusDeInstructorInexistenteLanzaNotFound() {
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+
+        assertThatThrownBy(() -> courseService.getByInstructorAndStatus(99L, CourseStatus.PUBLISHED))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(courseRepository, never()).findByInstructorIdAndStatusOrderByStartDateDesc(any(), any());
     }
 }

@@ -3,7 +3,9 @@ package ar.edu.unnoba.pm2026.course.service;
 import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.course.dto.CourseDetailResponse;
 import ar.edu.unnoba.pm2026.course.dto.CourseRequest;
+import ar.edu.unnoba.pm2026.course.dto.SpecialtyResponse;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.exception.CourseStateException;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
@@ -69,6 +71,36 @@ public class CourseService {
     @Transactional(readOnly = true)
     public List<Course> getCoursesByInstructorId(Long instructorId) {
         return courseRepository.findByInstructorId(instructorId);
+    }
+
+    // TP6: cursos aprobados (publicados), por fecha de inicio descendente
+    @Transactional(readOnly = true)
+    public List<Course> getPublished() {
+        return courseRepository.findByStatusOrderByStartDateDesc(CourseStatus.PUBLISHED);
+    }
+
+    // 404 si el instructor no existe, aunque no tenga cursos en ese estado
+    @Transactional(readOnly = true)
+    public List<Course> getByInstructorAndStatus(Long instructorId, CourseStatus status) {
+        instructorService.getById(instructorId);
+        return courseRepository.findByInstructorIdAndStatusOrderByStartDateDesc(instructorId, status);
+    }
+
+    // TP6: detalle con instructor, inscriptos y cupo. Recorre relaciones LAZY, por eso se arma aca.
+    @Transactional(readOnly = true)
+    public CourseDetailResponse getDetail(Long id) {
+        return detailOf(getById(id));
+    }
+
+    private static CourseDetailResponse detailOf(Course course) {
+        Specialty specialty = course.getSpecialty();
+        Instructor instructor = course.getInstructor();
+        return new CourseDetailResponse(course.getId(), course.getTitle(), course.getDescription(),
+                course.getStatus(), course.getStartDate(), course.getEndDate(), course.getBasePrice(),
+                course.getMaxCapacity(), course.enrolledStudents(), course.availableSeats(),
+                new SpecialtyResponse(specialty.getId(), specialty.getName()),
+                new CourseDetailResponse.CourseInstructor(instructor.getId(), instructor.getFirstName(),
+                        instructor.getLastName(), instructor.getEmail()));
     }
 
     @Transactional(readOnly = true)

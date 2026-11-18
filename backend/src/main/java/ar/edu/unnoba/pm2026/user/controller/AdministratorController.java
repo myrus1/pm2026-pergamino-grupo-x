@@ -1,6 +1,7 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
+import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.user.dto.AdministratorRequest;
@@ -75,13 +76,13 @@ public class AdministratorController {
         return response(administratorService.update(administrator));
     }
 
+    // 404 si no existe; 409 si el administrador intenta borrarse a si mismo (regla del TP6)
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        authorizationService.authorize(token, Role.ADMINISTRATOR);
-        administratorService.getById(id);
-        administratorService.delete(id);
+        AuthenticatedUser actor = authorizationService.authorize(token, Role.ADMINISTRATOR);
+        administratorService.delete(id, actor);
     }
 
     private AdministratorResponse response(Administrator administrator) {

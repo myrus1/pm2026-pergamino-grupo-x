@@ -95,9 +95,6 @@ public class ApprovalRequestController {
     }
 
     private ApprovalRequestResponse response(ApprovalRequest request) {
-        return new ApprovalRequestResponse(request.getId(), request.getCourse().getId(), request.getStatus(),
-                request.getRequestDate(), request.getResolutionDate(), request.getInstructorComment(),
-                request.getAdministratorComment(),
-                request.getAdministrator() == null ? null : request.getAdministrator().getId());
+        return ApprovalRequestResponse.from(request);
     }
 }

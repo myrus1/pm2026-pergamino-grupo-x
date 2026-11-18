@@ -1,5 +1,11 @@
 package ar.edu.unnoba.pm2026.user.service;
 
+import ar.edu.unnoba.pm2026.testutil.Fixtures;
+import ar.edu.unnoba.pm2026.shared.security.Role;
+import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.shared.exception.BusinessRuleException;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
@@ -84,5 +90,44 @@ class AdministratorServiceTest {
         when(administratorRepository.findByEmail("nadie@example.com")).thenReturn(null);
 
         assertThat(administratorService.findByEmail("nadie@example.com")).isNull();
+    }
+
+    private static final AuthenticatedUser ADA = new AuthenticatedUser(3L, "ada@example.com", Role.ADMINISTRATOR);
+
+    // TP6: un administrador no puede borrarse a si mismo
+    @Test
+    void deleteDeSiMismoLanzaConflictoYNoBorra() {
+        assertThatThrownBy(() -> administratorService.delete(3L, ADA))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Un administrador no puede eliminarse a si mismo");
+        verify(administratorRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteDeOtroAdministradorLoBorra() {
+        when(administratorRepository.findById(5L)).thenReturn(Optional.of(Fixtures.administrator(5L)));
+
+        administratorService.delete(5L, ADA);
+
+        verify(administratorRepository).deleteById(5L);
+    }
+
+    @Test
+    void deleteDeAdministradorInexistenteLanzaNotFound() {
+        when(administratorRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> administratorService.delete(99L, ADA))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(administratorRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void createConEmailDeOtroAdministradorLanzaConflictoYNoGuarda() {
+        when(administratorRepository.findByEmail("eva@example.com")).thenReturn(Fixtures.administrator(5L));
+
+        assertThatThrownBy(() -> administratorService.create(Fixtures.administrator(null)))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessage("Ya existe un administrador con el email eva@example.com");
+        verify(administratorRepository, never()).save(any());
     }
 }

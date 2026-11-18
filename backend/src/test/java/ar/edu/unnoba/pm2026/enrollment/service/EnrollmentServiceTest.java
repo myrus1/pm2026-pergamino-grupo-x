@@ -1,5 +1,8 @@
 package ar.edu.unnoba.pm2026.enrollment.service;
 
+import java.time.LocalDateTime;
+import ar.edu.unnoba.pm2026.testutil.Fixtures;
+import ar.edu.unnoba.pm2026.enrollment.dto.EnrolledStudentResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -295,5 +298,30 @@ class EnrollmentServiceTest {
         when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(foreign));
 
         assertThat(enrollmentService.getById(5L, administrator())).isSameAs(foreign);
+    }
+
+    @Test
+    void getEnrolledStudentsDevuelveFechaYPrecioPagadoDeCadaAlumno() {
+        Course course = Fixtures.course(7L, CourseStatus.PUBLISHED);
+        Enrollment enrollment = new Enrollment(Fixtures.student(1L), course, new BigDecimal("75.00"),
+                LocalDateTime.of(2026, 5, 10, 0, 0));
+        when(courseService.getById(7L)).thenReturn(course);
+        when(enrollmentRepository.findByCourseIdOrderByEnrollmentDateAsc(7L)).thenReturn(List.of(enrollment));
+
+        List<EnrolledStudentResponse> students = enrollmentService.getEnrolledStudents(7L);
+
+        assertThat(students).hasSize(1);
+        assertThat(students.get(0).studentId()).isEqualTo(1L);
+        assertThat(students.get(0).finalAmount()).isEqualByComparingTo("75.00");
+        assertThat(students.get(0).enrollmentDate()).isEqualTo(LocalDateTime.of(2026, 5, 10, 0, 0));
+    }
+
+    @Test
+    void getEnrolledStudentsDeCursoInexistenteLanzaNotFound() {
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(enrollmentRepository, never()).findByCourseIdOrderByEnrollmentDateAsc(any());
     }
 }

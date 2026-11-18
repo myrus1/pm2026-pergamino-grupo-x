@@ -82,8 +82,12 @@ Al agregar una feature nueva: crear `<feature>/model`, `<feature>/service`,
 - Sufijos: `XxxController`, `XxxService` (+ `XxxServiceImpl` solo si hay interfaz),
   `XxxRepository`, `XxxRequest` / `XxxResponse` (sin `DTO`), `XxxException`.
 - Subpaquetes por feature en singular: `controller`, `service`, `repository`, `model`, `dto`, `exception`.
-- Los endpoints de los TP (`/student/auth`, `/instructor`, `/administrator/auth`) viven en
+- Los endpoints de los TP4/TP5 (`/student/auth`, `/instructor`, `/administrator/auth`) viven en
   `Legacy*Controller`; las rutas nuevas van bajo `/api/...` en plural y kebab-case.
+- Las rutas por rol del **TP6** (`/admin/...`, `/instructor/...`, `/student/...`) viven en controllers
+  `Admin*Controller`, `Instructor*Controller` y `Student*Controller` dentro de su feature (p. ej.
+  `course/controller/AdminCourseController`). Usan los nombres de campo del enunciado (`name`, `lastName`) y
+  sus DTOs se arman con `XxxResponse.from(...)` o, si recorren relaciones LAZY, dentro del service.
 - El enum `Role` (`STUDENT`, `INSTRUCTOR`, `ADMINISTRATOR`) viaja en el claim `rol` del JWT; no se persiste.
 
 ## Comandos
@@ -220,6 +224,9 @@ el id coincide.
 | `POST /api/approval-requests` | ❌ | solo de sus cursos | ❌ | ❌ |
 | `GET /api/approval-requests` (`?status=`/`?instructorId=`) | ❌ | solo las suyas (ignora el filtro) | ✅ | ❌ |
 | `GET /api/approval-requests/{id}`, `.../{id}/approve`, `.../{id}/reject` | ❌ | solo lectura de las suyas | ✅ | ❌ |
+| `POST /admin/auth` (TP6) | ✅ | ✅ | ✅ | ✅ **sin token** |
+| Resto de `/admin/...` (TP6, #39) | ❌ | ❌ | ✅ | ❌ |
+| `DELETE /admin/accounts/{id}`, `DELETE /api/administrators/{id}` | ❌ | ❌ | ✅ (no a sí mismo: 409) | ❌ |
 
 - Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
   (los tres reciben `AuthenticationRequest`: `email` + `password` y devuelven

@@ -1,7 +1,9 @@
 package ar.edu.unnoba.pm2026.approval.service;
 
 import ar.edu.unnoba.pm2026.approval.model.ApprovalRequest;
+import ar.edu.unnoba.pm2026.approval.model.ApprovalStatus;
 import ar.edu.unnoba.pm2026.approval.repository.ApprovalRequestRepository;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
 import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.Role;
@@ -39,6 +41,25 @@ public class ApprovalRequestService {
     @Transactional(readOnly = true)
     public List<ApprovalRequest> getByInstructor(Long instructorId) {
         return approvalRequestRepository.findByCourseInstructorIdOrderByRequestDateDesc(instructorId);
+    }
+
+    // TP6: GET /admin/approval-requests muestra solo las que esperan respuesta
+    @Transactional(readOnly = true)
+    public List<ApprovalRequest> getPending() {
+        return approvalRequestRepository.findByStatusOrderByRequestDateAsc(ApprovalStatus.SUBMITTED);
+    }
+
+    // TP6: PUT /admin/approval-requests/{id} decide con el status del body (APPROVED o REJECTED)
+    public ApprovalRequest resolve(Long id, ApprovalStatus decision, Long administratorId,
+            String administratorComment) {
+        if (decision == ApprovalStatus.APPROVED) {
+            return approve(id, administratorId, administratorComment);
+        }
+        if (decision == ApprovalStatus.REJECTED) {
+            return reject(id, administratorId, administratorComment);
+        }
+        throw new ValidationException("approval-request.invalid-decision",
+                "El campo 'status' tiene que ser APPROVED o REJECTED");
     }
 
     @Transactional(readOnly = true)

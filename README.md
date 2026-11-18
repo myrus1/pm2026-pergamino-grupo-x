@@ -197,3 +197,31 @@ La tabla muestra los códigos de cada operación. Todas también pueden responde
 soportado. `400` se documenta donde hay cuerpo, parámetros de ruta o de consulta; `415`, donde hay cuerpo. En
 `GET /api/students`, el `404` aplica si se envía un `courseId` inexistente. En `GET /api/courses`, `401`, `403` y
 `404` aplican cuando se envía `studentId`; el listado sin ese filtro es público.
+
+### Rutas del TP6
+
+El TP6 agrupa las rutas por rol. Conviven con las de `/api/...`, que sigue usando el front. Cada grupo acepta solo
+el token de su rol y con el de otro responde `403`: un administrador no puede hacer acciones de instructor ni de
+alumno (#38). Los nombres siguen el enunciado (`name`, `lastName`). Como en la tabla anterior, todas pueden
+responder además `405`, `406` y `500`.
+
+#### Administrador (#39)
+
+| Endpoint | Qué hace | Códigos posibles |
+| --- | --- | --- |
+| `POST /admin/auth` | login: `{"token": "Bearer ..."}` | `200, 400, 401, 415` |
+| `POST /admin/accounts` | alta (`email`, `password`, `name`, `lastName`) | `201 + Location, 400, 401, 403, 409, 415` |
+| `GET /admin/accounts` | administradores: `id`, `name`, `lastName`, `email` | `200, 401, 403` |
+| `DELETE /admin/accounts/{id}` | baja; `409` si es el mismo administrador del token | `204, 400, 401, 403, 404, 409` |
+| `GET /admin/approval-requests` | solicitudes pendientes (`SUBMITTED`), de la más vieja a la más nueva | `200, 401, 403` |
+| `PUT /admin/approval-requests/{id}` | resuelve con `status` (`APPROVED`/`REJECTED`) y `adminComment` | `200, 400, 401, 403, 404, 409, 415` |
+| `GET /admin/courses` | cursos publicados, por fecha de inicio descendente | `200, 401, 403` |
+| `GET /admin/courses/{id}` | detalle con instructor, `enrolledStudents` y `availableSeats` | `200, 400, 401, 403, 404` |
+| `GET /admin/courses/{id}/students` | inscriptos con `enrollmentDate` y `finalAmount` | `200, 400, 401, 403, 404` |
+| `GET /admin/instructors` | instructores con sus especialidades | `200, 401, 403` |
+| `GET /admin/instructors/{id}` | datos, especialidades y `courseSummary` (cursos por estado) | `200, 400, 401, 403, 404` |
+| `GET /admin/instructors/{id}/courses` | sus cursos publicados | `200, 400, 401, 403, 404` |
+| `GET /admin/instructors/{id}/courses/pending` | sus cursos pendientes de aprobación | `200, 400, 401, 403, 404` |
+| `GET /admin/students` | alumnos registrados | `200, 401, 403` |
+| `GET /admin/students/{id}` | datos, `enrolledCourses` y `totalPaid` | `200, 400, 401, 403, 404` |
+| `GET /admin/students/{id}/courses` | cursos en los que se inscribió | `200, 400, 401, 403, 404` |

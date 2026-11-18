@@ -97,9 +97,6 @@ public class CourseController {
     }
 
     private CourseResponse response(Course course) {
-        return new CourseResponse(course.getId(), course.getTitle(), course.getDescription(), course.getBasePrice(),
-                course.getStartDate(), course.getEndDate(), course.getMaxCapacity(), course.getStatus(),
-                course.getSpecialty() == null ? null : course.getSpecialty().getId(),
-                course.getInstructor() == null ? null : course.getInstructor().getId());
+        return CourseResponse.from(course);
     }
 }

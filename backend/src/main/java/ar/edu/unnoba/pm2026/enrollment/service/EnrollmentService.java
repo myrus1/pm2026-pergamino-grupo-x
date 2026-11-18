@@ -7,6 +7,7 @@ import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
+import ar.edu.unnoba.pm2026.enrollment.dto.EnrolledStudentResponse;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
 import ar.edu.unnoba.pm2026.enrollment.repository.EnrollmentRepository;
 import ar.edu.unnoba.pm2026.user.model.Student;
@@ -42,6 +43,25 @@ public class EnrollmentService {
     public List<Student> getStudentsOfCourse(Long courseId) {
         courseService.getById(courseId);
         return enrollmentRepository.findStudentsByCourseId(courseId);
+    }
+
+    // TP6: alumnos inscriptos con la fecha de inscripcion y el precio final pagado (404 si el curso no existe).
+    // El alumno es LAZY, por eso la respuesta se arma aca y no en el controller.
+    @Transactional(readOnly = true)
+    public List<EnrolledStudentResponse> getEnrolledStudents(Long courseId) {
+        courseService.getById(courseId);
+        return enrolledStudentsOf(courseId);
+    }
+
+    private List<EnrolledStudentResponse> enrolledStudentsOf(Long courseId) {
+        return enrollmentRepository.findByCourseIdOrderByEnrollmentDateAsc(courseId).stream()
+                .map(enrollment -> {
+                    Student student = enrollment.getStudent();
+                    return new EnrolledStudentResponse(enrollment.getId(), student.getId(), student.getFirstName(),
+                            student.getLastName(), student.getEmail(), student.getDni(),
+                            enrollment.getEnrollmentDate(), enrollment.getFinalAmount());
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)
