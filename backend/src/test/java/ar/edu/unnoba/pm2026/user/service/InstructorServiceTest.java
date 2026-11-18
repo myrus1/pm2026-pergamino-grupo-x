@@ -1,5 +1,10 @@
 package ar.edu.unnoba.pm2026.user.service;
 
+import java.time.LocalDate;
+import ar.edu.unnoba.pm2026.user.dto.InstructorDetailResponse;
+import ar.edu.unnoba.pm2026.testutil.Fixtures;
+import ar.edu.unnoba.pm2026.course.model.CourseStatus;
+import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.user.exception.InstructorEmailAlreadyExistsException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -172,5 +177,28 @@ class InstructorServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Especialidad no encontrada con id 99");
         verify(instructorRepository, never()).save(any());
+    }
+
+    @Test
+    void getDetailCuentaLosCursosPorEstadoYLosOrdenaPorFechaDeInicio() {
+        Instructor instructor = Fixtures.instructor(2L);
+        Specialty programacion = Fixtures.specialty(1L, "Programacion");
+        Fixtures.course(7L, instructor, programacion, LocalDate.of(2026, 3, 1));
+        Course nuevo = Fixtures.course(8L, instructor, programacion, LocalDate.of(2026, 9, 1));
+        nuevo.setStatus(CourseStatus.PUBLISHED);
+        when(instructorRepository.findById(2L)).thenReturn(Optional.of(instructor));
+
+        InstructorDetailResponse detail = instructorService.getDetail(2L);
+
+        assertThat(detail.courseSummary()).isEqualTo(new InstructorDetailResponse.CourseSummary(2, 1, 0, 1));
+        assertThat(detail.courses()).extracting("id").containsExactly(8L, 7L);
+        assertThat(detail.specialties()).extracting("name").containsExactly("Programacion");
+    }
+
+    @Test
+    void getDetailDeInstructorInexistenteLanzaNotFound() {
+        when(instructorRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> instructorService.getDetail(99L)).isInstanceOf(ResourceNotFoundException.class);
     }
 }

@@ -2454,14 +2454,14 @@
           }
         },
         {
-          "name": "Inscripcion con alumno inexistente",
+          "name": "El administrador no puede inscribir alumnos (TP6): 403",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"responde 404\", () => pm.response.to.have.status(404));"
+                  "pm.test(\"responde 403\", () => pm.response.to.have.status(403));"
                 ]
               }
             }

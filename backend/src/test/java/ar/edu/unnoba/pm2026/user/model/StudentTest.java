@@ -199,4 +199,39 @@ class StudentTest {
                 .isInstanceOf(CourseEnrollmentException.class)
                 .hasMessage("No se establecio el precio base del curso");
     }
+
+    // TP6 (#42): el precio que se muestra es el mismo que cobra applyCourse
+    @Test
+    void priceForAplicaElMismoDescuentoQueLaInscripcion() {
+        Course firstCourse = publishedCourse(specialty, PRICE, LocalDate.of(2026, 5, 15), 5);
+        Course secondCourse = publishedCourse(specialty, new BigDecimal("80.00"), LocalDate.of(2026, 5, 25), 5);
+        estudiante.applyCourse(firstCourse, LocalDate.of(2026, 5, 3));
+
+        BigDecimal shown = estudiante.priceFor(secondCourse, LocalDate.of(2026, 5, 20));
+
+        assertThat(shown).isEqualByComparingTo("60.00");
+        assertThat(estudiante.applyCourse(secondCourse, LocalDate.of(2026, 5, 20)).getFinalAmount())
+                .isEqualByComparingTo(shown);
+    }
+
+    @Test
+    void priceForSinInscripcionPreviaEsElPrecioBase() {
+        assertThat(estudiante.priceFor(defaultPublishedCourse(), HOY)).isEqualByComparingTo(PRICE);
+    }
+
+    @Test
+    void canApplyToCoincideConLasReglasDeLaInscripcion() {
+        Course course = defaultPublishedCourse();
+        Course full = publishedCourse(specialty, PRICE, LocalDate.of(2026, 6, 1), 1);
+        new Student("Beto", "Gomez", "beto@example.com", "secret", "22222222").applyCourse(full, HOY);
+        Course started = publishedCourse(specialty, PRICE, HOY, 5);
+
+        assertThat(estudiante.canApplyTo(course, HOY)).isTrue();
+        assertThat(estudiante.canApplyTo(full, HOY)).isFalse();
+        assertThat(estudiante.canApplyTo(started, HOY)).isFalse();
+
+        estudiante.applyCourse(course, HOY);
+        assertThat(estudiante.canApplyTo(course, HOY)).isFalse();
+        assertThat(estudiante.isEnrolledIn(course)).isTrue();
+    }
 }

@@ -1,5 +1,8 @@
 package ar.edu.unnoba.pm2026.approval.service;
 
+import java.util.List;
+import ar.edu.unnoba.pm2026.testutil.Fixtures;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -109,6 +112,15 @@ class ApprovalRequestServiceTest {
     }
 
     @Test
+    void submitComoAdministradorNoGuardaNada() {
+        assertThatThrownBy(() -> approvalRequestService.submit(1L, "Listo", administrator()))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo el instructor del curso puede pedir su aprobacion");
+        verify(courseService, never()).getById(any());
+        verify(approvalRequestRepository, never()).save(any());
+    }
+
+    @Test
     void submitComoInstructorDeCursoAjenoNoGuardaNada() {
         when(courseService.getById(1L)).thenReturn(courseOfInstructor(5L));
 
@@ -191,5 +203,52 @@ class ApprovalRequestServiceTest {
         assertThatThrownBy(() -> approvalRequestService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Solicitud de aprobacion no encontrada con id 99");
+    }
+
+    private ApprovalRequest submitted() {
+        return new ApprovalRequest(Fixtures.course(3L, CourseStatus.DRAFT), "Listo");
+    }
+
+    @Test
+    void getPendingDevuelveSoloLasEnviadas() {
+        ApprovalRequest pending = submitted();
+        when(approvalRequestRepository.findByStatusOrderByRequestDateAsc(ApprovalStatus.SUBMITTED))
+                .thenReturn(List.of(pending));
+
+        assertThat(approvalRequestService.getPending()).containsExactly(pending);
+    }
+
+    @Test
+    void resolveConApprovedPublicaElCurso() {
+        ApprovalRequest request = submitted();
+        when(approvalRequestRepository.findById(1L)).thenReturn(Optional.of(request));
+        when(administratorService.getById(3L)).thenReturn(Fixtures.administrator(3L));
+        when(approvalRequestRepository.save(request)).thenReturn(request);
+
+        approvalRequestService.resolve(1L, ApprovalStatus.APPROVED, 3L, "Ok");
+
+        assertThat(request.getStatus()).isEqualTo(ApprovalStatus.APPROVED);
+        assertThat(request.getCourse().getStatus()).isEqualTo(CourseStatus.PUBLISHED);
+    }
+
+    @Test
+    void resolveConRejectedVuelveElCursoABorrador() {
+        ApprovalRequest request = submitted();
+        when(approvalRequestRepository.findById(1L)).thenReturn(Optional.of(request));
+        when(administratorService.getById(3L)).thenReturn(Fixtures.administrator(3L));
+        when(approvalRequestRepository.save(request)).thenReturn(request);
+
+        approvalRequestService.resolve(1L, ApprovalStatus.REJECTED, 3L, "Falta el temario");
+
+        assertThat(request.getStatus()).isEqualTo(ApprovalStatus.REJECTED);
+        assertThat(request.getCourse().getStatus()).isEqualTo(CourseStatus.DRAFT);
+    }
+
+    @Test
+    void resolveConSubmittedLanzaValidacionSinTocarLaSolicitud() {
+        assertThatThrownBy(() -> approvalRequestService.resolve(1L, ApprovalStatus.SUBMITTED, 3L, null))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("El campo 'status' tiene que ser APPROVED o REJECTED");
+        verify(approvalRequestRepository, never()).findById(any());
     }
 }

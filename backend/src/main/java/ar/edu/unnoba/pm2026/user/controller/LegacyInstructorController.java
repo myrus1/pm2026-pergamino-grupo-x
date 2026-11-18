@@ -1,17 +1,13 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
-import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.auth.service.AuthenticationService;
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
 import ar.edu.unnoba.pm2026.auth.dto.AuthenticationRequest;
-import ar.edu.unnoba.pm2026.user.dto.CreateInstructorRequest;
 import ar.edu.unnoba.pm2026.user.dto.InstructorCourseResponse;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
-import ar.edu.unnoba.pm2026.user.service.InstructorService;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -24,36 +20,22 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// Recurso del instructor (TP4/TP5): registro, login y cursos propios.
-// Los 401/403 los produce ApiExceptionHandler a partir de las excepciones de auth/.
+// Recurso del instructor (TP5): login y cursos propios en GET /instructor.
+// El registro (POST /instructor) y GET /instructor/courses pasaron al TP6: InstructorAccountController e
+// InstructorCourseController. Los 401/403 los produce ApiExceptionHandler a partir de las excepciones de auth/.
 @RestController
 @RequestMapping("/instructor")
 public class LegacyInstructorController {
 
-    private final InstructorService instructorService;
     private final AuthenticationService authenticationService;
     private final AuthorizationService authorizationService;
     private final CourseService courseService;
 
-    public LegacyInstructorController(InstructorService instructorService, AuthenticationService authenticationService,
+    public LegacyInstructorController(AuthenticationService authenticationService,
             AuthorizationService authorizationService, CourseService courseService) {
-        this.instructorService = instructorService;
         this.authenticationService = authenticationService;
         this.authorizationService = authorizationService;
         this.courseService = courseService;
-    }
-
-    @SecurityRequirement(name = "token")
-    @ApiResponse(responseCode = "201", description = "Instructor creado")
-    @PostMapping
-    public ResponseEntity<Void> create(
-            @RequestHeader(value = "Authorization", required = false) String token,
-            @RequestBody @Valid CreateInstructorRequest request) {
-        authorizationService.authorize(token, Role.ADMINISTRATOR);
-        Instructor instructor = new Instructor(request.firstName(), request.lastName(), request.email(),
-                request.password());
-        Instructor created = instructorService.create(instructor);
-        return ResponseEntity.created(ResourceLocation.forId(created.getId())).build();
     }
 
     @PostMapping(value = "/auth", produces = "application/json")
@@ -63,13 +45,12 @@ public class LegacyInstructorController {
     }
 
     @SecurityRequirement(name = "token")
-    @GetMapping(value = {"", "/courses"}, produces = "application/json")
+    @GetMapping(produces = "application/json")
     public List<InstructorCourseResponse> getCourses(
             @RequestHeader(value = "Authorization", required = false) String token) {
         AuthenticatedUser authenticatedUser = authorizationService.authorize(token, Role.INSTRUCTOR);
         return courseService.getCoursesByInstructorId(authenticatedUser.id()).stream()
-                .map(course -> new InstructorCourseResponse(course.getId(), course.getTitle(), course.getDescription()))
+                .map(InstructorCourseResponse::from)
                 .toList();
     }
-
 }

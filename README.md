@@ -189,7 +189,7 @@ La tabla muestra los códigos de cada operación. Todas también pueden responde
 | `POST /api/approval-requests` | `201 + Location, 400, 401, 403, 404, 409, 415` |
 | `POST /api/approval-requests/{id}/approve`, `POST /api/approval-requests/{id}/reject` | `200, 400, 401, 403, 404, 409, 415` |
 | `POST /student/auth`, `POST /instructor/auth`, `POST /administrator/auth` | `200, 400, 401, 415` |
-| `POST /instructor` (alta heredada) | `201 + Location, 400, 401, 403, 409, 415` |
+| `POST /instructor` (registro del TP6, público) | `201 + Location, 400, 409, 415` |
 | `GET /instructor`, `GET /instructor/courses` | `200, 401, 403` |
 
 `400` corresponde a entradas inválidas; `401` a falta o invalidez de autenticación; `403` a permisos insuficientes;
@@ -197,3 +197,78 @@ La tabla muestra los códigos de cada operación. Todas también pueden responde
 soportado. `400` se documenta donde hay cuerpo, parámetros de ruta o de consulta; `415`, donde hay cuerpo. En
 `GET /api/students`, el `404` aplica si se envía un `courseId` inexistente. En `GET /api/courses`, `401`, `403` y
 `404` aplican cuando se envía `studentId`; el listado sin ese filtro es público.
+
+### Rutas del TP6
+
+El TP6 agrupa las rutas por rol. Conviven con las de `/api/...`, que sigue usando el front. Cada grupo acepta solo
+el token de su rol y con el de otro responde `403`: un administrador no puede hacer acciones de instructor ni de
+alumno (#38). Los nombres siguen el enunciado (`name`, `lastName`). Como en la tabla anterior, todas pueden
+responder además `405`, `406` y `500`.
+
+#### Administrador (#39)
+
+| Endpoint | Qué hace | Códigos posibles |
+| --- | --- | --- |
+| `POST /admin/auth` | login: `{"token": "Bearer ..."}` | `200, 400, 401, 415` |
+| `POST /admin/accounts` | alta (`email`, `password`, `name`, `lastName`) | `201 + Location, 400, 401, 403, 409, 415` |
+| `GET /admin/accounts` | administradores: `id`, `name`, `lastName`, `email` | `200, 401, 403` |
+| `DELETE /admin/accounts/{id}` | baja; `409` si es el mismo administrador del token | `204, 400, 401, 403, 404, 409` |
+| `GET /admin/approval-requests` | solicitudes pendientes (`SUBMITTED`), de la más vieja a la más nueva | `200, 401, 403` |
+| `PUT /admin/approval-requests/{id}` | resuelve con `status` (`APPROVED`/`REJECTED`) y `adminComment` | `200, 400, 401, 403, 404, 409, 415` |
+| `GET /admin/courses` | cursos publicados, por fecha de inicio descendente | `200, 401, 403` |
+| `GET /admin/courses/{id}` | detalle con instructor, `enrolledStudents` y `availableSeats` | `200, 400, 401, 403, 404` |
+| `GET /admin/courses/{id}/students` | inscriptos con `enrollmentDate` y `finalAmount` | `200, 400, 401, 403, 404` |
+| `GET /admin/instructors` | instructores con sus especialidades | `200, 401, 403` |
+| `GET /admin/instructors/{id}` | datos, especialidades y `courseSummary` (cursos por estado) | `200, 400, 401, 403, 404` |
+| `GET /admin/instructors/{id}/courses` | sus cursos publicados | `200, 400, 401, 403, 404` |
+| `GET /admin/instructors/{id}/courses/pending` | sus cursos pendientes de aprobación | `200, 400, 401, 403, 404` |
+| `GET /admin/students` | alumnos registrados | `200, 401, 403` |
+| `GET /admin/students/{id}` | datos, `enrolledCourses` y `totalPaid` | `200, 400, 401, 403, 404` |
+| `GET /admin/students/{id}/courses` | cursos en los que se inscribió | `200, 400, 401, 403, 404` |
+
+#### Reportes del administrador (#40)
+
+Los tres piden `fromDate` y `toDate` (`YYYY-MM-DD`, los dos días incluidos) y filtran por la fecha de inscripción.
+Responden `400` si falta una fecha (`request.missing-parameter`), si no es una fecha válida
+(`request.invalid-parameter`) o si `fromDate` es posterior a `toDate` (`request.invalid-date-range`).
+
+| Endpoint | Qué devuelve | Códigos posibles |
+| --- | --- | --- |
+| `GET /admin/reports/revenue` | `fromDate`, `toDate`, `enrollments` y `total` pagado en el rango | `200, 400, 401, 403` |
+| `GET /admin/reports/courses-revenue` | por curso con inscripciones en el rango: `enrollments` y `total`, del que más facturó al que menos | `200, 400, 401, 403` |
+| `GET /admin/reports/enrollments` | cada inscripción con `basePrice` (el actual del curso), `finalAmount` y `discount` | `200, 400, 401, 403` |
+
+#### Instructor (#41)
+
+Salvo el registro y el login, piden token de instructor y solo operan sobre sus cursos: uno ajeno responde `403`, y
+editar o borrar uno que ya salió de borrador responde `409`. Un administrador recibe `403`.
+
+| Endpoint | Qué hace | Códigos posibles |
+| --- | --- | --- |
+| `POST /instructor` | registro sin token (`email`, `password`; `name` y `lastName` opcionales hasta que se resuelva el #13) | `201 + Location, 400, 409, 415` |
+| `POST /auth` | login: `{"token": "Bearer ..."}` | `200, 400, 401, 415` |
+| `GET /instructor/courses` | sus cursos: `id`, `name`, `description` | `200, 401, 403` |
+| `GET /instructor/courses/{id}` | detalle con estado, cupo, inscriptos y precio base | `200, 400, 401, 403, 404` |
+| `POST /instructor/courses` | alta en DRAFT (`title`, `description`, `startDate`, `endDate`, `maxCapacity`, `basePrice`, `specialty`) | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `PUT /instructor/courses/{id}` | edita solo los campos que vienen | `200, 400, 401, 403, 404, 409, 415` |
+| `DELETE /instructor/courses/{id}` | baja de un curso en DRAFT | `204, 400, 401, 403, 404, 409` |
+| `POST /instructor/courses/{id}/approval-requests` | pide la aprobación (`instructorComment` opcional) | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `GET /instructor/approval-requests` | sus solicitudes | `200, 401, 403` |
+| `GET /instructor/courses/{id}/students` | inscriptos de un curso suyo | `200, 400, 401, 403, 404` |
+| `GET /instructors/me/revenue` | lo acumulado: 65% del precio base por inscripción | `200, 401, 403` |
+| `GET /instructor/revenue/enrollments` | total y detalle por inscripción; `fromDate` y `toDate` opcionales | `200, 400, 401, 403` |
+
+#### Alumno (#42)
+
+Salvo el registro y el login, piden token de alumno. El precio con descuento (`applicablePrice`) sale de la misma
+regla que la inscripción (25% menos si ya se inscribió a otro curso de la misma especialidad en el mes), así el
+precio que se muestra es el que se cobra.
+
+| Endpoint | Qué hace | Códigos posibles |
+| --- | --- | --- |
+| `POST /students` | registro sin token (`name`, `lastName`, `dni`, `email`, `password`) | `201 + Location, 400, 409, 415` |
+| `POST /students/auth` | login: `{"token": "Bearer ..."}` | `200, 400, 401, 415` |
+| `GET /student/courses/available` | publicados que no empezaron, con cupo y sin los que ya cursa, con `basePrice`, `applicablePrice` y `loyaltyDiscount` | `200, 401, 403` |
+| `GET /student/courses/{id}` | detalle con instructor, `availableSeats`, precios y `enrolled`; `404` si no está publicado | `200, 400, 401, 403, 404` |
+| `POST /student/enrollments` | inscripción (`courseId`): `basePrice`, `finalAmount` y `discount` | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `GET /students/enrollments` | sus inscripciones de la más nueva a la más vieja, con el curso y lo pagado | `200, 401, 403` |

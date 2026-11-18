@@ -42,6 +42,13 @@ class ApiDocumentationTest {
         assertPublic(paths, "/student/auth", "post");
         assertPublic(paths, "/instructor/auth", "post");
         assertPublic(paths, "/administrator/auth", "post");
+        assertPublic(paths, "/admin/auth", "post");
+        // TP6 (#41): el registro y el login del instructor no piden token
+        assertPublic(paths, "/instructor", "post");
+        assertPublic(paths, "/auth", "post");
+        // TP6 (#42): el registro y el login del alumno no piden token
+        assertPublic(paths, "/students", "post");
+        assertPublic(paths, "/students/auth", "post");
 
         // Consultas publicas (hacen falta para mostrar los cursos)
         assertPublic(paths, "/api/courses", "get");
@@ -71,6 +78,28 @@ class ApiDocumentationTest {
         assertRequiresToken(paths, "/api/approval-requests/{id}/approve", "post");
         assertRequiresToken(paths, "/instructor", "get");
         assertRequiresToken(paths, "/instructor/courses", "get");
+
+        // TP6 (#39): todo /admin pide token, salvo el login
+        assertRequiresToken(paths, "/admin/accounts", "get");
+        assertRequiresToken(paths, "/admin/accounts", "post");
+        assertRequiresToken(paths, "/admin/accounts/{id}", "delete");
+        assertRequiresToken(paths, "/admin/approval-requests", "get");
+        assertRequiresToken(paths, "/admin/approval-requests/{id}", "put");
+        assertRequiresToken(paths, "/admin/courses", "get");
+        assertRequiresToken(paths, "/admin/courses/{id}/students", "get");
+        assertRequiresToken(paths, "/admin/instructors/{id}/courses/pending", "get");
+        assertRequiresToken(paths, "/admin/students/{id}/courses", "get");
+        assertRequiresToken(paths, "/admin/reports/revenue", "get");
+        assertRequiresToken(paths, "/instructor/courses", "post");
+        assertRequiresToken(paths, "/instructor/courses/{id}", "put");
+        assertRequiresToken(paths, "/instructor/courses/{id}/approval-requests", "post");
+        assertRequiresToken(paths, "/instructor/approval-requests", "get");
+        assertRequiresToken(paths, "/instructors/me/revenue", "get");
+        assertRequiresToken(paths, "/instructor/revenue/enrollments", "get");
+        assertRequiresToken(paths, "/student/courses/available", "get");
+        assertRequiresToken(paths, "/student/courses/{id}", "get");
+        assertRequiresToken(paths, "/student/enrollments", "post");
+        assertRequiresToken(paths, "/students/enrollments", "get");
     }
 
     @Test
@@ -222,9 +251,56 @@ class ApiDocumentationTest {
                 expected("/student/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
                 expected("/instructor/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
                 expected("/administrator/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
-                expected("/instructor", "post", "201", "400", "401", "403", "405", "406", "409", "415", "500"),
+                expected("/instructor", "post", "201", "400", "405", "406", "409", "415", "500"),
                 expected("/instructor", "get", "200", "401", "403", "405", "406", "500"),
-                expected("/instructor/courses", "get", "200", "401", "403", "405", "406", "500"));
+                expected("/instructor/courses", "get", "200", "401", "403", "405", "406", "500"),
+                // TP6 (#39): rutas del administrador
+                expected("/admin/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
+                expected("/admin/accounts", "post", "201", "400", "401", "403", "405", "406", "409", "415", "500"),
+                expected("/admin/accounts", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/admin/accounts/{id}", "delete", "204", "400", "401", "403", "404", "405", "406", "409",
+                        "500"),
+                expected("/admin/approval-requests", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/admin/approval-requests/{id}", "put", "200", "400", "401", "403", "404", "405", "406",
+                        "409", "415", "500"),
+                expected("/admin/courses", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/admin/courses/{id}", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/admin/courses/{id}/students", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/admin/instructors", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/admin/instructors/{id}", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/admin/instructors/{id}/courses", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/admin/instructors/{id}/courses/pending", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/admin/students", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/admin/students/{id}", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/admin/students/{id}/courses", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                // TP6 (#40): reportes con fromDate/toDate obligatorios
+                expected("/admin/reports/revenue", "get", "200", "400", "401", "403", "405", "406", "500"),
+                expected("/admin/reports/courses-revenue", "get", "200", "400", "401", "403", "405", "406", "500"),
+                expected("/admin/reports/enrollments", "get", "200", "400", "401", "403", "405", "406", "500"),
+                // TP6 (#41): rutas del instructor
+                expected("/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
+                expected("/instructor/courses", "post", "201", "400", "401", "403", "404", "405", "406", "409", "415",
+                        "500"),
+                expected("/instructor/courses/{id}", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/instructor/courses/{id}", "put", "200", "400", "401", "403", "404", "405", "406", "409",
+                        "415", "500"),
+                expected("/instructor/courses/{id}", "delete", "204", "400", "401", "403", "404", "405", "406", "409",
+                        "500"),
+                expected("/instructor/courses/{id}/students", "get", "200", "400", "401", "403", "404", "405", "406",
+                        "500"),
+                expected("/instructor/courses/{id}/approval-requests", "post", "201", "400", "401", "403", "404",
+                        "405", "406", "409", "415", "500"),
+                expected("/instructor/approval-requests", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/instructors/me/revenue", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/instructor/revenue/enrollments", "get", "200", "400", "401", "403", "405", "406", "500"),
+                // TP6 (#42): rutas del alumno
+                expected("/students", "post", "201", "400", "405", "406", "409", "415", "500"),
+                expected("/students/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
+                expected("/student/courses/available", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/student/courses/{id}", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/student/enrollments", "post", "201", "400", "401", "403", "404", "405", "406", "409",
+                        "415", "500"),
+                expected("/students/enrollments", "get", "200", "401", "403", "405", "406", "500"));
 
         Set<String> expectedOperations = new HashSet<>();
         for (OpenApiResponseExpectation expectation : matrix) {

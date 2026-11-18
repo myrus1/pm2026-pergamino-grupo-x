@@ -66,14 +66,14 @@ public class CourseController {
         return response(courseService.getById(id));
     }
 
-    // Solo instructores y administradores crean; el instructor crea los suyos siempre.
+    // Crear y editar es solo del instructor, sobre sus cursos (TP6: el admin no hace acciones de instructor).
     @ApiResponse(responseCode = "404", description = "Instructor o especialidad no encontrados")
     @SecurityRequirement(name = "token")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<CourseResponse> create(@RequestBody @Valid CourseRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
+        AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR);
         CourseResponse created = response(courseService.create(request, actor));
         return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
     }
@@ -82,10 +82,11 @@ public class CourseController {
     @PutMapping("/{id}")
     public CourseResponse update(@PathVariable Long id, @RequestBody @Valid CourseRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
+        AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR);
         return response(courseService.update(id, request, actor));
     }
 
+    // El instructor borra los suyos en borrador; el administrador puede sacar cualquier curso.
     @SecurityRequirement(name = "token")
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -96,9 +97,6 @@ public class CourseController {
     }
 
     private CourseResponse response(Course course) {
-        return new CourseResponse(course.getId(), course.getTitle(), course.getDescription(), course.getBasePrice(),
-                course.getStartDate(), course.getEndDate(), course.getMaxCapacity(), course.getStatus(),
-                course.getSpecialty() == null ? null : course.getSpecialty().getId(),
-                course.getInstructor() == null ? null : course.getInstructor().getId());
+        return CourseResponse.from(course);
     }
 }

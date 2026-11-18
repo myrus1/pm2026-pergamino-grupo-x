@@ -14,4 +14,12 @@ public final class ResourceLocation {
                 .buildAndExpand(id)
                 .toUri();
     }
+
+    // Para las altas del TP6 cuyo recurso se consulta en otra ruta (p. ej. POST /admin/accounts -> /api/administrators/{id})
+    public static URI forPath(String template, Object... variables) {
+        return ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path(template)
+                .buildAndExpand(variables)
+                .toUri();
+    }
 }

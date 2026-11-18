@@ -7,13 +7,17 @@ import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
+import ar.edu.unnoba.pm2026.enrollment.dto.EnrolledStudentResponse;
+import ar.edu.unnoba.pm2026.enrollment.dto.StudentEnrollmentResponse;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
 import ar.edu.unnoba.pm2026.enrollment.repository.EnrollmentRepository;
+import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.model.Student;
 import ar.edu.unnoba.pm2026.user.service.InstructorService;
 import ar.edu.unnoba.pm2026.user.service.StudentService;
 import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.math.BigDecimal;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
@@ -42,6 +46,32 @@ public class EnrollmentService {
     public List<Student> getStudentsOfCourse(Long courseId) {
         courseService.getById(courseId);
         return enrollmentRepository.findStudentsByCourseId(courseId);
+    }
+
+    // TP6: alumnos inscriptos con la fecha de inscripcion y el precio final pagado (404 si el curso no existe).
+    // El alumno es LAZY, por eso la respuesta se arma aca y no en el controller.
+    @Transactional(readOnly = true)
+    public List<EnrolledStudentResponse> getEnrolledStudents(Long courseId) {
+        courseService.getById(courseId);
+        return enrolledStudentsOf(courseId);
+    }
+
+    // Igual, pero el instructor solo ve los alumnos de sus cursos (403 si es de otro)
+    @Transactional(readOnly = true)
+    public List<EnrolledStudentResponse> getEnrolledStudents(Long courseId, AuthenticatedUser actor) {
+        courseService.getById(courseId, actor);
+        return enrolledStudentsOf(courseId);
+    }
+
+    private List<EnrolledStudentResponse> enrolledStudentsOf(Long courseId) {
+        return enrollmentRepository.findByCourseIdOrderByEnrollmentDateAsc(courseId).stream()
+                .map(enrollment -> {
+                    Student student = enrollment.getStudent();
+                    return new EnrolledStudentResponse(enrollment.getId(), student.getId(), student.getFirstName(),
+                            student.getLastName(), student.getEmail(), student.getDni(),
+                            enrollment.getEnrollmentDate(), enrollment.getFinalAmount());
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -78,10 +108,44 @@ public class EnrollmentService {
         if (actor == null) {
             throw new ValidationException("El usuario autenticado no puede ser nulo");
         }
-        if (actor.role() == Role.STUDENT && !Objects.equals(actor.id(), studentId)) {
+        // Inscribirse es una accion del alumno: el TP6 no deja que el admin la haga por el.
+        if (actor.role() != Role.STUDENT) {
+            throw new AuthorizationException("Solo un alumno puede inscribirse a un curso");
+        }
+        if (!Objects.equals(actor.id(), studentId)) {
             throw new AuthorizationException("Solo puede inscribirse a si mismo");
         }
         return enroll(studentId, courseId);
+    }
+
+    // TP6: POST /student/enrollments. El alumno es el del token; la respuesta se arma aca porque recorre el curso.
+    public StudentEnrollmentResponse enrollStudent(Long courseId, AuthenticatedUser actor) {
+        if (actor == null) {
+            throw new ValidationException("El usuario autenticado no puede ser nulo");
+        }
+        return studentEnrollmentOf(enroll(actor.id(), courseId, actor));
+    }
+
+    // TP6: GET /students/enrollments, de la inscripcion mas nueva a la mas vieja
+    @Transactional(readOnly = true)
+    public List<StudentEnrollmentResponse> getStudentEnrollments(Long studentId) {
+        return enrollmentRepository.findByStudentId(studentId).stream()
+                .sorted(Comparator.comparing(Enrollment::getEnrollmentDate).thenComparing(Enrollment::getId)
+                        .reversed())
+                .map(EnrollmentService::studentEnrollmentOf)
+                .toList();
+    }
+
+    private static StudentEnrollmentResponse studentEnrollmentOf(Enrollment enrollment) {
+        Course course = enrollment.getCourse();
+        Instructor instructor = course.getInstructor();
+        StudentEnrollmentResponse.EnrolledCourse enrolledCourse = new StudentEnrollmentResponse.EnrolledCourse(
+                course.getId(), course.getTitle(), course.getDescription(), course.getStartDate(),
+                course.getEndDate(), course.getSpecialty().getName(),
+                (instructor.getFirstName() + " " + instructor.getLastName()).trim());
+        return new StudentEnrollmentResponse(enrollment.getId(), enrollment.getEnrollmentDate(),
+                course.getBasePrice(), enrollment.getFinalAmount(),
+                course.getBasePrice().subtract(enrollment.getFinalAmount()), enrolledCourse);
     }
 
     @Transactional(readOnly = true)

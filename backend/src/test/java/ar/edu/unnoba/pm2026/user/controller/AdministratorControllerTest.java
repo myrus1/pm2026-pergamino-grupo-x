@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.user.controller;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -15,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import ar.edu.unnoba.pm2026.testutil.TestIds;
 import ar.edu.unnoba.pm2026.user.model.Administrator;
 import ar.edu.unnoba.pm2026.user.service.AdministratorService;
+import ar.edu.unnoba.pm2026.shared.exception.BusinessRuleException;
 import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -132,15 +134,27 @@ class AdministratorControllerTest {
 
     @Test
     void deleteResponde204() throws Exception {
-        when(administratorService.getById(1L)).thenReturn(administrator());
-
         mockMvc.perform(delete(PATH + "/1"))
                 .andExpect(status().isNoContent());
+        verify(administratorService).delete(1L, AuthTestSupport.ADMIN);
+    }
+
+    // TP6: el administrador no puede borrarse a si mismo
+    @Test
+    void deleteDeSiMismoResponde409() throws Exception {
+        doThrow(new BusinessRuleException("administrator.self-deletion",
+                "Un administrador no puede eliminarse a si mismo"))
+                .when(administratorService).delete(3L, AuthTestSupport.ADMIN);
+
+        mockMvc.perform(delete(PATH + "/3"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value("Un administrador no puede eliminarse a si mismo"));
     }
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(administratorService.getById(99L)).thenThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"));
+        doThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"))
+                .when(administratorService).delete(99L, AuthTestSupport.ADMIN);
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -198,6 +212,6 @@ class AdministratorControllerTest {
         AuthTestSupport.withoutToken(authorizationService);
 
         mockMvc.perform(delete(PATH + "/1")).andExpect(status().isUnauthorized());
-        verify(administratorService, never()).delete(any());
+        verify(administratorService, never()).delete(any(), any());
     }
 }

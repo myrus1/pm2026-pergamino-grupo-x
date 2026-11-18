@@ -39,6 +39,9 @@ import org.junit.jupiter.api.BeforeEach;
 @WebMvcTest(ApprovalRequestController.class)
 class ApprovalRequestControllerTest {
 
+    private static final AuthenticatedUser INSTRUCTOR = new AuthenticatedUser(4L, "iris@example.com",
+            Role.INSTRUCTOR);
+
     private static final String PATH = "/api/approval-requests";
 
     @Autowired
@@ -97,7 +100,8 @@ class ApprovalRequestControllerTest {
 
     @Test
     void submitResponde201ConLaSolicitud() throws Exception {
-        when(approvalRequestService.submit(3L, "Listo", AuthTestSupport.ADMIN)).thenReturn(request(1L));
+        AuthTestSupport.as(authorizationService, INSTRUCTOR);
+        when(approvalRequestService.submit(3L, "Listo", INSTRUCTOR)).thenReturn(request(1L));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"courseId":3,"instructorComment":"Listo"}"""))
@@ -117,7 +121,8 @@ class ApprovalRequestControllerTest {
 
     @Test
     void submitDeCursoQueNoEstaEnBorradorResponde409() throws Exception {
-        when(approvalRequestService.submit(3L, null, AuthTestSupport.ADMIN)).thenThrow(
+        AuthTestSupport.as(authorizationService, INSTRUCTOR);
+        when(approvalRequestService.submit(3L, null, INSTRUCTOR)).thenThrow(
                 new ApprovalRequestException("Solo se puede solicitar la aprobacion de un curso en borrador"));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
@@ -211,6 +216,14 @@ class ApprovalRequestControllerTest {
         mockMvc.perform(get(PATH + "/1"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.detail").value("La solicitud de aprobacion no le pertenece"));
+    }
+
+    // TP6: el administrador resuelve solicitudes, pero no las pide
+    @Test
+    void submitComoAdministradorResponde403() throws Exception {
+        mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("{\"courseId\":3}"))
+                .andExpect(status().isForbidden());
+        verify(approvalRequestService, never()).submit(any(), any(), any());
     }
 
     @Test

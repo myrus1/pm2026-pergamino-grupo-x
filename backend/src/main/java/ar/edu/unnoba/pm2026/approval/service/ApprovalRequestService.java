@@ -1,7 +1,10 @@
 package ar.edu.unnoba.pm2026.approval.service;
 
 import ar.edu.unnoba.pm2026.approval.model.ApprovalRequest;
+import ar.edu.unnoba.pm2026.approval.model.ApprovalStatus;
 import ar.edu.unnoba.pm2026.approval.repository.ApprovalRequestRepository;
+import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
+import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
 import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
@@ -40,6 +43,25 @@ public class ApprovalRequestService {
         return approvalRequestRepository.findByCourseInstructorIdOrderByRequestDateDesc(instructorId);
     }
 
+    // TP6: GET /admin/approval-requests muestra solo las que esperan respuesta
+    @Transactional(readOnly = true)
+    public List<ApprovalRequest> getPending() {
+        return approvalRequestRepository.findByStatusOrderByRequestDateAsc(ApprovalStatus.SUBMITTED);
+    }
+
+    // TP6: PUT /admin/approval-requests/{id} decide con el status del body (APPROVED o REJECTED)
+    public ApprovalRequest resolve(Long id, ApprovalStatus decision, Long administratorId,
+            String administratorComment) {
+        if (decision == ApprovalStatus.APPROVED) {
+            return approve(id, administratorId, administratorComment);
+        }
+        if (decision == ApprovalStatus.REJECTED) {
+            return reject(id, administratorId, administratorComment);
+        }
+        throw new ValidationException("approval-request.invalid-decision",
+                "El campo 'status' tiene que ser APPROVED o REJECTED");
+    }
+
     @Transactional(readOnly = true)
     public ApprovalRequest getById(Long id) {
         return approvalRequestRepository.findById(id)
@@ -58,8 +80,11 @@ public class ApprovalRequestService {
         return request;
     }
 
-    // Solo el dueño del curso puede enviarlo a aprobacion.
+    // Solo el instructor dueño del curso puede enviarlo a aprobacion; el administrador solo resuelve.
     public ApprovalRequest submit(Long courseId, String instructorComment, AuthenticatedUser actor) {
+        if (actor.role() != Role.INSTRUCTOR) {
+            throw new AuthorizationException("Solo el instructor del curso puede pedir su aprobacion");
+        }
         Course course = courseService.getById(courseId);
         actor.requireOwnership(course.getInstructor().getId(), "El curso pertenece a otro instructor");
         ApprovalRequest request = new ApprovalRequest(course, instructorComment);

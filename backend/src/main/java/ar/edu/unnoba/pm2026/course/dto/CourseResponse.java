@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.course.dto;
 
+import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -21,4 +22,12 @@ public class CourseResponse {
     private CourseStatus status;
     private Long specialtyId;
     private Long instructorId;
+
+    // Solo lee los ids de las relaciones, asi que se puede armar fuera de una transaccion
+    public static CourseResponse from(Course course) {
+        return new CourseResponse(course.getId(), course.getTitle(), course.getDescription(), course.getBasePrice(),
+                course.getStartDate(), course.getEndDate(), course.getMaxCapacity(), course.getStatus(),
+                course.getSpecialty() == null ? null : course.getSpecialty().getId(),
+                course.getInstructor() == null ? null : course.getInstructor().getId());
+    }
 }

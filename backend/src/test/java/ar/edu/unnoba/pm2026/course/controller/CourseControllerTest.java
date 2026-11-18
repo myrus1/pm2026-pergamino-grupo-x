@@ -47,7 +47,7 @@ class CourseControllerTest {
     private static final String BODY = """
             {"title":"Curso de Java","description":"Desc","basePrice":100.00,
              "startDate":"2026-06-01","endDate":"2026-06-20","maxCapacity":5,
-             "specialtyId":1,"instructorId":2}""";
+             "specialtyId":1}""";
 
     @Autowired
     private MockMvc mockMvc;
@@ -138,6 +138,7 @@ class CourseControllerTest {
 
     @Test
     void createValidoResponde201ConElCursoCreado() throws Exception {
+        AuthTestSupport.asInstructor(authorizationService, 2L);
         Course created = new Course("Curso de Java", "Desc", new BigDecimal("100.00"), LocalDate.of(2026, 6, 1),
                 LocalDate.of(2026, 6, 20), 5, specialty(), instructor());
         TestIds.setId(created, 7L);
@@ -164,6 +165,7 @@ class CourseControllerTest {
 
     @Test
     void createConEspecialidadInexistenteResponde404() throws Exception {
+        AuthTestSupport.asInstructor(authorizationService, 2L);
         when(courseService.create(any(CourseRequest.class), any(AuthenticatedUser.class)))
                 .thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 1"));
 
@@ -174,6 +176,7 @@ class CourseControllerTest {
 
     @Test
     void updateModificaElCurso() throws Exception {
+        AuthTestSupport.asInstructor(authorizationService, 2L);
         Course updated = new Course("Curso de Java Avanzado", "Desc", new BigDecimal("100.00"),
                 LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 20), 5, specialty(), instructor());
         TestIds.setId(updated, 5L);
@@ -183,7 +186,7 @@ class CourseControllerTest {
         mockMvc.perform(put(PATH + "/5").contentType(MediaType.APPLICATION_JSON).content("""
                 {"title":"Curso de Java Avanzado","description":"Desc","basePrice":100.00,
                  "startDate":"2026-06-01","endDate":"2026-06-20","maxCapacity":5,
-                 "specialtyId":1,"instructorId":2}"""))
+                 "specialtyId":1}"""))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(5))
                 .andExpect(jsonPath("$.title").value("Curso de Java Avanzado"))
@@ -192,6 +195,7 @@ class CourseControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
+        AuthTestSupport.asInstructor(authorizationService, 2L);
         when(courseService.update(eq(99L), any(CourseRequest.class), any(AuthenticatedUser.class)))
                 .thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
 
@@ -261,6 +265,21 @@ class CourseControllerTest {
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isUnauthorized());
         verify(courseService, never()).create(any(CourseRequest.class), any(AuthenticatedUser.class));
+    }
+
+    // TP6: el administrador no hace acciones de instructor
+    @Test
+    void createComoAdministradorResponde403() throws Exception {
+        mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isForbidden());
+        verify(courseService, never()).create(any(CourseRequest.class), any(AuthenticatedUser.class));
+    }
+
+    @Test
+    void updateComoAdministradorResponde403() throws Exception {
+        mockMvc.perform(put(PATH + "/5").contentType(MediaType.APPLICATION_JSON).content(BODY))
+                .andExpect(status().isForbidden());
+        verify(courseService, never()).update(any(), any(CourseRequest.class), any(AuthenticatedUser.class));
     }
 
     @Test

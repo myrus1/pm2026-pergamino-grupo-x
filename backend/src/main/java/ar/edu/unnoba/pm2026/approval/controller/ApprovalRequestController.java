@@ -68,12 +68,13 @@ public class ApprovalRequestController {
         return response(approvalRequestService.getById(id, actor));
     }
 
+    // Pedir la aprobacion es del instructor dueño del curso; el administrador solo resuelve.
     @ApiResponse(responseCode = "404", description = "Curso no encontrado")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<ApprovalRequestResponse> submit(@RequestBody @Valid ApprovalSubmitRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
+        AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR);
         ApprovalRequestResponse created = response(approvalRequestService.submit(request.getCourseId(),
                 request.getInstructorComment(), actor));
         return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
@@ -94,9 +95,6 @@ public class ApprovalRequestController {
     }
 
     private ApprovalRequestResponse response(ApprovalRequest request) {
-        return new ApprovalRequestResponse(request.getId(), request.getCourse().getId(), request.getStatus(),
-                request.getRequestDate(), request.getResolutionDate(), request.getInstructorComment(),
-                request.getAdministratorComment(),
-                request.getAdministrator() == null ? null : request.getAdministrator().getId());
+        return ApprovalRequestResponse.from(request);
     }
 }

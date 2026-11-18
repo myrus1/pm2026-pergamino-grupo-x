@@ -82,8 +82,12 @@ Al agregar una feature nueva: crear `<feature>/model`, `<feature>/service`,
 - Sufijos: `XxxController`, `XxxService` (+ `XxxServiceImpl` solo si hay interfaz),
   `XxxRepository`, `XxxRequest` / `XxxResponse` (sin `DTO`), `XxxException`.
 - Subpaquetes por feature en singular: `controller`, `service`, `repository`, `model`, `dto`, `exception`.
-- Los endpoints de los TP (`/student/auth`, `/instructor`, `/administrator/auth`) viven en
+- Los endpoints de los TP4/TP5 (`/student/auth`, `/instructor`, `/administrator/auth`) viven en
   `Legacy*Controller`; las rutas nuevas van bajo `/api/...` en plural y kebab-case.
+- Las rutas por rol del **TP6** (`/admin/...`, `/instructor/...`, `/student/...`) viven en controllers
+  `Admin*Controller`, `Instructor*Controller` y `Student*Controller` dentro de su feature (p. ej.
+  `course/controller/AdminCourseController`). Usan los nombres de campo del enunciado (`name`, `lastName`) y
+  sus DTOs se arman con `XxxResponse.from(...)` o, si recorren relaciones LAZY, dentro del service.
 - El enum `Role` (`STUDENT`, `INSTRUCTOR`, `ADMINISTRATOR`) viaja en el claim `rol` del JWT; no se persiste.
 
 ## Comandos
@@ -211,20 +215,38 @@ el id coincide.
 | `GET /api/students` (lista), `GET /api/students/{id}`, `PUT/DELETE /api/students/{id}` | ❌ | ❌ | ✅ | ❌ |
 | `GET /api/students?courseId=` | ❌ | solo su curso | ✅ | ❌ |
 | `GET /api/courses?studentId=` | solo el suyo | ❌ | ✅ | ❌ |
-| `POST/PUT/DELETE /api/courses` | ❌ | solo los suyos, y solo en **DRAFT** | ✅ | ❌ |
-| `POST /api/enrollments` | solo a sí mismo | ❌ | ✅ (inscribe a cualquiera) | ❌ |
+| `POST /api/courses`, `PUT /api/courses/{id}` | ❌ | solo los suyos, y solo en **DRAFT** | ❌ | ❌ |
+| `DELETE /api/courses/{id}` | ❌ | solo los suyos, y solo en **DRAFT** | ✅ (cualquiera) | ❌ |
+| `POST /api/enrollments` | solo a sí mismo | ❌ | ❌ | ❌ |
 | `GET /api/enrollments`, `GET /api/enrollments/revenue` | ❌ | ❌ | ✅ | ❌ |
 | `GET /api/enrollments/{id}` | solo la suya | solo las de sus cursos | ✅ | ❌ |
 | `GET /api/instructors/{id}/revenue` | ❌ | solo la suya | ✅ | ❌ |
-| `POST /api/approval-requests` | ❌ | solo de sus cursos | ✅ | ❌ |
+| `POST /api/approval-requests` | ❌ | solo de sus cursos | ❌ | ❌ |
 | `GET /api/approval-requests` (`?status=`/`?instructorId=`) | ❌ | solo las suyas (ignora el filtro) | ✅ | ❌ |
 | `GET /api/approval-requests/{id}`, `.../{id}/approve`, `.../{id}/reject` | ❌ | solo lectura de las suyas | ✅ | ❌ |
+| `POST /admin/auth` (TP6) | ✅ | ✅ | ✅ | ✅ **sin token** |
+| Resto de `/admin/...` (TP6, #39), incluidos los reportes `/admin/reports/...` (#40) | ❌ | ❌ | ✅ | ❌ |
+| `POST /instructor` (registro) y `POST /auth` (login del instructor) (TP6, #41) | ✅ | ✅ | ✅ | ✅ **sin token** |
+| `/instructor/courses/...`, `/instructor/approval-requests`, `/instructor/revenue/...`, `/instructors/me/revenue` (TP6, #41) | ❌ | solo sobre los suyos | ❌ | ❌ |
+| `POST /students` (registro) y `POST /students/auth` (TP6, #42) | ✅ | ✅ | ✅ | ✅ **sin token** |
+| `/student/courses/...`, `POST /student/enrollments`, `GET /students/enrollments` (TP6, #42) | solo lo suyo | ❌ | ❌ | ❌ |
+| `DELETE /admin/accounts/{id}`, `DELETE /api/administrators/{id}` | ❌ | ❌ | ✅ (no a sí mismo: 409) | ❌ |
 
 - Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
   (los tres reciben `AuthenticationRequest`: `email` + `password` y devuelven
   `{"token": "Bearer ..."}`).
-- El instructor **no** elige el dueño de un curso: `CourseService` usa el id del token y solo
-  el administrador puede mandar `instructorId` en el body.
+- TP6 (#38): **el administrador no hace acciones de instructor ni de alumno**. No crea ni edita
+  cursos, no pide aprobaciones y no inscribe alumnos (403); `CourseService`, `ApprovalRequestService` y
+  `EnrollmentService` lo vuelven a chequear. Solo conserva el borrado de cursos, que no es una acción
+  del instructor en el TP6 y que usa la pantalla de cursos del admin en el front.
+- El dueño de un curso es siempre el instructor del token: `CourseRequest` no tiene `instructorId`.
+- Catálogo del alumno (TP6, #42): `Student.canApplyTo(curso, fecha)` y `Student.priceFor(curso, fecha)` usan las
+  mismas reglas que `applyCourse`, así los cursos "disponibles" y el precio con descuento que se muestran
+  coinciden con lo que se cobra. Viven en `enrollment/service/StudentCatalogService`.
+- Rangos de fechas de los reportes (TP6, #40): `shared/web/DateRange` (`fromDate`/`toDate`, los dos inclusive;
+  un extremo nulo queda abierto; 400 `request.invalid-date-range` si `fromDate > toDate`). Los reportes viven en
+  `enrollment/service/EnrollmentReportService`. `ApiExceptionHandler` responde `request.missing-parameter` y
+  `request.invalid-parameter` para parámetros de consulta faltantes o mal formados.
 - Un curso que salió de DRAFT no se edita ni se borra: `CourseStateException` → 409.
 - `administratorId` ya no se manda en `ApprovalResolveRequest`; sale del token.
 - Pruebas: `testutil/AuthTestSupport` (`asDefaultAdministrator`, `withoutToken`, `withoutPermission`,
@@ -287,10 +309,11 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   `GET /api/approval-requests?status=&instructorId=` para listar. Las reglas viven en
   `ApprovalRequest` y responden 409. El estado del curso no se recibe en `CourseRequest`:
   solo cambia por este flujo.
-- TP4: `POST /instructor` (`user/controller/LegacyInstructorController`) recibe
-  `CreateInstructorRequest` (record con email, password, firstName y lastName), delega en
-  `InstructorService.create` (email unico + BCrypt) y responde con `ResponseEntity` 201, o 409
-  si la creacion falla. Convive con el CRUD de `/api/instructors`.
+- TP6 (#41): `POST /instructor` (`user/controller/InstructorAccountController`) es **público**, como pide el
+  TP6. Recibe `CreateInstructorRequest` (email y password; `name`/`firstName` y `lastName` opcionales hasta que
+  se resuelva el #13, y si no vienen se guardan vacíos porque la tabla los pide NOT NULL), delega en
+  `InstructorService.create` (email unico + BCrypt) y responde 201 con `Location` a `/api/instructors/{id}`, o
+  409. El alta con token de admin sigue en `POST /api/instructors`.
 - TP5: `POST /instructor/auth`, `POST /student/auth` y `POST /administrator/auth` reciben
   `AuthenticationRequest` (email, password) y devuelven `{"token": "Bearer ..."}`
   (JWT HMAC512, vence en 10 dias, subject = email, con claims `rol` (`STUDENT`, `INSTRUCTOR` o `ADMINISTRATOR`) y `userId`), o 401.

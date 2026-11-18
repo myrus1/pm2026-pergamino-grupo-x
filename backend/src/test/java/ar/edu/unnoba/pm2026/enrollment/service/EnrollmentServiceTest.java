@@ -1,5 +1,9 @@
 package ar.edu.unnoba.pm2026.enrollment.service;
 
+import ar.edu.unnoba.pm2026.enrollment.dto.StudentEnrollmentResponse;
+import java.time.LocalDateTime;
+import ar.edu.unnoba.pm2026.testutil.Fixtures;
+import ar.edu.unnoba.pm2026.enrollment.dto.EnrolledStudentResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -164,6 +168,15 @@ class EnrollmentServiceTest {
     }
 
     @Test
+    void enrollRechazaQueUnAdministradorInscribaAUnAlumno() {
+        assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, administrator()))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("Solo un alumno puede inscribirse a un curso");
+        verify(studentService, never()).getById(any());
+        verify(enrollmentRepository, never()).save(any());
+    }
+
+    @Test
     void enrollRechazaQueUnAlumnoSeInscribaPorOtro() {
         assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, student(1L)))
                 .isInstanceOf(AuthorizationException.class)
@@ -286,5 +299,76 @@ class EnrollmentServiceTest {
         when(enrollmentRepository.findById(5L)).thenReturn(Optional.of(foreign));
 
         assertThat(enrollmentService.getById(5L, administrator())).isSameAs(foreign);
+    }
+
+    @Test
+    void getEnrolledStudentsDevuelveFechaYPrecioPagadoDeCadaAlumno() {
+        Course course = Fixtures.course(7L, CourseStatus.PUBLISHED);
+        Enrollment enrollment = new Enrollment(Fixtures.student(1L), course, new BigDecimal("75.00"),
+                LocalDateTime.of(2026, 5, 10, 0, 0));
+        when(courseService.getById(7L)).thenReturn(course);
+        when(enrollmentRepository.findByCourseIdOrderByEnrollmentDateAsc(7L)).thenReturn(List.of(enrollment));
+
+        List<EnrolledStudentResponse> students = enrollmentService.getEnrolledStudents(7L);
+
+        assertThat(students).hasSize(1);
+        assertThat(students.get(0).studentId()).isEqualTo(1L);
+        assertThat(students.get(0).finalAmount()).isEqualByComparingTo("75.00");
+        assertThat(students.get(0).enrollmentDate()).isEqualTo(LocalDateTime.of(2026, 5, 10, 0, 0));
+    }
+
+    @Test
+    void getEnrolledStudentsDeCursoInexistenteLanzaNotFound() {
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
+
+        assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(99L))
+                .isInstanceOf(ResourceNotFoundException.class);
+        verify(enrollmentRepository, never()).findByCourseIdOrderByEnrollmentDateAsc(any());
+    }
+
+    @Test
+    void getEnrolledStudentsComoInstructorDeCursoAjenoNoConsultaLasInscripciones() {
+        when(courseService.getById(7L, instructor(2L)))
+                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+
+        assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(7L, instructor(2L)))
+                .isInstanceOf(AuthorizationException.class);
+        verify(enrollmentRepository, never()).findByCourseIdOrderByEnrollmentDateAsc(any());
+    }
+
+    @Test
+    void getStudentEnrollmentsVaDeLaMasNuevaALaMasViejaConElDescuento() {
+        Student ana = Fixtures.student(1L);
+        Enrollment vieja = new Enrollment(ana, Fixtures.course(7L, CourseStatus.PUBLISHED), new BigDecimal("100.00"),
+                LocalDateTime.of(2026, 4, 1, 0, 0));
+        TestIds.setId(vieja, 1L);
+        Enrollment nueva = new Enrollment(ana, Fixtures.course(8L, CourseStatus.PUBLISHED), new BigDecimal("75.00"),
+                LocalDateTime.of(2026, 5, 1, 0, 0));
+        TestIds.setId(nueva, 2L);
+        when(enrollmentRepository.findByStudentId(1L)).thenReturn(List.of(vieja, nueva));
+
+        List<StudentEnrollmentResponse> enrollments = enrollmentService.getStudentEnrollments(1L);
+
+        assertThat(enrollments).extracting(StudentEnrollmentResponse::enrollmentId).containsExactly(2L, 1L);
+        assertThat(enrollments.get(0).discount()).isEqualByComparingTo("25.00");
+        assertThat(enrollments.get(0).course().title()).isEqualTo("Curso de Java");
+        assertThat(enrollments.get(0).course().instructor()).isEqualTo("Iris Ruiz");
+    }
+
+    @Test
+    void enrollStudentInscribeAlAlumnoDelToken() {
+        Student ana = Fixtures.student(1L);
+        Course course = Fixtures.course(7L, Fixtures.instructor(2L),
+                Fixtures.specialty(1L, "Programacion"), LocalDate.now().plusDays(30));
+        course.setStatus(CourseStatus.PUBLISHED);
+        when(studentService.getById(1L)).thenReturn(ana);
+        when(courseService.getById(7L)).thenReturn(course);
+        when(enrollmentRepository.save(any(Enrollment.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        StudentEnrollmentResponse response = enrollmentService.enrollStudent(7L, student(1L));
+
+        assertThat(response.course().id()).isEqualTo(7L);
+        assertThat(response.finalAmount()).isEqualByComparingTo("100.00");
+        assertThat(response.discount()).isEqualByComparingTo("0");
     }
 }

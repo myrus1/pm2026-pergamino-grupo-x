@@ -74,7 +74,7 @@ public class EnrollmentController {
     @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntity<EnrollmentResponse> create(@RequestBody @Valid EnrollmentRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
-        AuthenticatedUser actor = authorizationService.authorize(token, Role.STUDENT, Role.ADMINISTRATOR);
+        AuthenticatedUser actor = authorizationService.authorize(token, Role.STUDENT);
         EnrollmentResponse created = response(enrollmentService.enroll(request.getStudentId(), request.getCourseId(), actor));
         return ResponseEntity.created(ResourceLocation.forId(created.getId())).body(created);
     }
