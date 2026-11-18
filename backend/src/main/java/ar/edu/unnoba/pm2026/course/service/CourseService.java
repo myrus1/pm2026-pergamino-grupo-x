@@ -6,6 +6,7 @@ import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.course.dto.CourseDetailResponse;
 import ar.edu.unnoba.pm2026.course.dto.CourseRequest;
 import ar.edu.unnoba.pm2026.course.dto.SpecialtyResponse;
+import ar.edu.unnoba.pm2026.course.dto.UpdateCourseRequest;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.exception.CourseStateException;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
@@ -53,13 +54,30 @@ public class CourseService {
         requireModifiable(course, actor);
         Specialty specialty = specialtyService.getById(request.getSpecialtyId());
         course.getInstructor().validateSpecialty(specialty);
-        course.setTitle(request.getTitle());
+        course.applyChanges(request.getTitle(), request.getDescription(), request.getBasePrice(),
+                request.getStartDate(), request.getEndDate(), request.getMaxCapacity());
+        // En la edicion completa una descripcion vacia en el body borra la anterior
         course.setDescription(request.getDescription());
-        course.setBasePrice(request.getBasePrice());
-        course.setStartDate(request.getStartDate());
-        course.setEndDate(request.getEndDate());
-        course.setMaxCapacity(request.getMaxCapacity());
         course.setSpecialty(specialty);
+        return courseRepository.save(course);
+    }
+
+    // TP6: PUT /instructor/courses/{id} con solo los campos a modificar. Mismas reglas que la edicion
+    // completa: 403 si es de otro instructor, 409 si ya no esta en borrador.
+    public Course updatePartially(Long id, UpdateCourseRequest changes, AuthenticatedUser actor) {
+        requireInstructor(actor);
+        if (changes == null) {
+            throw new ValidationException("La solicitud no puede ser nula");
+        }
+        Course course = getById(id);
+        requireModifiable(course, actor);
+        if (changes.getSpecialtyId() != null) {
+            Specialty specialty = specialtyService.getById(changes.getSpecialtyId());
+            course.getInstructor().validateSpecialty(specialty);
+            course.setSpecialty(specialty);
+        }
+        course.applyChanges(changes.getTitle(), changes.getDescription(), changes.getBasePrice(),
+                changes.getStartDate(), changes.getEndDate(), changes.getMaxCapacity());
         return courseRepository.save(course);
     }
 
@@ -90,6 +108,12 @@ public class CourseService {
     @Transactional(readOnly = true)
     public CourseDetailResponse getDetail(Long id) {
         return detailOf(getById(id));
+    }
+
+    // Igual, pero el instructor solo ve el detalle de sus cursos (403 si es de otro)
+    @Transactional(readOnly = true)
+    public CourseDetailResponse getDetail(Long id, AuthenticatedUser actor) {
+        return detailOf(getById(id, actor));
     }
 
     private static CourseDetailResponse detailOf(Course course) {

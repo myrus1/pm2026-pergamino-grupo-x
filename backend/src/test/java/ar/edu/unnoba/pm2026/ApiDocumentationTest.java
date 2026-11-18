@@ -43,6 +43,9 @@ class ApiDocumentationTest {
         assertPublic(paths, "/instructor/auth", "post");
         assertPublic(paths, "/administrator/auth", "post");
         assertPublic(paths, "/admin/auth", "post");
+        // TP6 (#41): el registro y el login del instructor no piden token
+        assertPublic(paths, "/instructor", "post");
+        assertPublic(paths, "/auth", "post");
 
         // Consultas publicas (hacen falta para mostrar los cursos)
         assertPublic(paths, "/api/courses", "get");
@@ -84,6 +87,12 @@ class ApiDocumentationTest {
         assertRequiresToken(paths, "/admin/instructors/{id}/courses/pending", "get");
         assertRequiresToken(paths, "/admin/students/{id}/courses", "get");
         assertRequiresToken(paths, "/admin/reports/revenue", "get");
+        assertRequiresToken(paths, "/instructor/courses", "post");
+        assertRequiresToken(paths, "/instructor/courses/{id}", "put");
+        assertRequiresToken(paths, "/instructor/courses/{id}/approval-requests", "post");
+        assertRequiresToken(paths, "/instructor/approval-requests", "get");
+        assertRequiresToken(paths, "/instructors/me/revenue", "get");
+        assertRequiresToken(paths, "/instructor/revenue/enrollments", "get");
     }
 
     @Test
@@ -235,7 +244,7 @@ class ApiDocumentationTest {
                 expected("/student/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
                 expected("/instructor/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
                 expected("/administrator/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
-                expected("/instructor", "post", "201", "400", "401", "403", "405", "406", "409", "415", "500"),
+                expected("/instructor", "post", "201", "400", "405", "406", "409", "415", "500"),
                 expected("/instructor", "get", "200", "401", "403", "405", "406", "500"),
                 expected("/instructor/courses", "get", "200", "401", "403", "405", "406", "500"),
                 // TP6 (#39): rutas del administrador
@@ -260,7 +269,23 @@ class ApiDocumentationTest {
                 // TP6 (#40): reportes con fromDate/toDate obligatorios
                 expected("/admin/reports/revenue", "get", "200", "400", "401", "403", "405", "406", "500"),
                 expected("/admin/reports/courses-revenue", "get", "200", "400", "401", "403", "405", "406", "500"),
-                expected("/admin/reports/enrollments", "get", "200", "400", "401", "403", "405", "406", "500"));
+                expected("/admin/reports/enrollments", "get", "200", "400", "401", "403", "405", "406", "500"),
+                // TP6 (#41): rutas del instructor
+                expected("/auth", "post", "200", "400", "401", "405", "406", "415", "500"),
+                expected("/instructor/courses", "post", "201", "400", "401", "403", "404", "405", "406", "409", "415",
+                        "500"),
+                expected("/instructor/courses/{id}", "get", "200", "400", "401", "403", "404", "405", "406", "500"),
+                expected("/instructor/courses/{id}", "put", "200", "400", "401", "403", "404", "405", "406", "409",
+                        "415", "500"),
+                expected("/instructor/courses/{id}", "delete", "204", "400", "401", "403", "404", "405", "406", "409",
+                        "500"),
+                expected("/instructor/courses/{id}/students", "get", "200", "400", "401", "403", "404", "405", "406",
+                        "500"),
+                expected("/instructor/courses/{id}/approval-requests", "post", "201", "400", "401", "403", "404",
+                        "405", "406", "409", "415", "500"),
+                expected("/instructor/approval-requests", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/instructors/me/revenue", "get", "200", "401", "403", "405", "406", "500"),
+                expected("/instructor/revenue/enrollments", "get", "200", "400", "401", "403", "405", "406", "500"));
 
         Set<String> expectedOperations = new HashSet<>();
         for (OpenApiResponseExpectation expectation : matrix) {

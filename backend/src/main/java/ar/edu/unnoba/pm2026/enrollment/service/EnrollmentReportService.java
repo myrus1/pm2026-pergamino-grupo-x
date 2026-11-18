@@ -3,6 +3,7 @@ package ar.edu.unnoba.pm2026.enrollment.service;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.enrollment.dto.CourseRevenueResponse;
 import ar.edu.unnoba.pm2026.enrollment.dto.EnrollmentReportResponse;
+import ar.edu.unnoba.pm2026.enrollment.dto.InstructorRevenueReportResponse;
 import ar.edu.unnoba.pm2026.enrollment.dto.RevenueReportResponse;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
 import ar.edu.unnoba.pm2026.enrollment.repository.EnrollmentRepository;
@@ -50,6 +51,23 @@ public class EnrollmentReportService {
 
     public List<EnrollmentReportResponse> enrollments(DateRange range) {
         return enrollmentsIn(range).stream().map(EnrollmentReportService::reportOf).toList();
+    }
+
+    // TP6 (#41): lo que le corresponde al instructor en el rango (los extremos pueden venir vacios),
+    // de la inscripcion mas vieja a la mas nueva
+    public InstructorRevenueReportResponse instructorRevenue(Long instructorId, DateRange range) {
+        List<InstructorRevenueReportResponse.EnrollmentRevenue> detail =
+                enrollmentRepository.findByCourseInstructorId(instructorId).stream()
+                        .filter(enrollment -> range.contains(enrollment.getEnrollmentDate()))
+                        .sorted(Comparator.comparing(Enrollment::getEnrollmentDate).thenComparing(Enrollment::getId))
+                        .map(enrollment -> new InstructorRevenueReportResponse.EnrollmentRevenue(enrollment.getId(),
+                                enrollment.getEnrollmentDate(), enrollment.getCourse().getId(),
+                                enrollment.getCourse().getTitle(), enrollment.instructorRevenue()))
+                        .toList();
+        BigDecimal total = detail.stream()
+                .map(InstructorRevenueReportResponse.EnrollmentRevenue::amount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new InstructorRevenueReportResponse(range.from(), range.to(), total, detail);
     }
 
     private List<Enrollment> enrollmentsIn(DateRange range) {

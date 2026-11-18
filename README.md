@@ -189,7 +189,7 @@ La tabla muestra los códigos de cada operación. Todas también pueden responde
 | `POST /api/approval-requests` | `201 + Location, 400, 401, 403, 404, 409, 415` |
 | `POST /api/approval-requests/{id}/approve`, `POST /api/approval-requests/{id}/reject` | `200, 400, 401, 403, 404, 409, 415` |
 | `POST /student/auth`, `POST /instructor/auth`, `POST /administrator/auth` | `200, 400, 401, 415` |
-| `POST /instructor` (alta heredada) | `201 + Location, 400, 401, 403, 409, 415` |
+| `POST /instructor` (registro del TP6, público) | `201 + Location, 400, 409, 415` |
 | `GET /instructor`, `GET /instructor/courses` | `200, 401, 403` |
 
 `400` corresponde a entradas inválidas; `401` a falta o invalidez de autenticación; `403` a permisos insuficientes;
@@ -237,3 +237,23 @@ Responden `400` si falta una fecha (`request.missing-parameter`), si no es una f
 | `GET /admin/reports/revenue` | `fromDate`, `toDate`, `enrollments` y `total` pagado en el rango | `200, 400, 401, 403` |
 | `GET /admin/reports/courses-revenue` | por curso con inscripciones en el rango: `enrollments` y `total`, del que más facturó al que menos | `200, 400, 401, 403` |
 | `GET /admin/reports/enrollments` | cada inscripción con `basePrice` (el actual del curso), `finalAmount` y `discount` | `200, 400, 401, 403` |
+
+#### Instructor (#41)
+
+Salvo el registro y el login, piden token de instructor y solo operan sobre sus cursos: uno ajeno responde `403`, y
+editar o borrar uno que ya salió de borrador responde `409`. Un administrador recibe `403`.
+
+| Endpoint | Qué hace | Códigos posibles |
+| --- | --- | --- |
+| `POST /instructor` | registro sin token (`email`, `password`; `name` y `lastName` opcionales hasta que se resuelva el #13) | `201 + Location, 400, 409, 415` |
+| `POST /auth` | login: `{"token": "Bearer ..."}` | `200, 400, 401, 415` |
+| `GET /instructor/courses` | sus cursos: `id`, `name`, `description` | `200, 401, 403` |
+| `GET /instructor/courses/{id}` | detalle con estado, cupo, inscriptos y precio base | `200, 400, 401, 403, 404` |
+| `POST /instructor/courses` | alta en DRAFT (`title`, `description`, `startDate`, `endDate`, `maxCapacity`, `basePrice`, `specialty`) | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `PUT /instructor/courses/{id}` | edita solo los campos que vienen | `200, 400, 401, 403, 404, 409, 415` |
+| `DELETE /instructor/courses/{id}` | baja de un curso en DRAFT | `204, 400, 401, 403, 404, 409` |
+| `POST /instructor/courses/{id}/approval-requests` | pide la aprobación (`instructorComment` opcional) | `201 + Location, 400, 401, 403, 404, 409, 415` |
+| `GET /instructor/approval-requests` | sus solicitudes | `200, 401, 403` |
+| `GET /instructor/courses/{id}/students` | inscriptos de un curso suyo | `200, 400, 401, 403, 404` |
+| `GET /instructors/me/revenue` | lo acumulado: 65% del precio base por inscripción | `200, 401, 403` |
+| `GET /instructor/revenue/enrollments` | total y detalle por inscripción; `fromDate` y `toDate` opcionales | `200, 400, 401, 403` |

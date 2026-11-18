@@ -324,4 +324,14 @@ class EnrollmentServiceTest {
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(enrollmentRepository, never()).findByCourseIdOrderByEnrollmentDateAsc(any());
     }
+
+    @Test
+    void getEnrolledStudentsComoInstructorDeCursoAjenoNoConsultaLasInscripciones() {
+        when(courseService.getById(7L, instructor(2L)))
+                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+
+        assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(7L, instructor(2L)))
+                .isInstanceOf(AuthorizationException.class);
+        verify(enrollmentRepository, never()).findByCourseIdOrderByEnrollmentDateAsc(any());
+    }
 }

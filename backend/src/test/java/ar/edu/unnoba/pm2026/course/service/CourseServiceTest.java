@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.course.service;
 
+import ar.edu.unnoba.pm2026.course.dto.UpdateCourseRequest;
 import ar.edu.unnoba.pm2026.testutil.Fixtures;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
 import ar.edu.unnoba.pm2026.course.dto.CourseDetailResponse;
@@ -355,5 +356,81 @@ class CourseServiceTest {
         assertThatThrownBy(() -> courseService.getByInstructorAndStatus(99L, CourseStatus.PUBLISHED))
                 .isInstanceOf(ResourceNotFoundException.class);
         verify(courseRepository, never()).findByInstructorIdAndStatusOrderByStartDateDesc(any(), any());
+    }
+
+    private UpdateCourseRequest changes() {
+        return new UpdateCourseRequest();
+    }
+
+    @Test
+    void updatePartiallyCambiaSoloLosCamposQueVienen() {
+        Course course = courseOf(instructorEntity(2L));
+        when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
+        when(courseRepository.save(course)).thenReturn(course);
+        UpdateCourseRequest changes = changes();
+        changes.setTitle("Java 2");
+
+        Course updated = courseService.updatePartially(7L, changes, instructor(2L));
+
+        assertThat(updated.getTitle()).isEqualTo("Java 2");
+        assertThat(updated.getBasePrice()).isEqualByComparingTo("50.00");
+        assertThat(updated.getMaxCapacity()).isEqualTo(3);
+        assertThat(updated.getDescription()).isEqualTo("Desc");
+        verify(specialtyService, never()).getById(any());
+    }
+
+    @Test
+    void updatePartiallyConFechaDeFinAntesDelInicioNoModificaNada() {
+        Course course = courseOf(instructorEntity(2L));
+        when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
+        UpdateCourseRequest changes = changes();
+        changes.setTitle("Java 2");
+        changes.setEndDate(LocalDate.of(2026, 4, 1));
+
+        assertThatThrownBy(() -> courseService.updatePartially(7L, changes, instructor(2L)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("La fecha de fin debe ser posterior a la de inicio");
+        assertThat(course.getTitle()).isEqualTo("Viejo");
+        verify(courseRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePartiallyConOtraEspecialidadValidaQueSeaDelInstructor() {
+        Course course = courseOf(instructorEntity(2L));
+        when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
+        when(specialtyService.getById(9L)).thenReturn(new Specialty("Marketing"));
+        UpdateCourseRequest changes = changes();
+        changes.setSpecialtyId(9L);
+
+        assertThatThrownBy(() -> courseService.updatePartially(7L, changes, instructor(2L)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessage("instructor debe tener la especialidad del curso");
+        verify(courseRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePartiallyDeCursoPublicadoLanzaConflicto() {
+        Course course = courseOf(instructorEntity(2L));
+        course.setStatus(CourseStatus.PUBLISHED);
+        when(courseRepository.findById(7L)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> courseService.updatePartially(7L, changes(), instructor(2L)))
+                .isInstanceOf(CourseStateException.class);
+    }
+
+    @Test
+    void updatePartiallyComoAdministradorLanzaAutorizacion() {
+        assertThatThrownBy(() -> courseService.updatePartially(7L, changes(), administrator()))
+                .isInstanceOf(AuthorizationException.class);
+        verify(courseRepository, never()).findById(any());
+    }
+
+    @Test
+    void getDetailComoInstructorDeCursoAjenoLanzaAutorizacion() {
+        when(courseRepository.findById(7L)).thenReturn(Optional.of(courseOf(instructorEntity(5L))));
+
+        assertThatThrownBy(() -> courseService.getDetail(7L, instructor(2L)))
+                .isInstanceOf(AuthorizationException.class)
+                .hasMessage("El curso pertenece a otro instructor");
     }
 }

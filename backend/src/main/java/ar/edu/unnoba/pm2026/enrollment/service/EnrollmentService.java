@@ -53,6 +53,13 @@ public class EnrollmentService {
         return enrolledStudentsOf(courseId);
     }
 
+    // Igual, pero el instructor solo ve los alumnos de sus cursos (403 si es de otro)
+    @Transactional(readOnly = true)
+    public List<EnrolledStudentResponse> getEnrolledStudents(Long courseId, AuthenticatedUser actor) {
+        courseService.getById(courseId, actor);
+        return enrolledStudentsOf(courseId);
+    }
+
     private List<EnrolledStudentResponse> enrolledStudentsOf(Long courseId) {
         return enrollmentRepository.findByCourseIdOrderByEnrollmentDateAsc(courseId).stream()
                 .map(enrollment -> {

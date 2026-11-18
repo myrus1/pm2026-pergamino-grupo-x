@@ -98,4 +98,34 @@ class EnrollmentReportServiceTest {
         assertThat(report.get(0).courseTitle()).isEqualTo("Curso de Java");
         assertThat(report.get(0).studentName()).isEqualTo("Ana");
     }
+
+    @Test
+    void instructorRevenueFiltraPorElRangoYCalculaEl65PorCientoDelPrecioBase() {
+        Enrollment adentro = enrollment(1L, 1L, java, "75.00");
+        Enrollment afuera = new Enrollment(Fixtures.student(2L), java, new BigDecimal("100.00"),
+                LocalDateTime.of(2026, 6, 2, 0, 0));
+        TestIds.setId(afuera, 2L);
+        when(enrollmentRepository.findByCourseInstructorId(2L)).thenReturn(List.of(afuera, adentro));
+
+        var report = enrollmentReportService.instructorRevenue(2L, MAYO);
+
+        assertThat(report.enrollments()).hasSize(1);
+        assertThat(report.enrollments().get(0).enrollmentId()).isEqualTo(1L);
+        assertThat(report.enrollments().get(0).amount()).isEqualByComparingTo("65.00");
+        assertThat(report.total()).isEqualByComparingTo("65.00");
+    }
+
+    @Test
+    void instructorRevenueSinFechasIncluyeTodasYLasOrdenaPorFecha() {
+        Enrollment junio = new Enrollment(Fixtures.student(2L), java, new BigDecimal("100.00"),
+                LocalDateTime.of(2026, 6, 2, 0, 0));
+        TestIds.setId(junio, 2L);
+        when(enrollmentRepository.findByCourseInstructorId(2L)).thenReturn(List.of(junio,
+                enrollment(1L, 1L, java, "75.00")));
+
+        var report = enrollmentReportService.instructorRevenue(2L, new DateRange(null, null));
+
+        assertThat(report.enrollments()).extracting("enrollmentId").containsExactly(1L, 2L);
+        assertThat(report.total()).isEqualByComparingTo("130.00");
+    }
 }

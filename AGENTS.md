@@ -226,6 +226,8 @@ el id coincide.
 | `GET /api/approval-requests/{id}`, `.../{id}/approve`, `.../{id}/reject` | ❌ | solo lectura de las suyas | ✅ | ❌ |
 | `POST /admin/auth` (TP6) | ✅ | ✅ | ✅ | ✅ **sin token** |
 | Resto de `/admin/...` (TP6, #39), incluidos los reportes `/admin/reports/...` (#40) | ❌ | ❌ | ✅ | ❌ |
+| `POST /instructor` (registro) y `POST /auth` (login del instructor) (TP6, #41) | ✅ | ✅ | ✅ | ✅ **sin token** |
+| `/instructor/courses/...`, `/instructor/approval-requests`, `/instructor/revenue/...`, `/instructors/me/revenue` (TP6, #41) | ❌ | solo sobre los suyos | ❌ | ❌ |
 | `DELETE /admin/accounts/{id}`, `DELETE /api/administrators/{id}` | ❌ | ❌ | ✅ (no a sí mismo: 409) | ❌ |
 
 - Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
@@ -302,10 +304,11 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   `GET /api/approval-requests?status=&instructorId=` para listar. Las reglas viven en
   `ApprovalRequest` y responden 409. El estado del curso no se recibe en `CourseRequest`:
   solo cambia por este flujo.
-- TP4: `POST /instructor` (`user/controller/LegacyInstructorController`) recibe
-  `CreateInstructorRequest` (record con email, password, firstName y lastName), delega en
-  `InstructorService.create` (email unico + BCrypt) y responde con `ResponseEntity` 201, o 409
-  si la creacion falla. Convive con el CRUD de `/api/instructors`.
+- TP6 (#41): `POST /instructor` (`user/controller/InstructorAccountController`) es **público**, como pide el
+  TP6. Recibe `CreateInstructorRequest` (email y password; `name`/`firstName` y `lastName` opcionales hasta que
+  se resuelva el #13, y si no vienen se guardan vacíos porque la tabla los pide NOT NULL), delega en
+  `InstructorService.create` (email unico + BCrypt) y responde 201 con `Location` a `/api/instructors/{id}`, o
+  409. El alta con token de admin sigue en `POST /api/instructors`.
 - TP5: `POST /instructor/auth`, `POST /student/auth` y `POST /administrator/auth` reciben
   `AuthenticationRequest` (email, password) y devuelven `{"token": "Bearer ..."}`
   (JWT HMAC512, vence en 10 dias, subject = email, con claims `rol` (`STUDENT`, `INSTRUCTOR` o `ADMINISTRATOR`) y `userId`), o 401.
