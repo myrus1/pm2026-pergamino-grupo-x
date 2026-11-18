@@ -52,9 +52,10 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   │   ├── controller/       # ApprovalRequestController
 │   │   │   ├── dto/              # ApprovalSubmitRequest, ApprovalResolveRequest, ApprovalRequestResponse
 │   │   │   └── exception/        # ApprovalRequestException
-│   │   ├── auth/                 # feature TP5: login y permisos
+│   │   ├── auth/                 # feature TP5: login y permisos (+ login unico del #27)
+│   │   │   ├── controller/       # AuthController (POST /api/auth/token)
 │   │   │   ├── service/          # AuthenticationService(Impl), AuthorizationService(Impl)
-│   │   │   ├── dto/              # AuthenticationRequest
+│   │   │   ├── dto/              # AuthenticationRequest, AuthenticationResult, AuthTokenResponse
 │   │   │   └── exception/        # AuthenticationException, AuthorizationException
 │   │   └── shared/               # transversal a todas las features
 │   │       ├── config/           # CorsConfig, OpenApiConfig
@@ -120,6 +121,8 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   `${DB_PASSWORD}`. Plantilla en `.env.example`; `.env` está en `.gitignore`.
 - `jwt.secret=${JWT_SECRET:...}`: clave HMAC512 de los tokens. Si no hay `JWT_SECRET` en el
   `.env` se usa un valor por defecto de desarrollo.
+- `jwt.expiration=${JWT_EXPIRATION:864000}`: duración de los tokens en **segundos** (10 días).
+  Se devuelve como `expiresIn` en `POST /api/auth/token`.
 - CORS (`shared/config/CorsConfig`): `cors.allowed-origins=${CORS_ALLOWED_ORIGINS:*}` acepta una lista
   de orígenes separada por comas (`http://localhost:5173,https://mi-frontend.com`). Por defecto
   `*` (desarrollo). Se permite el header `Authorization` y los métodos GET/POST/PUT/PATCH/DELETE/OPTIONS.
@@ -232,9 +235,17 @@ el id coincide.
 | `/student/courses/...`, `POST /student/enrollments`, `GET /students/enrollments` (TP6, #42) | solo lo suyo | ❌ | ❌ | ❌ |
 | `DELETE /admin/accounts/{id}`, `DELETE /api/administrators/{id}` | ❌ | ❌ | ✅ (no a sí mismo: 409) | ❌ |
 
-- Logins: `POST /student/auth`, `POST /instructor/auth` y `POST /administrator/auth`
-  (los tres reciben `AuthenticationRequest`: `email` + `password` y devuelven
-  `{"token": "Bearer ..."}`).
+- Login único (#27): `POST /api/auth/token` recibe `AuthenticationRequest` (`email` + `password`),
+  busca el usuario en `users` con `UserRepository` y devuelve
+  `{"accessToken": "<jwt>", "tokenType": "Bearer", "expiresIn": 864000, "role": "..."}`. El rol sale del
+  tipo del usuario (`User.getRole()`, abstracto, lo implementa cada subclase): con la herencia JOINED
+  `findByEmail` ya devuelve `Student`, `Instructor` o `Administrator`, así que **no hay columna `rol`** y no se
+  toca el esquema de la base compartida. `role` va en inglés; el claim `rol` del token sigue con
+  `Role.claimValue()` (`ALUMNO`, `INSTRUCTOR`, `ADMINISTRADOR`), que es lo que lee el front.
+- Logins por rol: los del TP6 (`POST /students/auth`, `POST /auth`, `POST /admin/auth`) y los viejos
+  (`POST /student/auth`, `POST /instructor/auth`, `POST /administrator/auth`) reciben `AuthenticationRequest` y
+  devuelven `{"token": "Bearer ..."}`. Los viejos quedan `@Deprecated` y `@Operation(deprecated = true)`,
+  apuntando a `POST /api/auth/token`; el front todavía los usa.
 - TP6 (#38): **el administrador no hace acciones de instructor ni de alumno**. No crea ni edita
   cursos, no pide aprobaciones y no inscribe alumnos (403); `CourseService`, `ApprovalRequestService` y
   `EnrollmentService` lo vuelven a chequear. Solo conserva el borrado de cursos, que no es una acción
@@ -267,7 +278,9 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   (`RemoveAuthorizationHeader`) que saca el parámetro `Authorization` que springdoc infiere
   de cada `@RequestHeader`. El token no es un parámetro más del endpoint: se envía desde el
   botón **Authorize** de Swagger UI con el valor completo `Bearer <jwt>` (igual que lo
-  devuelven los logins y como lo usa Postman: `Authorization: {{tokenAdmin}}`).
+  devuelven los logins por rol, o el `accessToken` de `POST /api/auth/token` con el prefijo agregado, como
+  lo guarda Postman: `Authorization: {{tokenAdmin}}`). `isAuthenticationEndpoint` reconoce como login
+  las rutas que terminan en `/auth` o `/auth/token` (documenta 401 y no 403/409).
 - **Qué pide token**: `@SecurityRequirement(name = "token")` en los endpoints protegidos de
   la matriz de permisos. Va a nivel de **clase** en los controladores 100% protegidos
   (`AdministratorController`, `EnrollmentController`, `ApprovalRequestController`) y a nivel
@@ -316,7 +329,8 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   409. El alta con token de admin sigue en `POST /api/instructors`.
 - TP5: `POST /instructor/auth`, `POST /student/auth` y `POST /administrator/auth` reciben
   `AuthenticationRequest` (email, password) y devuelven `{"token": "Bearer ..."}`
-  (JWT HMAC512, vence en 10 dias, subject = email, con claims `rol` (`STUDENT`, `INSTRUCTOR` o `ADMINISTRATOR`) y `userId`), o 401.
+  (JWT HMAC512, vence según `jwt.expiration`, subject = email, con claims `rol` (`ALUMNO`, `INSTRUCTOR` o
+  `ADMINISTRADOR`, ver `Role.claimValue()`) y `userId`), o 401. Quedan deprecados por el login único.
   `GET /instructor` y `GET /instructor/courses` leen el header `Authorization`, validan el token
   con `AuthorizationService` y devuelven solo los cursos de ese instructor
   (`InstructorCourseResponse`: id, name, description), o 403. Los servicios de `auth/` lanzan

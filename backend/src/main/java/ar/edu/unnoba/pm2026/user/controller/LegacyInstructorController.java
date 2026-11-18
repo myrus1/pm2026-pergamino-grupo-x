@@ -9,6 +9,7 @@ import ar.edu.unnoba.pm2026.auth.dto.AuthenticationRequest;
 import ar.edu.unnoba.pm2026.user.dto.InstructorCourseResponse;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-// Recurso del instructor (TP5): login y cursos propios en GET /instructor.
+// Recurso del instructor (TP5): login y cursos propios en GET /instructor. El login (POST /instructor/auth)
+// queda deprecado: lo reemplazan el login unico POST /api/auth/token y el del TP6 POST /auth.
 // El registro (POST /instructor) y GET /instructor/courses pasaron al TP6: InstructorAccountController e
 // InstructorCourseController. Los 401/403 los produce ApiExceptionHandler a partir de las excepciones de auth/.
 @RestController
@@ -38,6 +40,8 @@ public class LegacyInstructorController {
         this.courseService = courseService;
     }
 
+    @Deprecated
+    @Operation(deprecated = true, description = "Deprecado: usar POST /api/auth/token")
     @PostMapping(value = "/auth", produces = "application/json")
     public ResponseEntity<?> authentication(@RequestBody @Valid AuthenticationRequest request) {
         Instructor credentials = new Instructor(null, null, request.email(), request.password());

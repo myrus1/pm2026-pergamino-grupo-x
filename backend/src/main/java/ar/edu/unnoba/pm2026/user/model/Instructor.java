@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.user.model;
 
+import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
@@ -33,6 +34,11 @@ public class Instructor extends User {
 
     public Instructor(String firstName, String lastName, String email, String password) {
         super(firstName, lastName, email, password);
+    }
+
+    @Override
+    public Role getRole() {
+        return Role.INSTRUCTOR;
     }
 
     public Course createCourse(String title, String description, BigDecimal basePrice,

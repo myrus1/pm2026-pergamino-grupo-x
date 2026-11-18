@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.user.model;
 
+import ar.edu.unnoba.pm2026.shared.security.Role;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
@@ -13,5 +14,10 @@ public class Administrator extends User {
 
     public Administrator(String firstName, String lastName, String email, String password) {
         super(firstName, lastName, email, password);
+    }
+
+    @Override
+    public Role getRole() {
+        return Role.ADMINISTRATOR;
     }
 }

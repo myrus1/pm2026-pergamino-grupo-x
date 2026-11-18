@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.user.model;
 
+import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
@@ -46,6 +47,11 @@ public class Student extends User {
     public Student(String firstName, String lastName, String email, String password, String dni) {
         super(firstName, lastName, email, password);
         this.dni = dni;
+    }
+
+    @Override
+    public Role getRole() {
+        return Role.STUDENT;
     }
 
     public Set<Enrollment> getEnrollments() {
