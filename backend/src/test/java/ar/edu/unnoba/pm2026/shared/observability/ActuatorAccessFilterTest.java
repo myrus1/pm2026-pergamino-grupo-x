@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.shared.observability;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -59,14 +61,14 @@ class ActuatorAccessFilterTest {
     @Test
     void sinTokenResponde401ConProblemDetail() throws Exception {
         when(authorizationService.authorize(eq(null), any(Role[].class)))
-                .thenThrow(new AuthenticationException("Token invalido o vencido"));
+                .thenThrow(new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_TOKEN));
 
         mockMvc.perform(get("/actuator/prometheus"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.detail").value("Token invalido o vencido"))
-                .andExpect(jsonPath("$.code").value("authentication.failed"))
+                .andExpect(jsonPath("$.code").value("authentication.invalid-token"))
                 .andExpect(jsonPath("$.instance").value("/actuator/prometheus"))
                 .andExpect(jsonPath("$.mensaje").doesNotExist())
                 .andExpect(header().exists("X-Correlation-Id"));
@@ -75,7 +77,7 @@ class ActuatorAccessFilterTest {
     @Test
     void conTokenDeOtroRolResponde403ConProblemDetail() throws Exception {
         when(authorizationService.authorize("Bearer instructor", Role.ADMINISTRATOR))
-                .thenThrow(new AuthorizationException("No tiene permisos para esta operacion"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_DENIED));
 
         mockMvc.perform(get("/actuator/metrics").header("Authorization", "Bearer instructor"))
                 .andExpect(status().isForbidden())
@@ -97,11 +99,11 @@ class ActuatorAccessFilterTest {
     @Test
     void unaRutaConPuntosNoSeSaltaElControl() throws Exception {
         when(authorizationService.authorize(eq(null), any(Role[].class)))
-                .thenThrow(new AuthenticationException("Token invalido o vencido"));
+                .thenThrow(new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_TOKEN));
         for (String path : new String[] {"/actuator/health/../prometheus", "//actuator/metrics", "/actuator"}) {
             mockMvc.perform(get("/").with(rawUri(path)))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.code").value("authentication.failed"));
+                    .andExpect(jsonPath("$.code").value("authentication.invalid-token"));
         }
     }
 

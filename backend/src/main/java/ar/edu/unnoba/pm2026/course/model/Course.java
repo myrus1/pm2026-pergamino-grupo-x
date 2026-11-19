@@ -1,6 +1,7 @@
 package ar.edu.unnoba.pm2026.course.model;
 
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -105,31 +106,31 @@ public class Course {
     private static void validate(String title, BigDecimal basePrice, LocalDate startDate, LocalDate endDate,
                                  Integer maxCapacity) {
         if (title == null) {
-            throw new ValidationException("El titulo no puede ser nulo");
+            throw new ValidationException(ErrorCode.COURSE_TITLE_REQUIRED);
         }
         if (title.isBlank()) {
-            throw new ValidationException("El titulo no puede estar vacio");
+            throw new ValidationException(ErrorCode.COURSE_TITLE_BLANK);
         }
         if (basePrice == null) {
-            throw new ValidationException("El precio base no puede ser nulo");
+            throw new ValidationException(ErrorCode.COURSE_BASE_PRICE_REQUIRED);
         }
         if (basePrice.signum() < 0) {
-            throw new ValidationException("El precio base no puede ser negativo");
+            throw new ValidationException(ErrorCode.COURSE_BASE_PRICE_NEGATIVE);
         }
         if (startDate == null) {
-            throw new ValidationException("La fecha de inicio no puede ser nula");
+            throw new ValidationException(ErrorCode.COURSE_START_DATE_REQUIRED);
         }
         if (endDate == null) {
-            throw new ValidationException("La fecha de fin no puede ser nula");
+            throw new ValidationException(ErrorCode.COURSE_END_DATE_REQUIRED);
         }
         if (!endDate.isAfter(startDate)) {
-            throw new ValidationException("La fecha de fin debe ser posterior a la de inicio");
+            throw new ValidationException(ErrorCode.COURSE_END_DATE_BEFORE_START);
         }
         if (maxCapacity == null) {
-            throw new ValidationException("La capacidad no puede ser nula");
+            throw new ValidationException(ErrorCode.COURSE_CAPACITY_REQUIRED);
         }
         if (maxCapacity <= 0) {
-            throw new ValidationException("La capacidad debe ser mayor a cero");
+            throw new ValidationException(ErrorCode.COURSE_CAPACITY_POSITIVE);
         }
     }
 
@@ -138,7 +139,7 @@ public class Course {
             return;
         }
         if (specialty == null) {
-            throw new ValidationException("La especialidad no puede ser nula");
+            throw new ValidationException(ErrorCode.COURSE_SPECIALTY_REQUIRED);
         }
         Specialty previousSpecialty = this.specialty;
         this.specialty = specialty;
@@ -153,7 +154,7 @@ public class Course {
             return;
         }
         if (instructor == null) {
-            throw new ValidationException("Instructor no puede ser nulo");
+            throw new ValidationException(ErrorCode.COURSE_INSTRUCTOR_REQUIRED);
         }
         Instructor previousInstructor = this.instructor;
         this.instructor = instructor;
@@ -165,7 +166,7 @@ public class Course {
 
     public void setStatus(CourseStatus status) {
         if (status == null) {
-            throw new ValidationException("Estado no puede ser nulo");
+            throw new ValidationException(ErrorCode.COURSE_STATUS_REQUIRED);
         }
         this.status = status;
     }

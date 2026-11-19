@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -69,12 +71,12 @@ class AdminAccountControllerTest {
     @Test
     void authConCredencialesInvalidasResponde401() throws Exception {
         when(authenticationService.authenticate(any(Administrator.class)))
-                .thenThrow(new AuthenticationException("Email o contraseña incorrectos"));
+                .thenThrow(new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_CREDENTIALS));
 
         mockMvc.perform(post("/admin/auth").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"eva@example.com\",\"password\":\"mala\"}"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.code").value("authentication.failed"));
+                .andExpect(jsonPath("$.code").value("authentication.invalid-credentials"));
     }
 
     @Test
@@ -114,8 +116,7 @@ class AdminAccountControllerTest {
 
     @Test
     void createConEmailRepetidoResponde409() throws Exception {
-        when(administratorService.create(any(Administrator.class))).thenThrow(new BusinessRuleException(
-                "administrator.email-taken", "Ya existe un administrador con el email eva@example.com"));
+        when(administratorService.create(any(Administrator.class))).thenThrow(new BusinessRuleException(ErrorCode.ADMINISTRATOR_EMAIL_TAKEN, "eva@example.com"));
 
         mockMvc.perform(post("/admin/accounts").contentType(MediaType.APPLICATION_JSON).content(BODY))
                 .andExpect(status().isConflict())
@@ -144,8 +145,7 @@ class AdminAccountControllerTest {
 
     @Test
     void deleteDeSiMismoResponde409() throws Exception {
-        doThrow(new BusinessRuleException("administrator.self-deletion",
-                "Un administrador no puede eliminarse a si mismo"))
+        doThrow(new BusinessRuleException(ErrorCode.ADMINISTRATOR_SELF_DELETION))
                 .when(administratorService).delete(3L, AuthTestSupport.ADMIN);
 
         mockMvc.perform(delete("/admin/accounts/3"))
@@ -155,7 +155,7 @@ class AdminAccountControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        doThrow(new ResourceNotFoundException("administrator.not-found", "Administrador no encontrado con id 99"))
+        doThrow(new ResourceNotFoundException(ErrorCode.ADMINISTRATOR_NOT_FOUND, 99L))
                 .when(administratorService).delete(99L, AuthTestSupport.ADMIN);
 
         mockMvc.perform(delete("/admin/accounts/99")).andExpect(status().isNotFound());

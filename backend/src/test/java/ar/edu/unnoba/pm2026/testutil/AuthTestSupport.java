@@ -6,6 +6,7 @@ import static org.mockito.Mockito.lenient;
 import ar.edu.unnoba.pm2026.auth.exception.AuthenticationException;
 import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import java.util.ArrayList;
@@ -33,7 +34,7 @@ public final class AuthTestSupport {
     public static void as(AuthorizationService service, AuthenticatedUser authenticatedUser) {
         lenient().when(service.authorize(any(), any(Role[].class))).thenAnswer(invocation -> {
             if (!allowedRoles(invocation.getRawArguments()).contains(authenticatedUser.role())) {
-                throw new AuthorizationException("No tiene permisos para esta operacion");
+                throw new AuthorizationException(ErrorCode.AUTHORIZATION_DENIED);
             }
             return authenticatedUser;
         });
@@ -61,12 +62,12 @@ public final class AuthTestSupport {
 
     // 401: sin header Authorization o token invalido/vencido
     public static void withoutToken(AuthorizationService service) {
-        failWith(service, new AuthenticationException("Token invalido o vencido"));
+        failWith(service, new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_TOKEN));
     }
 
     // 403: rol que no alcanza para la operacion
     public static void withoutPermission(AuthorizationService service) {
-        failWith(service, new AuthorizationException("No tiene permisos para esta operacion"));
+        failWith(service, new AuthorizationException(ErrorCode.AUTHORIZATION_DENIED));
     }
 
     public static void failWith(AuthorizationService service, RuntimeException exception) {

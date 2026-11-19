@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.user.service;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
 import ar.edu.unnoba.pm2026.user.model.User;
@@ -19,7 +20,7 @@ public abstract class UserService<T extends User> {
 
     public T create(T user) {
         if (user == null) {
-            throw new ValidationException("El usuario no puede ser nulo");
+            throw new ValidationException(ErrorCode.USER_REQUIRED);
         }
         validateEmailAvailable(user.getEmail(), null);
         return saveWithHashedPassword(user);
@@ -27,7 +28,7 @@ public abstract class UserService<T extends User> {
 
     public T update(T user) {
         if (user == null) {
-            throw new ValidationException("El usuario no puede ser nulo");
+            throw new ValidationException(ErrorCode.USER_REQUIRED);
         }
         validateEmailAvailable(user.getEmail(), user.getId());
         return saveWithHashedPassword(user);

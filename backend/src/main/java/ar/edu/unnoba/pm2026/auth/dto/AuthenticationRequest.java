@@ -5,6 +5,6 @@ import jakarta.validation.constraints.NotBlank;
 
 // Credenciales de login compartidas por instructor, alumno y administrador.
 public record AuthenticationRequest(
-        @NotBlank @Email(message = "El campo 'email' debe tener un formato valido") String email,
+        @NotBlank @Email String email,
         @NotBlank String password) {
 }

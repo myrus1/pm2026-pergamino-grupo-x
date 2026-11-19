@@ -16,14 +16,14 @@ import lombok.Setter;
 @Setter
 public class UpdateCourseRequest {
 
-    @Pattern(regexp = ".*\\S.*", message = "El titulo no puede estar vacio")
+    @Pattern(regexp = ".*\\S.*")
     private String title;
     private String description;
-    @DecimalMin(value = "0.0", message = "El precio base no puede ser negativo")
+    @DecimalMin(value = "0.0")
     private BigDecimal basePrice;
     private LocalDate startDate;
     private LocalDate endDate;
-    @Positive(message = "La capacidad debe ser mayor a cero")
+    @Positive
     private Integer maxCapacity;
     @JsonAlias("specialty")
     private Long specialtyId;

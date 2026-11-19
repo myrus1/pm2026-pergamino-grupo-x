@@ -41,6 +41,6 @@ class SpecialtyServiceTest {
 
         assertThatThrownBy(() -> specialtyService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Especialidad no encontrada con id 99");
+                .hasMessage("specialty.not-found");
     }
 }

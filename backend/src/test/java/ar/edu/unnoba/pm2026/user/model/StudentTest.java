@@ -62,7 +62,7 @@ class StudentTest {
 
         assertThatThrownBy(() -> estudiante.applyCourse(course, HOY))
                 .isInstanceOf(CourseEnrollmentException.class)
-                .hasMessage("El curso no esta publicado");
+                .hasMessage("enrollment.course-not-published");
     }
 
     @ParameterizedTest
@@ -74,7 +74,7 @@ class StudentTest {
 
         assertThatThrownBy(() -> estudiante.applyCourse(course, date))
                 .isInstanceOf(CourseEnrollmentException.class)
-                .hasMessage("La inscripcion debe ser antes de que comience el curso");
+                .hasMessage("enrollment.registration-closed");
     }
 
     @Test
@@ -85,7 +85,7 @@ class StudentTest {
 
         assertThatThrownBy(() -> estudiante.applyCourse(course, HOY))
                 .isInstanceOf(CourseEnrollmentException.class)
-                .hasMessage("El curso esta lleno");
+                .hasMessage("enrollment.course-full");
     }
 
     @Test
@@ -95,7 +95,7 @@ class StudentTest {
 
         assertThatThrownBy(() -> estudiante.applyCourse(course, HOY))
                 .isInstanceOf(CourseEnrollmentException.class)
-                .hasMessage("Estudiante inscripto en el curso");
+                .hasMessage("enrollment.already-enrolled");
     }
 
     @Test
@@ -108,7 +108,7 @@ class StudentTest {
 
         assertThatThrownBy(() -> estudiante.applyCourse(reloadedCourse, HOY))
                 .isInstanceOf(CourseEnrollmentException.class)
-                .hasMessage("Estudiante inscripto en el curso");
+                .hasMessage("enrollment.already-enrolled");
     }
 
     @Test
@@ -172,10 +172,10 @@ class StudentTest {
     void applyCourseRechazaArgumentosNulos() {
         assertThatThrownBy(() -> estudiante.applyCourse(null, HOY))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("curso no puede ser nulo");
+                .hasMessage("enrollment.course.required");
         assertThatThrownBy(() -> estudiante.applyCourse(defaultPublishedCourse(), null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La fecha de inscripcion no puede ser nula");
+                .hasMessage("enrollment.date.required");
     }
 
     @Test
@@ -187,7 +187,7 @@ class StudentTest {
 
         assertThatThrownBy(() -> estudiante.applyCourse(course, HOY))
                 .isInstanceOf(CourseEnrollmentException.class)
-                .hasMessage("Especialidad del curso no definida");
+                .hasMessage("enrollment.course-specialty-missing");
     }
 
     @Test
@@ -197,7 +197,7 @@ class StudentTest {
 
         assertThatThrownBy(() -> estudiante.applyCourse(course, HOY))
                 .isInstanceOf(CourseEnrollmentException.class)
-                .hasMessage("No se establecio el precio base del curso");
+                .hasMessage("enrollment.course-price-missing");
     }
 
     // TP6 (#42): el precio que se muestra es el mismo que cobra applyCourse

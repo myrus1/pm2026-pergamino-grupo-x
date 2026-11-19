@@ -50,48 +50,48 @@ class CourseTest {
     void constructorRechazaTituloNulo() {
         assertThatThrownBy(() -> new Course(null, "Desc", PRICE, INICIO, FIN, 5, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("El titulo no puede ser nulo");
+                .hasMessage("course.title.required");
     }
 
     @Test
     void constructorRechazaPrecioNulo() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", null, INICIO, FIN, 5, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("El precio base no puede ser nulo");
+                .hasMessage("course.base-price.required");
     }
 
     @Test
     void constructorRechazaPrecioNegativo() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", new BigDecimal("-0.01"), INICIO, FIN, 5, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("El precio base no puede ser negativo");
+                .hasMessage("course.base-price.negative");
     }
 
     @Test
     void constructorRechazaFechasNulas() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, null, FIN, 5, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La fecha de inicio no puede ser nula");
+                .hasMessage("course.start-date.required");
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, null, 5, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La fecha de fin no puede ser nula");
+                .hasMessage("course.end-date.required");
     }
 
     @Test
     void constructorRechazaQueLaFechaFinNoSeaPosteriorALaDeInicio() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, INICIO, 5, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La fecha de fin debe ser posterior a la de inicio");
+                .hasMessage("course.end-date.before-start");
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, INICIO.minusDays(1), 5, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La fecha de fin debe ser posterior a la de inicio");
+                .hasMessage("course.end-date.before-start");
     }
 
     @Test
     void constructorRechazaCapacidadNula() {
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, FIN, null, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La capacidad no puede ser nula");
+                .hasMessage("course.capacity.required");
     }
 
     @ParameterizedTest
@@ -99,7 +99,7 @@ class CourseTest {
     void constructorRechazaCapacidadNoPositiva(int capacity) {
         assertThatThrownBy(() -> new Course("Curso", "Desc", PRICE, INICIO, FIN, capacity, specialty, instructor))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La capacidad debe ser mayor a cero");
+                .hasMessage("course.capacity.positive");
     }
 
     @Test
@@ -139,7 +139,7 @@ class CourseTest {
 
         assertThatThrownBy(() -> course.setSpecialty(null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La especialidad no puede ser nula");
+                .hasMessage("course.specialty.required");
     }
 
     @Test
@@ -160,7 +160,7 @@ class CourseTest {
 
         assertThatThrownBy(() -> course.setInstructor(null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Instructor no puede ser nulo");
+                .hasMessage("course.instructor.required");
     }
 
     @Test
@@ -169,7 +169,7 @@ class CourseTest {
 
         assertThatThrownBy(() -> course.setStatus(null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Estado no puede ser nulo");
+                .hasMessage("course.status.required");
     }
 
     @Test

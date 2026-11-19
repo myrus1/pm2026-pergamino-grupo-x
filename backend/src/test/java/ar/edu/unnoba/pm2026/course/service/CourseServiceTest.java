@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.course.service;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import ar.edu.unnoba.pm2026.course.dto.UpdateCourseRequest;
 import ar.edu.unnoba.pm2026.testutil.Fixtures;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
@@ -90,14 +92,14 @@ class CourseServiceTest {
     void createComoAdministradorLanzaAutorizacionYNoGuardaNada() {
         assertThatThrownBy(() -> courseService.create(request(1L), administrator()))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("Solo un instructor puede crear o modificar cursos");
+                .hasMessage("authorization.instructor-only");
         verify(specialtyService, never()).getById(any());
         verify(courseRepository, never()).save(any());
     }
 
     @Test
     void createConEspecialidadInexistenteNoGuardaNada() {
-        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.SPECIALTY_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> courseService.create(request(99L), instructor(2L)))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -111,7 +113,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.create(request(1L), instructor(2L)))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("instructor debe tener la especialidad del curso");
+                .hasMessage("instructor.specialty.mismatch");
         verify(courseRepository, never()).save(any());
     }
 
@@ -159,7 +161,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.update(7L, request(1L), instructor(2L)))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("instructor debe tener la especialidad del curso");
+                .hasMessage("instructor.specialty.mismatch");
         assertThat(course.getTitle()).isEqualTo("Viejo");
         assertThat(course.getSpecialty()).isSameAs(specialty);
         verify(courseRepository, never()).save(any());
@@ -171,7 +173,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.update(99L, request(1L), instructor(2L)))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Curso no encontrado con id 99");
+                .hasMessage("course.not-found");
     }
 
     @Test
@@ -200,7 +202,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Curso no encontrado con id 99");
+                .hasMessage("course.not-found");
     }
 
     private AuthenticatedUser administrator() {
@@ -247,7 +249,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.update(7L, request(1L), instructor(2L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("El curso pertenece a otro instructor");
+                .hasMessage("authorization.course-not-owner");
         assertThat(course.getTitle()).isEqualTo("Viejo");
         verify(courseRepository, never()).save(any());
     }
@@ -260,7 +262,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.update(7L, request(1L), instructor(2L)))
                 .isInstanceOf(CourseStateException.class)
-                .hasMessage("El curso solo se puede modificar mientras este en borrador");
+                .hasMessage("course.not-draft");
         assertThat(course.getTitle()).isEqualTo("Viejo");
         verify(courseRepository, never()).save(any());
     }
@@ -270,7 +272,7 @@ class CourseServiceTest {
     void updateComoAdministradorLanzaAutorizacionYNoModificaNada() {
         assertThatThrownBy(() -> courseService.update(7L, request(1L), administrator()))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("Solo un instructor puede crear o modificar cursos");
+                .hasMessage("authorization.instructor-only");
         verify(courseRepository, never()).findById(any());
         verify(courseRepository, never()).save(any());
     }
@@ -282,7 +284,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.delete(7L, instructor(2L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("El curso pertenece a otro instructor");
+                .hasMessage("authorization.course-not-owner");
         verify(courseRepository, never()).deleteById(any());
     }
 
@@ -315,7 +317,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.getById(7L, instructor(2L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("El curso pertenece a otro instructor");
+                .hasMessage("authorization.course-not-owner");
     }
 
     @Test
@@ -351,7 +353,7 @@ class CourseServiceTest {
 
     @Test
     void getByInstructorAndStatusDeInstructorInexistenteLanzaNotFound() {
-        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> courseService.getByInstructorAndStatus(99L, CourseStatus.PUBLISHED))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -389,7 +391,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.updatePartially(7L, changes, instructor(2L)))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La fecha de fin debe ser posterior a la de inicio");
+                .hasMessage("course.end-date.before-start");
         assertThat(course.getTitle()).isEqualTo("Viejo");
         verify(courseRepository, never()).save(any());
     }
@@ -404,7 +406,7 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.updatePartially(7L, changes, instructor(2L)))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("instructor debe tener la especialidad del curso");
+                .hasMessage("instructor.specialty.mismatch");
         verify(courseRepository, never()).save(any());
     }
 
@@ -431,6 +433,6 @@ class CourseServiceTest {
 
         assertThatThrownBy(() -> courseService.getDetail(7L, instructor(2L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("El curso pertenece a otro instructor");
+                .hasMessage("authorization.course-not-owner");
     }
 }

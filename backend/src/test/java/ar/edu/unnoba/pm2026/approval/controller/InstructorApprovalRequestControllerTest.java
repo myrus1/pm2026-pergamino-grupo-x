@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.approval.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
@@ -82,7 +84,7 @@ class InstructorApprovalRequestControllerTest {
     @Test
     void submitDeCursoQueNoEstaEnBorradorResponde409() throws Exception {
         when(approvalRequestService.submit(7L, null, IRIS)).thenThrow(
-                new ApprovalRequestException("Solo se puede solicitar la aprobacion de un curso en borrador"));
+                new ApprovalRequestException(ErrorCode.APPROVAL_REQUEST_COURSE_NOT_DRAFT));
 
         mockMvc.perform(post("/instructor/courses/7/approval-requests")).andExpect(status().isConflict());
     }
@@ -90,7 +92,7 @@ class InstructorApprovalRequestControllerTest {
     @Test
     void submitDeCursoAjenoResponde403() throws Exception {
         when(approvalRequestService.submit(7L, null, IRIS))
-                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_COURSE_NOT_OWNER));
 
         mockMvc.perform(post("/instructor/courses/7/approval-requests")).andExpect(status().isForbidden());
     }

@@ -39,7 +39,7 @@ class InstructorTest {
         assertThatThrownBy(() -> instructor.createCourse("Curso", "Desc", new BigDecimal("100.00"), INICIO, FIN, 5,
                 null))
                         .isInstanceOf(ValidationException.class)
-                        .hasMessage("especialidad no puede ser nula");
+                        .hasMessage("instructor.specialty.required");
     }
 
     @Test
@@ -49,7 +49,7 @@ class InstructorTest {
         assertThatThrownBy(() -> instructor.createCourse("Curso", "Desc", new BigDecimal("100.00"), INICIO, FIN, 5,
                 otherSpecialty))
                         .isInstanceOf(ValidationException.class)
-                        .hasMessage("instructor debe tener la especialidad del curso");
+                        .hasMessage("instructor.specialty.mismatch");
         assertThat(instructor.getCourses()).isEmpty();
     }
 

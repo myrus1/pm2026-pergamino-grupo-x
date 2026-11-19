@@ -107,6 +107,6 @@ class StudentCatalogServiceTest {
 
         assertThatThrownBy(() -> studentCatalogService.getCourse(1L, 7L, HOY))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Curso no encontrado con id 7");
+                .hasMessage("course.not-found");
     }
 }

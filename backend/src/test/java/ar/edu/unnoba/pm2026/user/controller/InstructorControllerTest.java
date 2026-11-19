@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -87,7 +89,7 @@ class InstructorControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -150,7 +152,7 @@ class InstructorControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -183,7 +185,7 @@ class InstructorControllerTest {
     @Test
     void getSpecialtiesDeInstructorInexistenteResponde404() throws Exception {
         when(instructorService.getSpecialties(99L))
-                .thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH + "/99/specialties"))
                 .andExpect(status().isNotFound())
@@ -202,7 +204,7 @@ class InstructorControllerTest {
     @Test
     void revenueDeInstructorInexistenteResponde404() throws Exception {
         when(enrollmentService.instructorRevenue(99L))
-                .thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH + "/99/revenue"))
                 .andExpect(status().isNotFound())
@@ -219,7 +221,7 @@ class InstructorControllerTest {
 
     @Test
     void asignarEspecialidadInexistenteResponde404() throws Exception {
-        doThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"))
+        doThrow(new ResourceNotFoundException(ErrorCode.SPECIALTY_NOT_FOUND, 99L))
                 .when(instructorService).addSpecialty(1L, 99L);
 
         mockMvc.perform(put(PATH + "/1/specialties/99"))
@@ -237,7 +239,7 @@ class InstructorControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Iris","lastName":"Ruiz","email":"iris@example.com","password":"secret"}"""))

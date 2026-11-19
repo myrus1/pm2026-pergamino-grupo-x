@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -8,7 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,7 +81,7 @@ class AdministratorControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(administratorService.getById(99L)).thenThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"));
+        when(administratorService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.ADMINISTRATOR_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -124,7 +125,7 @@ class AdministratorControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(administratorService.getById(99L)).thenThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"));
+        when(administratorService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.ADMINISTRATOR_NOT_FOUND, 99L));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Eva","lastName":"Sosa","email":"eva@example.com","password":"secret"}"""))
@@ -142,8 +143,7 @@ class AdministratorControllerTest {
     // TP6: el administrador no puede borrarse a si mismo
     @Test
     void deleteDeSiMismoResponde409() throws Exception {
-        doThrow(new BusinessRuleException("administrator.self-deletion",
-                "Un administrador no puede eliminarse a si mismo"))
+        doThrow(new BusinessRuleException(ErrorCode.ADMINISTRATOR_SELF_DELETION))
                 .when(administratorService).delete(3L, AuthTestSupport.ADMIN);
 
         mockMvc.perform(delete(PATH + "/3"))
@@ -153,7 +153,7 @@ class AdministratorControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        doThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"))
+        doThrow(new ResourceNotFoundException(ErrorCode.ADMINISTRATOR_NOT_FOUND, 99L))
                 .when(administratorService).delete(99L, AuthTestSupport.ADMIN);
 
         mockMvc.perform(delete(PATH + "/99"))

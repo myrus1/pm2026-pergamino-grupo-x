@@ -17,7 +17,7 @@ class DateRangeTest {
     void fromPosteriorAToLanzaValidacion() {
         assertThatThrownBy(() -> new DateRange(TO, FROM))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("La fecha 'fromDate' no puede ser posterior a 'toDate'");
+                .hasMessage("request.invalid-date-range");
     }
 
     @Test

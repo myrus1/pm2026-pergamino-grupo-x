@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.approval.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -97,8 +99,7 @@ class AdminApprovalRequestControllerTest {
 
     @Test
     void putConSubmittedResponde400() throws Exception {
-        when(approvalRequestService.resolve(1L, ApprovalStatus.SUBMITTED, 3L, null)).thenThrow(new ValidationException(
-                "approval-request.invalid-decision", "El campo 'status' tiene que ser APPROVED o REJECTED"));
+        when(approvalRequestService.resolve(1L, ApprovalStatus.SUBMITTED, 3L, null)).thenThrow(new ValidationException(ErrorCode.APPROVAL_REQUEST_INVALID_DECISION));
 
         mockMvc.perform(put(PATH + "/1").contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"SUBMITTED\"}"))
                 .andExpect(status().isBadRequest())
@@ -108,7 +109,7 @@ class AdminApprovalRequestControllerTest {
     @Test
     void putDeSolicitudInexistenteResponde404() throws Exception {
         when(approvalRequestService.resolve(99L, ApprovalStatus.REJECTED, 3L, null))
-                .thenThrow(new ResourceNotFoundException("Solicitud de aprobacion no encontrada con id 99"));
+                .thenThrow(new ResourceNotFoundException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND, 99L));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"REJECTED\"}"))
                 .andExpect(status().isNotFound());
@@ -117,7 +118,7 @@ class AdminApprovalRequestControllerTest {
     @Test
     void putDeSolicitudYaResueltaResponde409() throws Exception {
         when(approvalRequestService.resolve(1L, ApprovalStatus.REJECTED, 3L, null))
-                .thenThrow(new ApprovalRequestException("La solicitud ya fue resuelta"));
+                .thenThrow(new ApprovalRequestException(ErrorCode.APPROVAL_REQUEST_ALREADY_RESOLVED));
 
         mockMvc.perform(put(PATH + "/1").contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"REJECTED\"}"))
                 .andExpect(status().isConflict());

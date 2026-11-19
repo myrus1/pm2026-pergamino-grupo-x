@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.enrollment.service;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import ar.edu.unnoba.pm2026.enrollment.dto.StudentEnrollmentResponse;
 import java.time.LocalDateTime;
 import ar.edu.unnoba.pm2026.testutil.Fixtures;
@@ -110,7 +112,7 @@ class EnrollmentServiceTest {
 
     @Test
     void getStudentsOfCourseConCursoInexistenteLanzaExcepcion() {
-        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.COURSE_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> enrollmentService.getStudentsOfCourse(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -127,7 +129,7 @@ class EnrollmentServiceTest {
 
     @Test
     void getCoursesOfStudentConAlumnoInexistenteLanzaExcepcion() {
-        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> enrollmentService.getCoursesOfStudent(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -135,11 +137,11 @@ class EnrollmentServiceTest {
 
     @Test
     void instructorRevenueDeInstructorInexistenteLanzaExcepcion() {
-        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+        when(instructorService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> enrollmentService.instructorRevenue(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Instructor no encontrado con id 99");
+                .hasMessage("instructor.not-found");
     }
 
     private Course futureCourse(CourseStatus sqlState) {
@@ -171,7 +173,7 @@ class EnrollmentServiceTest {
     void enrollRechazaQueUnAdministradorInscribaAUnAlumno() {
         assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, administrator()))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("Solo un alumno puede inscribirse a un curso");
+                .hasMessage("authorization.student-only");
         verify(studentService, never()).getById(any());
         verify(enrollmentRepository, never()).save(any());
     }
@@ -180,7 +182,7 @@ class EnrollmentServiceTest {
     void enrollRechazaQueUnAlumnoSeInscribaPorOtro() {
         assertThatThrownBy(() -> enrollmentService.enroll(2L, 3L, student(1L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("Solo puede inscribirse a si mismo");
+                .hasMessage("authorization.enrollment-not-self");
         verify(studentService, never()).getById(any());
         verify(enrollmentRepository, never()).save(any());
     }
@@ -192,18 +194,18 @@ class EnrollmentServiceTest {
 
         assertThatThrownBy(() -> enrollmentService.enroll(1L, 2L))
                 .isInstanceOf(CourseEnrollmentException.class)
-                .hasMessage("El curso no esta publicado");
+                .hasMessage("enrollment.course-not-published");
         verify(enrollmentRepository, never()).save(any());
         assertThat(enrollmentsCreated()).isZero();
     }
 
     @Test
     void enrollPropagaLaExcepcionSiElAlumnoNoExiste() {
-        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> enrollmentService.enroll(99L, 2L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Estudiante no encontrado con id 99");
+                .hasMessage("student.not-found");
         verify(enrollmentRepository, never()).save(any());
     }
 
@@ -225,7 +227,7 @@ class EnrollmentServiceTest {
 
         assertThatThrownBy(() -> enrollmentService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Inscripcion no encontrada con id 99");
+                .hasMessage("enrollment.not-found");
     }
 
     private AuthenticatedUser administrator() {
@@ -273,7 +275,7 @@ class EnrollmentServiceTest {
 
         assertThatThrownBy(() -> enrollmentService.getById(5L, student(9L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("La inscripcion no le pertenece");
+                .hasMessage("authorization.enrollment-not-owner");
     }
 
     @Test
@@ -290,7 +292,7 @@ class EnrollmentServiceTest {
 
         assertThatThrownBy(() -> enrollmentService.getById(5L, instructor(4L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("La inscripcion no le pertenece a sus cursos");
+                .hasMessage("authorization.enrollment-not-in-your-courses");
     }
 
     @Test
@@ -319,7 +321,7 @@ class EnrollmentServiceTest {
 
     @Test
     void getEnrolledStudentsDeCursoInexistenteLanzaNotFound() {
-        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
+        when(courseService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.COURSE_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(99L))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -329,7 +331,7 @@ class EnrollmentServiceTest {
     @Test
     void getEnrolledStudentsComoInstructorDeCursoAjenoNoConsultaLasInscripciones() {
         when(courseService.getById(7L, instructor(2L)))
-                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_COURSE_NOT_OWNER));
 
         assertThatThrownBy(() -> enrollmentService.getEnrolledStudents(7L, instructor(2L)))
                 .isInstanceOf(AuthorizationException.class);

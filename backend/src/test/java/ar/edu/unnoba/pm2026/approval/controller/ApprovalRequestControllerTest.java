@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.approval.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -123,7 +125,7 @@ class ApprovalRequestControllerTest {
     void submitDeCursoQueNoEstaEnBorradorResponde409() throws Exception {
         AuthTestSupport.as(authorizationService, INSTRUCTOR);
         when(approvalRequestService.submit(3L, null, INSTRUCTOR)).thenThrow(
-                new ApprovalRequestException("Solo se puede solicitar la aprobacion de un curso en borrador"));
+                new ApprovalRequestException(ErrorCode.APPROVAL_REQUEST_COURSE_NOT_DRAFT));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"courseId":3}"""))
@@ -148,7 +150,7 @@ class ApprovalRequestControllerTest {
     @Test
     void rejectDeSolicitudYaResueltaResponde409() throws Exception {
         when(approvalRequestService.reject(1L, AuthTestSupport.ADMIN.id(), null))
-                .thenThrow(new ApprovalRequestException("La solicitud ya fue resuelta"));
+                .thenThrow(new ApprovalRequestException(ErrorCode.APPROVAL_REQUEST_ALREADY_RESOLVED));
 
         mockMvc.perform(post(PATH + "/1/reject").contentType(MediaType.APPLICATION_JSON).content("""
                 {}"""))
@@ -159,7 +161,7 @@ class ApprovalRequestControllerTest {
     @Test
     void rejectDeSolicitudInexistenteResponde404() throws Exception {
         when(approvalRequestService.reject(99L, AuthTestSupport.ADMIN.id(), null))
-                .thenThrow(new ResourceNotFoundException("Solicitud de aprobacion no encontrada con id 99"));
+                .thenThrow(new ResourceNotFoundException(ErrorCode.APPROVAL_REQUEST_NOT_FOUND, 99L));
 
         mockMvc.perform(post(PATH + "/99/reject").contentType(MediaType.APPLICATION_JSON).content("""
                 {}"""))
@@ -211,7 +213,7 @@ class ApprovalRequestControllerTest {
     void getByIdDeOtroInstructorResponde403() throws Exception {
         AuthTestSupport.asInstructor(authorizationService, 4L);
         when(approvalRequestService.getById(1L, new AuthenticatedUser(4L, "iris@example.com", Role.INSTRUCTOR)))
-                .thenThrow(new AuthorizationException("La solicitud de aprobacion no le pertenece"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_APPROVAL_REQUEST_NOT_OWNER));
 
         mockMvc.perform(get(PATH + "/1"))
                 .andExpect(status().isForbidden())
@@ -241,7 +243,7 @@ class ApprovalRequestControllerTest {
         AuthTestSupport.asInstructor(authorizationService, 4L);
         when(approvalRequestService.submit(3L, "Listo",
                 new AuthenticatedUser(4L, "iris@example.com", Role.INSTRUCTOR)))
-                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_COURSE_NOT_OWNER));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"courseId\":3,\"instructorComment\":\"Listo\"}"))

@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.approval.service;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import java.util.List;
 import ar.edu.unnoba.pm2026.testutil.Fixtures;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
@@ -115,7 +117,7 @@ class ApprovalRequestServiceTest {
     void submitComoAdministradorNoGuardaNada() {
         assertThatThrownBy(() -> approvalRequestService.submit(1L, "Listo", administrator()))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("Solo el instructor del curso puede pedir su aprobacion");
+                .hasMessage("authorization.approval-instructor-only");
         verify(courseService, never()).getById(any());
         verify(approvalRequestRepository, never()).save(any());
     }
@@ -126,7 +128,7 @@ class ApprovalRequestServiceTest {
 
         assertThatThrownBy(() -> approvalRequestService.submit(1L, "Listo", instructor(2L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("El curso pertenece a otro instructor");
+                .hasMessage("authorization.course-not-owner");
         verify(approvalRequestRepository, never()).save(any());
     }
 
@@ -137,7 +139,7 @@ class ApprovalRequestServiceTest {
 
         assertThatThrownBy(() -> approvalRequestService.getById(5L, instructor(2L)))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("La solicitud de aprobacion no le pertenece");
+                .hasMessage("authorization.approval-request-not-owner");
     }
 
     @Test
@@ -187,7 +189,7 @@ class ApprovalRequestServiceTest {
         ApprovalRequest request = new ApprovalRequest(course, null);
         when(approvalRequestRepository.findById(5L)).thenReturn(Optional.of(request));
         when(administratorService.getById(99L))
-                .thenThrow(new ResourceNotFoundException("Administrador no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException(ErrorCode.ADMINISTRATOR_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> approvalRequestService.approve(5L, 99L, null))
                 .isInstanceOf(ResourceNotFoundException.class);
@@ -202,7 +204,7 @@ class ApprovalRequestServiceTest {
 
         assertThatThrownBy(() -> approvalRequestService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Solicitud de aprobacion no encontrada con id 99");
+                .hasMessage("approval-request.not-found");
     }
 
     private ApprovalRequest submitted() {
@@ -248,7 +250,7 @@ class ApprovalRequestServiceTest {
     void resolveConSubmittedLanzaValidacionSinTocarLaSolicitud() {
         assertThatThrownBy(() -> approvalRequestService.resolve(1L, ApprovalStatus.SUBMITTED, 3L, null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("El campo 'status' tiene que ser APPROVED o REJECTED");
+                .hasMessage("approval-request.invalid-decision");
         verify(approvalRequestRepository, never()).findById(any());
     }
 }

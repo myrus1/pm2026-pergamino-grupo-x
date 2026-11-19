@@ -73,7 +73,7 @@ class StudentServiceTest {
 
         assertThatThrownBy(() -> studentService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Estudiante no encontrado con id 99");
+                .hasMessage("student.not-found");
     }
 
     @Test
