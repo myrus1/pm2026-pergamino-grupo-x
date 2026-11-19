@@ -6,13 +6,13 @@ import java.util.Objects;
 public class PasswordEncoder {
 
     public String encode(String rawPassword) {
-        Objects.requireNonNull(rawPassword, "La contraseña no puede ser nula");
+        Objects.requireNonNull(rawPassword, "Password cannot be null");
         return Password.hash(rawPassword).withBcrypt().getResult();
     }
 
     public boolean verify(String rawPassword, String encodedPassword) {
-        Objects.requireNonNull(rawPassword, "La contraseña no puede ser nula");
-        Objects.requireNonNull(encodedPassword, "La contraseña codificada no puede ser nula");
+        Objects.requireNonNull(rawPassword, "Password cannot be null");
+        Objects.requireNonNull(encodedPassword, "Encoded password cannot be null");
         return Password.check(rawPassword, encodedPassword).withBcrypt();
     }
 }

@@ -60,10 +60,10 @@ servicios, repositorios, controladores y DTOs. No hay paquetes por capa (`entiti
 │   │   └── shared/               # transversal a todas las features
 │   │       ├── config/           # CorsConfig, OpenApiConfig
 │   │       ├── security/         # JwtTokenUtil, PasswordEncoder, Role, AuthenticatedUser
-│   │       ├── exception/        # ApiExceptionHandler, ErrorResponse
+│   │       ├── exception/        # ApiExceptionHandler, ErrorCode, ApiException y sus subclases
 │   │       ├── observability/    # BusinessMetrics, CorrelationIdFilter, ActuatorAccessFilter
-│   │       └── validation/       # RequestValidator
-│   ├── src/main/resources/application.properties
+│   │       └── web/              # DateRange, ResourceLocation
+│   ├── src/main/resources/application.properties, messages*.properties
 │   └── src/test/java/ar/edu/unnoba/pm2026/   # tests por feature (dominio, servicios, controladores) + testutil/
 └── Docs/                     # UML/ (diagrama de clases), SQL/ (DER y esquema), Postman/ (coleccion)
 ```
@@ -174,9 +174,9 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 - La **lógica de negocio vive en las entidades** (p. ej. `Student.applyCourse(...)` valida
   estado, fecha y capacidad y lanza `CourseEnrollmentException`), no en services/controllers.
   Usar `Objects.requireNonNull` con mensajes para precondiciones.
-- Nombres de atributos/relaciones en inglés; **comentarios y mensajes de error en español**.
-  Relaciones `@ManyToOne(fetch = LAZY)` con `@JoinColumn(nullable = false)`; en
-  `Instructor.specialties` también `LAZY`.
+- Nombres de atributos/relaciones en inglés; **comentarios en español** y **mensajes al usuario
+  en los bundles** (ver "Mensajes al usuario (i18n)"). Relaciones `@ManyToOne(fetch = LAZY)` con
+  `@JoinColumn(nullable = false)`; en `Instructor.specialties` también `LAZY`.
 - **Servicios**: `@Service` + `@Transactional` en la clase, `@Transactional(readOnly = true)`
   en los métodos de lectura, constructor único con el repositorio (y los servicios de otras
   features que necesite) inyectado. CRUD básico:
@@ -187,6 +187,33 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
   BCrypt (`PasswordEncoder`). Los servicios de usuarios **no tienen `save`**: para no guardar
   nunca una contraseña sin hash, se usa siempre `create`/`update`.
   Una subclase puede sobreescribir `validateEmailAvailable` (lo hace `InstructorService`).
+
+## Mensajes al usuario (i18n)
+
+Los textos de error no viven en el código: salen de `src/main/resources/messages.properties`
+(español, idioma por defecto) y `messages_en.properties` (inglés). La request elige el idioma con
+`Accept-Language` (`en`, `en-US` → inglés; cualquier valor no soportado cae a español).
+
+- Toda excepción de la API extiende `ApiException` y lleva un `ErrorCode` (enum en
+  `shared/exception/ErrorCode`) más los argumentos del mensaje. `getMessage()` devuelve la
+  **clave**, no el texto (así los tests unitarios comparan contra `code.key()`).
+- `ErrorCode.key()` es la clave en los dos bundles; una clave nueva va en el enum y en
+  `messages.properties` **y** `messages_en.properties`.
+- `ApiExceptionHandler` resuelve el texto con `MessageSource` y el locale de la request. Si una
+  clave no existe devuelve la clave (migración incremental) y `detailFor` cae al
+  `status.getReasonPhrase()` para los `http.NNN`.
+- Los DTOs **no** llevan `message=` en las anotaciones de Bean Validation: el handler traduce
+  `FieldError.getCode()` con `VALIDATION_KEYS` (`validation.required`, `validation.email`,
+  `validation.positive`, `validation.decimal-min`, `validation.pattern`, `validation.invalid`) y
+  pasa el campo como `{0}`.
+- Los mensajes con `{n}` se interpolan con `MessageFormat`: cada apóstrofo simple se escribe
+  duplicado (`''`) en el bundle.
+- `MessageBundlesTest` verifica que los bundles tengan las mismas claves, que todo `ErrorCode` y
+  toda clave de validación estén en ambos idiomas y que no haya claves huérfanas.
+- Los logs y los mensajes de `Objects.requireNonNull`/`IllegalArgumentException` internos van en
+  inglés y no se traducen por request.
+- Los `@ApiResponse(description = ...)` de OpenAPI siguen en español: son documentación, no
+  mensajes de runtime.
 
 ## Flujo git
 
@@ -203,9 +230,9 @@ PostgreSQL accesible, si no falla al resolver `${DB_URL}`.
 Toda la API pide el token en el header `Authorization` (sin prefijo `Bearer` adicional:
 el valor guardado por los logins ya viene como `"Bearer ..."`). El controlador llama a
 `AuthorizationService.authorize(token, Role...)`; si el rol no alcanza devuelve 403, y si el
-token falta/vence 401 (`ApiExceptionHandler` los mapea a `{"mensaje": ...}`).
+token falta/vence 401 (`ApiExceptionHandler` los devuelve como `ProblemDetail` con `code`).
 `AuthenticatedUser` (en `shared/security/`, no en `auth/` para no armar ciclos de paquetes) expone
-`requireOwnership(ownerId, message)`: **el administrador siempre pasa**, los demás solo si
+`requireOwnership(ownerId, ErrorCode)`: **el administrador siempre pasa**, los demás solo si
 el id coincide.
 
 | Endpoint | STUDENT | INSTRUCTOR | ADMINISTRATOR | Público |
@@ -312,11 +339,12 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   `/api/administrators`, `/api/courses`, `/api/specialties`, `/api/enrollments` y
   `/api/approval-requests`.
   Los controladores y DTOs viven en `<feature>/controller` y `<feature>/dto`;
-  `ApiExceptionHandler`, `ErrorResponse` (`shared/exception/`) y `RequestValidator`
-  (`shared/validation/`) son transversales.
+  `ApiExceptionHandler`, `ErrorCode`/`ApiException` (`shared/exception/`) y `DateRange`
+  (`shared/web/`) son transversales.
   `POST /api/enrollments` valida las reglas de negocio via
-  `EnrollmentService.enroll` → `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea excepciones a
-  400/404/409 con cuerpo `{"mensaje": ...}`.
+  `EnrollmentService.enroll` → `Student.applyCourse` (errores 409). `ApiExceptionHandler` mapea
+  las excepciones a 400/404/409/401/403 como `ProblemDetail` con `code` y el `detail` traducido
+  (ver "Mensajes al usuario (i18n)").
 - Flujo de aprobación: `POST /api/approval-requests` (curso en DRAFT → PENDING_APPROVAL),
   `POST /api/approval-requests/{id}/approve` (→ PUBLISHED) y `/{id}/reject` (→ DRAFT);
   `GET /api/approval-requests?status=&instructorId=` para listar. Las reglas viven en
@@ -348,7 +376,8 @@ La API se documenta con **springdoc-openapi** (`springdoc-openapi-starter-webmvc
   `SpecialtyTest`, `EnrollmentTest`), de los servicios (contrato de `getById`, ahora con el
   dueño) y de los controladores (`*ControllerTest`, slice `@WebMvcTest`, con
   `testutil/AuthTestSupport`), todos sin BD salvo `contextLoads`.
-  Todavia no hay tests de persistencia (JPA). Suite: **345 tests**.
+  Todavia no hay tests de persistencia (JPA). Suite: **569 tests** (los 3 `@SpringBootTest`
+  necesitan la base y no corren sin `DB_URL` accesible).
 - **Pendiente conocido: el primer administrador.** `/api/administrators` exige token de admin,
   asi que no hay como crear el primer admin desde la API (ciclo). Mientras se decide
   (seed desde `ADMIN_EMAIL`/`ADMIN_PASSWORD`, INSERT SQL o alta publica condicional), la

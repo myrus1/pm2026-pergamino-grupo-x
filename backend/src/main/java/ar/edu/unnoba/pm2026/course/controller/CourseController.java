@@ -3,6 +3,7 @@ package ar.edu.unnoba.pm2026.course.controller;
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
@@ -55,7 +56,7 @@ public class CourseController {
             courses = courseService.getAll();
         } else {
             AuthenticatedUser actor = authorizationService.authorize(token, Role.STUDENT, Role.ADMINISTRATOR);
-            actor.requireOwnership(studentId, "Solo puede ver sus propios cursos");
+            actor.requireOwnership(studentId, ErrorCode.AUTHORIZATION_COURSES_OF_OTHERS);
             courses = enrollmentService.getCoursesOfStudent(studentId);
         }
         return courses.stream().map(this::response).toList();

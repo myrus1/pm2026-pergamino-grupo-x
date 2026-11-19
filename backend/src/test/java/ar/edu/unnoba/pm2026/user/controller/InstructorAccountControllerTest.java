@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
@@ -127,7 +129,7 @@ class InstructorAccountControllerTest {
     @Test
     void authConCredencialesInvalidasResponde401() throws Exception {
         when(authenticationService.authenticate(any(Instructor.class)))
-                .thenThrow(new AuthenticationException("Email o contraseña incorrectos"));
+                .thenThrow(new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_CREDENTIALS));
 
         mockMvc.perform(post("/auth").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"iris@example.com\",\"password\":\"mala\"}"))

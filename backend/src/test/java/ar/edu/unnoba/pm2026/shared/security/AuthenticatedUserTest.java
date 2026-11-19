@@ -4,11 +4,12 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 
 class AuthenticatedUserTest {
 
-    private static final String MESSAGE = "La inscripcion no le pertenece";
+    private static final ErrorCode CODE = ErrorCode.AUTHORIZATION_ENROLLMENT_NOT_OWNER;
 
     private AuthenticatedUser administrator() {
         return new AuthenticatedUser(3L, "ada@example.com", Role.ADMINISTRATOR);
@@ -24,29 +25,29 @@ class AuthenticatedUserTest {
 
     @Test
     void exigirPropioPermiteAlAdministradorDeAjenos() {
-        assertThatCode(() -> administrator().requireOwnership(99L, MESSAGE)).doesNotThrowAnyException();
+        assertThatCode(() -> administrator().requireOwnership(99L, CODE)).doesNotThrowAnyException();
     }
 
     @Test
     void exigirPropioPermiteAlDuenoDelRecurso() {
-        assertThatCode(() -> instructor().requireOwnership(4L, MESSAGE)).doesNotThrowAnyException();
-        assertThatCode(() -> student().requireOwnership(9L, MESSAGE)).doesNotThrowAnyException();
+        assertThatCode(() -> instructor().requireOwnership(4L, CODE)).doesNotThrowAnyException();
+        assertThatCode(() -> student().requireOwnership(9L, CODE)).doesNotThrowAnyException();
     }
 
     @Test
     void exigirPropioLanzaExcepcionCuandoElRecursoEsDeOtro() {
-        assertThatThrownBy(() -> instructor().requireOwnership(5L, MESSAGE))
+        assertThatThrownBy(() -> instructor().requireOwnership(5L, CODE))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage(MESSAGE);
-        assertThatThrownBy(() -> student().requireOwnership(7L, MESSAGE))
+                .hasMessage(CODE.key());
+        assertThatThrownBy(() -> student().requireOwnership(7L, CODE))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage(MESSAGE);
+                .hasMessage(CODE.key());
     }
 
     @Test
     void exigirPropioLanzaExcepcionCuandoElIdEsNulo() {
-        assertThatThrownBy(() -> instructor().requireOwnership(null, MESSAGE))
+        assertThatThrownBy(() -> instructor().requireOwnership(null, CODE))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage(MESSAGE);
+                .hasMessage(CODE.key());
     }
 }

@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.enrollment.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -73,8 +75,7 @@ class StudentCourseControllerTest {
 
     @Test
     void getByIdDeCursoNoPublicadoResponde404() throws Exception {
-        when(studentCatalogService.getCourse(1L, 7L)).thenThrow(new ResourceNotFoundException("course.not-found",
-                "Curso no encontrado con id 7"));
+        when(studentCatalogService.getCourse(1L, 7L)).thenThrow(new ResourceNotFoundException(ErrorCode.COURSE_NOT_FOUND, 7L));
 
         mockMvc.perform(get("/student/courses/7")).andExpect(status().isNotFound());
     }

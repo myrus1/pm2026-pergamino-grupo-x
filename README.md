@@ -91,6 +91,9 @@ cd backend
 
 `Pm2026ApplicationTests` levanta la app completa y necesita las variables del `.env` cargadas y una base accesible.
 
+`MessageBundlesTest` no necesita base: falla si `messages.properties` y `messages_en.properties` no tienen las
+mismas claves o si falta el mensaje de algún `ErrorCode`.
+
 ## Observabilidad
 
 Con la app levantada:
@@ -155,6 +158,18 @@ Con la aplicación en ejecución, Swagger UI está disponible en
 Las respuestas de error usan `application/problem+json` y el esquema `ProblemDetail` (RFC 7807), con los campos
 estándar `type`, `title`, `status`, `detail` e `instance`, más `code` y `timestamp`. Los errores de validación pueden
 incluir `errors`, una lista de objetos con `field` y `message`.
+
+Los textos de `detail` y de `errors[].message` están en español (`messages.properties`) y en inglés
+(`messages_en.properties`); el idioma se elige con el header `Accept-Language` (`en` o `en-US` para inglés,
+cualquier otro valor usa español). Las excepciones llevan un `ErrorCode` (`shared/exception/ErrorCode`) y el
+`ApiExceptionHandler` resuelve el texto con `MessageSource`.
+
+```bash
+curl -s -H 'Accept-Language: en' http://localhost:8080/api/courses/999
+# {"status":404,...,"detail":"Course not found with id 999","code":"course.not-found",...}
+```
+
+`code` es estable (no cambia con el idioma), así que conviene usarlo en el front para distinguir los errores.
 
 La tabla muestra los códigos de cada operación. Todas también pueden responder `405` (método no permitido), `406`
 (formato de respuesta no aceptable) y `500` (error inesperado). `Location` apunta al recurso recién creado.

@@ -24,10 +24,10 @@ public class JwtTokenUtil {
     }
 
     public JwtTokenUtil(String secret, Duration expiration) {
-        Objects.requireNonNull(secret, "La clave del token no puede ser nula");
-        Objects.requireNonNull(expiration, "La duracion del token no puede ser nula");
+        Objects.requireNonNull(secret, "JWT secret cannot be null");
+        Objects.requireNonNull(expiration, "JWT expiration cannot be null");
         if (expiration.isNegative() || expiration.isZero()) {
-            throw new IllegalArgumentException("La duracion del token tiene que ser positiva");
+            throw new IllegalArgumentException("JWT expiration must be positive");
         }
         this.algorithm = Algorithm.HMAC512(secret);
         this.verifier = JWT.require(algorithm).build();
@@ -41,9 +41,9 @@ public class JwtTokenUtil {
 
     // JWT sin el prefijo: el login unico lo devuelve en accessToken y manda el tipo aparte (tokenType).
     public String generateRawToken(String subject, Role role, Long userId) {
-        Objects.requireNonNull(subject, "El subject no puede ser nulo");
-        Objects.requireNonNull(role, "El rol no puede ser nulo");
-        Objects.requireNonNull(userId, "El id del usuario no puede ser nulo");
+        Objects.requireNonNull(subject, "JWT subject cannot be null");
+        Objects.requireNonNull(role, "JWT role cannot be null");
+        Objects.requireNonNull(userId, "JWT user id cannot be null");
         Instant now = Instant.now();
         return JWT.create()
                 .withSubject(subject)

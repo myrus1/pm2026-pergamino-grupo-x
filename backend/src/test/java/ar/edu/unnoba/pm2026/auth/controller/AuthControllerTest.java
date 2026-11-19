@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.auth.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -67,14 +69,14 @@ class AuthControllerTest {
     @Test
     void conCredencialesInvalidasResponde401ConProblemDetail() throws Exception {
         when(authenticationService.authenticate("ana@example.com", "otra"))
-                .thenThrow(new AuthenticationException("Email o contraseña incorrectos"));
+                .thenThrow(new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_CREDENTIALS));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"ana@example.com","password":"otra"}"""))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.detail").value("Email o contraseña incorrectos"))
-                .andExpect(jsonPath("$.code").value("authentication.failed"));
+                .andExpect(jsonPath("$.code").value("authentication.invalid-credentials"));
     }
 
     @Test

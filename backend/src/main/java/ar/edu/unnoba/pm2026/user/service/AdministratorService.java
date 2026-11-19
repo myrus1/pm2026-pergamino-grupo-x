@@ -1,6 +1,7 @@
 package ar.edu.unnoba.pm2026.user.service;
 
 import ar.edu.unnoba.pm2026.shared.exception.BusinessRuleException;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
 import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
@@ -30,8 +31,7 @@ public class AdministratorService extends UserService<Administrator> {
     @Transactional(readOnly = true)
     public Administrator getById(Long id) {
         return administratorRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("administrator.not-found",
-                        "Administrador no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ADMINISTRATOR_NOT_FOUND, id));
     }
 
     @Transactional(readOnly = true)
@@ -42,8 +42,7 @@ public class AdministratorService extends UserService<Administrator> {
     // TP6: un administrador no puede borrarse a si mismo (409); uno que no existe es 404
     public void delete(Long id, AuthenticatedUser actor) {
         if (actor != null && Objects.equals(id, actor.id())) {
-            throw new BusinessRuleException("administrator.self-deletion",
-                    "Un administrador no puede eliminarse a si mismo");
+            throw new BusinessRuleException(ErrorCode.ADMINISTRATOR_SELF_DELETION);
         }
         getById(id);
         administratorRepository.deleteById(id);
@@ -54,8 +53,7 @@ public class AdministratorService extends UserService<Administrator> {
     protected void validateEmailAvailable(String email, Long administratorId) {
         Administrator existing = administratorRepository.findByEmail(email);
         if (existing != null && (administratorId == null || !Objects.equals(existing.getId(), administratorId))) {
-            throw new BusinessRuleException("administrator.email-taken",
-                    "Ya existe un administrador con el email " + email);
+            throw new BusinessRuleException(ErrorCode.ADMINISTRATOR_EMAIL_TAKEN, email);
         }
     }
 }

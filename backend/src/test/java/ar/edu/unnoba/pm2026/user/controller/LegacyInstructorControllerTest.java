@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -72,7 +74,7 @@ class LegacyInstructorControllerTest {
     @Test
     void authConCredencialesInvalidasResponde401() throws Exception {
         when(authenticationService.authenticate(any(Instructor.class)))
-                .thenThrow(new AuthenticationException("Email o contraseña incorrectos"));
+                .thenThrow(new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_CREDENTIALS));
 
         mockMvc.perform(post(PATH + "/auth").contentType(MediaType.APPLICATION_JSON).content("""
                 {"email":"iris@example.com","password":"otra"}"""))
@@ -111,7 +113,7 @@ class LegacyInstructorControllerTest {
     @Test
     void getCoursesConTokenInvalidoResponde401() throws Exception {
         when(authorizationService.authorize("Bearer vencido", Role.INSTRUCTOR))
-                .thenThrow(new AuthenticationException("Token invalido o vencido"));
+                .thenThrow(new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_TOKEN));
 
         mockMvc.perform(get(PATH).header("Authorization", "Bearer vencido"))
                 .andExpect(status().isUnauthorized())
@@ -122,7 +124,7 @@ class LegacyInstructorControllerTest {
     @Test
     void getCoursesSinHeaderAuthorizationResponde401() throws Exception {
         when(authorizationService.authorize(isNull(), eq(Role.INSTRUCTOR)))
-                .thenThrow(new AuthenticationException("Token invalido o vencido"));
+                .thenThrow(new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_TOKEN));
 
         mockMvc.perform(get(PATH))
                 .andExpect(status().isUnauthorized())
@@ -132,7 +134,7 @@ class LegacyInstructorControllerTest {
     @Test
     void getCoursesConRolQueNoEsInstructorResponde403() throws Exception {
         when(authorizationService.authorize(TOKEN, Role.INSTRUCTOR))
-                .thenThrow(new AuthorizationException("No tiene permisos para esta operacion"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_DENIED));
 
         mockMvc.perform(get(PATH).header("Authorization", TOKEN))
                 .andExpect(status().isForbidden())

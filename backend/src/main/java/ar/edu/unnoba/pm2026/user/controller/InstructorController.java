@@ -3,6 +3,7 @@ package ar.edu.unnoba.pm2026.user.controller;
 import ar.edu.unnoba.pm2026.auth.service.AuthorizationService;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.web.ResourceLocation;
 import ar.edu.unnoba.pm2026.course.dto.SpecialtyResponse;
 import ar.edu.unnoba.pm2026.enrollment.dto.RevenueResponse;
@@ -65,7 +66,7 @@ public class InstructorController {
     public RevenueResponse revenue(@PathVariable Long id,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
-        actor.requireOwnership(id, "La recaudacion no le pertenece");
+        actor.requireOwnership(id, ErrorCode.AUTHORIZATION_REVENUE_NOT_OWNER);
         return new RevenueResponse(enrollmentService.instructorRevenue(id));
     }
 
@@ -87,7 +88,7 @@ public class InstructorController {
     public InstructorResponse update(@PathVariable Long id, @RequestBody @Valid InstructorRequest request,
             @RequestHeader(name = "Authorization", required = false) String token) {
         AuthenticatedUser actor = authorizationService.authorize(token, Role.INSTRUCTOR, Role.ADMINISTRATOR);
-        actor.requireOwnership(id, "Solo puede modificar su propio perfil");
+        actor.requireOwnership(id, ErrorCode.AUTHORIZATION_INSTRUCTOR_PROFILE_NOT_OWNER);
         Instructor instructor = instructorService.getById(id);
         instructor.setFirstName(request.getFirstName());
         instructor.setLastName(request.getLastName());

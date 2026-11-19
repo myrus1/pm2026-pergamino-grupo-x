@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -9,7 +11,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -89,7 +90,7 @@ class StudentControllerTest {
 
     @Test
     void getAllConCursoInexistenteResponde404() throws Exception {
-        when(enrollmentService.getStudentsOfCourse(99L)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
+        when(enrollmentService.getStudentsOfCourse(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.COURSE_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH).param("courseId", "99"))
                 .andExpect(status().isNotFound())
@@ -107,7 +108,7 @@ class StudentControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -153,7 +154,7 @@ class StudentControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND, 99L));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"firstName":"Ana","lastName":"Perez","email":"ana@example.com","password":"secret","dni":"11111111"}"""))
@@ -171,7 +172,7 @@ class StudentControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
+        when(studentService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND, 99L));
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -211,7 +212,7 @@ class StudentControllerTest {
     void getAllDelCursoDeOtroInstructorResponde403() throws Exception {
         AuthTestSupport.asInstructor(authorizationService, 4L);
         when(courseService.getById(3L, new AuthenticatedUser(4L, "iris@example.com", Role.INSTRUCTOR)))
-                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_COURSE_NOT_OWNER));
 
         mockMvc.perform(get(PATH).param("courseId", "3"))
                 .andExpect(status().isForbidden())

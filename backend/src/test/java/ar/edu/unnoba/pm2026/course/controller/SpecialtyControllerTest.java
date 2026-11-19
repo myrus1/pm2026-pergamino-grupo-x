@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.course.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -8,7 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -81,7 +82,7 @@ class SpecialtyControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.SPECIALTY_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -158,7 +159,7 @@ class SpecialtyControllerTest {
 
     @Test
     void updateInexistenteResponde404() throws Exception {
-        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.SPECIALTY_NOT_FOUND, 99L));
 
         mockMvc.perform(put(PATH + "/99").contentType(MediaType.APPLICATION_JSON).content("""
                 {"name":"Algoritmos"}"""))
@@ -176,7 +177,7 @@ class SpecialtyControllerTest {
 
     @Test
     void deleteInexistenteResponde404() throws Exception {
-        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.SPECIALTY_NOT_FOUND, 99L));
 
         mockMvc.perform(delete(PATH + "/99"))
                 .andExpect(status().isNotFound())

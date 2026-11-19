@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.enrollment.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -105,7 +107,7 @@ class EnrollmentControllerTest {
 
     @Test
     void getByIdInexistenteResponde404ConMensaje() throws Exception {
-        when(enrollmentService.getById(99L, AuthTestSupport.ADMIN)).thenThrow(new ResourceNotFoundException("Inscripcion no encontrada con id 99"));
+        when(enrollmentService.getById(99L, AuthTestSupport.ADMIN)).thenThrow(new ResourceNotFoundException(ErrorCode.ENROLLMENT_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH + "/99"))
                 .andExpect(status().isNotFound())
@@ -132,7 +134,7 @@ class EnrollmentControllerTest {
     void createConCursoNoPublicadoResponde409() throws Exception {
         AuthTestSupport.as(authorizationService, STUDENT);
         when(enrollmentService.enroll(1L, 2L, STUDENT))
-                .thenThrow(new CourseEnrollmentException("El curso no esta publicado"));
+                .thenThrow(new CourseEnrollmentException(ErrorCode.ENROLLMENT_COURSE_NOT_PUBLISHED));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":1,"courseId":2}"""))
@@ -145,7 +147,7 @@ class EnrollmentControllerTest {
         AuthenticatedUser missing = new AuthenticatedUser(99L, "ana@example.com", Role.STUDENT);
         AuthTestSupport.as(authorizationService, missing);
         when(enrollmentService.enroll(99L, 2L, missing))
-                .thenThrow(new ResourceNotFoundException("Estudiante no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND, 99L));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON).content("""
                 {"studentId":99,"courseId":2}"""))
@@ -235,7 +237,7 @@ class EnrollmentControllerTest {
     void getByIdAjenoResponde403() throws Exception {
         AuthTestSupport.asStudent(authorizationService, 9L);
         when(enrollmentService.getById(9L, new AuthenticatedUser(9L, "ana@example.com", Role.STUDENT)))
-                .thenThrow(new AuthorizationException("La inscripcion no le pertenece"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_ENROLLMENT_NOT_OWNER));
 
         mockMvc.perform(get(PATH + "/9"))
                 .andExpect(status().isForbidden())
@@ -275,7 +277,7 @@ class EnrollmentControllerTest {
     void createDeOtroAlumnoResponde403() throws Exception {
         AuthTestSupport.asStudent(authorizationService, 9L);
         when(enrollmentService.enroll(7L, 2L, new AuthenticatedUser(9L, "ana@example.com", Role.STUDENT)))
-                .thenThrow(new AuthorizationException("Solo puede inscribirse a si mismo"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_ENROLLMENT_NOT_SELF));
 
         mockMvc.perform(post(PATH).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"studentId\":7,\"courseId\":2}"))

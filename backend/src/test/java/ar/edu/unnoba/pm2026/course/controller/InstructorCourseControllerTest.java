@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.course.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -98,14 +100,14 @@ class InstructorCourseControllerTest {
 
     @Test
     void getByIdDeCursoAjenoResponde403() throws Exception {
-        when(courseService.getDetail(7L, IRIS)).thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+        when(courseService.getDetail(7L, IRIS)).thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_COURSE_NOT_OWNER));
 
         mockMvc.perform(get(PATH + "/7")).andExpect(status().isForbidden());
     }
 
     @Test
     void getByIdInexistenteResponde404() throws Exception {
-        when(courseService.getDetail(99L, IRIS)).thenThrow(new ResourceNotFoundException("Curso no encontrado con id 99"));
+        when(courseService.getDetail(99L, IRIS)).thenThrow(new ResourceNotFoundException(ErrorCode.COURSE_NOT_FOUND, 99L));
 
         mockMvc.perform(get(PATH + "/99")).andExpect(status().isNotFound());
     }
@@ -165,7 +167,7 @@ class InstructorCourseControllerTest {
     @Test
     void updateDeCursoQueNoEstaEnBorradorResponde409() throws Exception {
         when(courseService.updatePartially(eq(7L), any(UpdateCourseRequest.class), eq(IRIS)))
-                .thenThrow(new CourseStateException("El curso solo se puede modificar mientras este en borrador"));
+                .thenThrow(new CourseStateException(ErrorCode.COURSE_NOT_DRAFT));
 
         mockMvc.perform(put(PATH + "/7").contentType(MediaType.APPLICATION_JSON).content("{\"maxCapacity\":10}"))
                 .andExpect(status().isConflict());
@@ -180,7 +182,7 @@ class InstructorCourseControllerTest {
 
     @Test
     void deleteDeCursoPublicadoResponde409() throws Exception {
-        doThrow(new CourseStateException("El curso solo se puede modificar mientras este en borrador"))
+        doThrow(new CourseStateException(ErrorCode.COURSE_NOT_DRAFT))
                 .when(courseService).delete(7L, IRIS);
 
         mockMvc.perform(delete(PATH + "/7")).andExpect(status().isConflict());
@@ -200,7 +202,7 @@ class InstructorCourseControllerTest {
     @Test
     void getStudentsDeCursoAjenoResponde403() throws Exception {
         when(enrollmentService.getEnrolledStudents(7L, IRIS))
-                .thenThrow(new AuthorizationException("El curso pertenece a otro instructor"));
+                .thenThrow(new AuthorizationException(ErrorCode.AUTHORIZATION_COURSE_NOT_OWNER));
 
         mockMvc.perform(get(PATH + "/7/students")).andExpect(status().isForbidden());
     }

@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.user.service;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import java.time.LocalDate;
 import ar.edu.unnoba.pm2026.user.dto.InstructorDetailResponse;
 import ar.edu.unnoba.pm2026.testutil.Fixtures;
@@ -71,7 +73,7 @@ class InstructorServiceTest {
 
         assertThatThrownBy(() -> instructorService.getSpecialties(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Instructor no encontrado con id 99");
+                .hasMessage("instructor.not-found");
     }
 
     @Test
@@ -96,7 +98,7 @@ class InstructorServiceTest {
 
         assertThatThrownBy(() -> instructorService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Instructor no encontrado con id 99");
+                .hasMessage("instructor.not-found");
     }
 
     @Test
@@ -121,7 +123,7 @@ class InstructorServiceTest {
 
         assertThatThrownBy(() -> instructorService.create(instructor))
                 .isInstanceOf(InstructorEmailAlreadyExistsException.class)
-                .hasMessage("Ya existe un instructor con el email iris@example.com");
+                .hasMessage("instructor.email.already-exists");
 
         verify(passwordEncoder, never()).encode(any());
         verify(instructorRepository, never()).save(any());
@@ -171,11 +173,11 @@ class InstructorServiceTest {
     void addSpecialtyConEspecialidadInexistenteNoGuardaNada() {
         when(instructorRepository.findById(1L))
                 .thenReturn(Optional.of(new Instructor("Iris", "Ruiz", "iris@example.com", "secret")));
-        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException("Especialidad no encontrada con id 99"));
+        when(specialtyService.getById(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.SPECIALTY_NOT_FOUND, 99L));
 
         assertThatThrownBy(() -> instructorService.addSpecialty(1L, 99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Especialidad no encontrada con id 99");
+                .hasMessage("specialty.not-found");
         verify(instructorRepository, never()).save(any());
     }
 

@@ -12,6 +12,7 @@ import ar.edu.unnoba.pm2026.course.exception.CourseStateException;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.course.repository.CourseRepository;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
@@ -68,7 +69,7 @@ public class CourseService {
     public Course updatePartially(Long id, UpdateCourseRequest changes, AuthenticatedUser actor) {
         requireInstructor(actor);
         if (changes == null) {
-            throw new ValidationException("La solicitud no puede ser nula");
+            throw new ValidationException(ErrorCode.REQUEST_BODY_REQUIRED);
         }
         Course course = getById(id);
         requireModifiable(course, actor);
@@ -137,8 +138,7 @@ public class CourseService {
     @Transactional(readOnly = true)
     public Course getById(Long id) {
         return courseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("course.not-found",
-                        "Curso no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.COURSE_NOT_FOUND, id));
     }
 
     // Igual que getById pero ademas exige que el curso le pertenezca al instructor del token.
@@ -146,7 +146,7 @@ public class CourseService {
     public Course getById(Long id, AuthenticatedUser actor) {
         Course course = getById(id);
         actor.requireOwnership(course.getInstructor() == null ? null : course.getInstructor().getId(),
-                "El curso pertenece a otro instructor");
+                ErrorCode.AUTHORIZATION_COURSE_NOT_OWNER);
         return course;
     }
 
@@ -162,16 +162,16 @@ public class CourseService {
 
     private void requireInstructor(AuthenticatedUser actor) {
         if (actor == null) {
-            throw new ValidationException("El usuario autenticado no puede ser nulo");
+            throw new ValidationException(ErrorCode.REQUEST_ACTOR_REQUIRED);
         }
         if (actor.role() != Role.INSTRUCTOR) {
-            throw new AuthorizationException("Solo un instructor puede crear o modificar cursos");
+            throw new AuthorizationException(ErrorCode.AUTHORIZATION_INSTRUCTOR_ONLY);
         }
     }
 
     private void validateRequest(CourseRequest request) {
         if (request == null) {
-            throw new ValidationException("La solicitud no puede ser nula");
+            throw new ValidationException(ErrorCode.REQUEST_BODY_REQUIRED);
         }
     }
 
@@ -179,9 +179,9 @@ public class CourseService {
     // El administrador solo llega aca para borrar: puede sacar cualquier curso.
     private void requireModifiable(Course course, AuthenticatedUser actor) {
         actor.requireOwnership(course.getInstructor() == null ? null : course.getInstructor().getId(),
-                "El curso pertenece a otro instructor");
+                ErrorCode.AUTHORIZATION_COURSE_NOT_OWNER);
         if (actor.role() != Role.ADMINISTRATOR && course.getStatus() != CourseStatus.DRAFT) {
-            throw new CourseStateException("El curso solo se puede modificar mientras este en borrador");
+            throw new CourseStateException(ErrorCode.COURSE_NOT_DRAFT);
         }
     }
 }

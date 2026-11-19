@@ -108,10 +108,10 @@ class ApiDocumentationTest {
     void noDejaElHeaderAuthorizationComoParametroDeNingunEndpoint() throws Exception {
         JsonNode paths = doc().get("paths");
 
-        Iterator<Map.Entry<String, JsonNode>> pathEntries = paths.fields();
+        Iterator<Map.Entry<String, JsonNode>> pathEntries = paths.properties().iterator();
         while (pathEntries.hasNext()) {
             JsonNode operations = pathEntries.next().getValue();
-            Iterator<Map.Entry<String, JsonNode>> methodEntries = operations.fields();
+            Iterator<Map.Entry<String, JsonNode>> methodEntries = operations.properties().iterator();
             while (methodEntries.hasNext()) {
                 JsonNode operation = methodEntries.next().getValue();
                 JsonNode parameters = operation.get("parameters");
@@ -339,7 +339,7 @@ class ApiDocumentationTest {
         }
 
         Set<String> documentedOperations = new HashSet<>();
-        Iterator<Map.Entry<String, JsonNode>> pathEntries = paths.fields();
+        Iterator<Map.Entry<String, JsonNode>> pathEntries = paths.properties().iterator();
         while (pathEntries.hasNext()) {
             Map.Entry<String, JsonNode> pathEntry = pathEntries.next();
             Iterator<String> methodNames = pathEntry.getValue().fieldNames();

@@ -4,6 +4,7 @@ import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.shared.security.AuthenticatedUser;
 import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
@@ -106,14 +107,14 @@ public class EnrollmentService {
 
     public Enrollment enroll(Long studentId, Long courseId, AuthenticatedUser actor) {
         if (actor == null) {
-            throw new ValidationException("El usuario autenticado no puede ser nulo");
+            throw new ValidationException(ErrorCode.REQUEST_ACTOR_REQUIRED);
         }
         // Inscribirse es una accion del alumno: el TP6 no deja que el admin la haga por el.
         if (actor.role() != Role.STUDENT) {
-            throw new AuthorizationException("Solo un alumno puede inscribirse a un curso");
+            throw new AuthorizationException(ErrorCode.AUTHORIZATION_STUDENT_ONLY);
         }
         if (!Objects.equals(actor.id(), studentId)) {
-            throw new AuthorizationException("Solo puede inscribirse a si mismo");
+            throw new AuthorizationException(ErrorCode.AUTHORIZATION_ENROLLMENT_NOT_SELF);
         }
         return enroll(studentId, courseId);
     }
@@ -121,7 +122,7 @@ public class EnrollmentService {
     // TP6: POST /student/enrollments. El alumno es el del token; la respuesta se arma aca porque recorre el curso.
     public StudentEnrollmentResponse enrollStudent(Long courseId, AuthenticatedUser actor) {
         if (actor == null) {
-            throw new ValidationException("El usuario autenticado no puede ser nulo");
+            throw new ValidationException(ErrorCode.REQUEST_ACTOR_REQUIRED);
         }
         return studentEnrollmentOf(enroll(actor.id(), courseId, actor));
     }
@@ -156,8 +157,7 @@ public class EnrollmentService {
     @Transactional(readOnly = true)
     public Enrollment getById(Long id) {
         return enrollmentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("enrollment.not-found",
-                        "Inscripcion no encontrada con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.ENROLLMENT_NOT_FOUND, id));
     }
 
     // El alumno solo ve su inscripcion; el instructor solo las de sus cursos; el admin, cualquiera.
@@ -166,9 +166,9 @@ public class EnrollmentService {
         Enrollment enrollment = getById(id);
         switch (actor.role()) {
             case STUDENT -> actor.requireOwnership(enrollment.getStudent().getId(),
-                    "La inscripcion no le pertenece");
+                    ErrorCode.AUTHORIZATION_ENROLLMENT_NOT_OWNER);
             case INSTRUCTOR -> actor.requireOwnership(enrollment.getCourse().getInstructor().getId(),
-                    "La inscripcion no le pertenece a sus cursos");
+                    ErrorCode.AUTHORIZATION_ENROLLMENT_NOT_IN_YOUR_COURSES);
             default -> {
                 // El administrador puede consultar cualquier inscripcion.
             }
