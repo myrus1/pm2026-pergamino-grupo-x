@@ -75,21 +75,21 @@ class AuthorizationServiceImplTest {
 
         assertThatThrownBy(() -> authorizationService.authorize(token, Role.ADMINISTRATOR))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("No tiene permisos para esta operacion");
+                .hasMessage("authorization.denied");
     }
 
     @Test
     void autorizarSinHeaderAuthorizationLanzaExcepcionDeAutenticacion() {
         assertThatThrownBy(() -> authorizationService.authorize(null, Role.INSTRUCTOR))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Token invalido o vencido");
+                .hasMessage("authentication.invalid-token");
     }
 
     @Test
     void autorizarConTokenInvalidoLanzaExcepcionDeAutenticacion() {
         assertThatThrownBy(() -> authorizationService.authorize("Bearer no-es-un-token", Role.INSTRUCTOR))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Token invalido o vencido");
+                .hasMessage("authentication.invalid-token");
     }
 
     @Test
@@ -98,7 +98,7 @@ class AuthorizationServiceImplTest {
 
         assertThatThrownBy(() -> authorizationService.authorize(foreign, Role.INSTRUCTOR))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Token invalido o vencido");
+                .hasMessage("authentication.invalid-token");
     }
 
     @Test
@@ -108,7 +108,7 @@ class AuthorizationServiceImplTest {
 
         assertThatThrownBy(() -> authorizationService.authorize(withoutRole, Role.INSTRUCTOR))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("El token no tiene rol asignado");
+                .hasMessage("authorization.role-required");
     }
 
     // Un token firmado con un valor de rol que no existe tiene que pedir login de nuevo (401),
@@ -120,7 +120,7 @@ class AuthorizationServiceImplTest {
 
         assertThatThrownBy(() -> authorizationService.authorize(unknownRole, Role.STUDENT))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Token invalido o vencido");
+                .hasMessage("authentication.invalid-token");
     }
 
     @Test
@@ -130,7 +130,7 @@ class AuthorizationServiceImplTest {
 
         assertThatThrownBy(() -> authorizationService.authorize(token, Role.INSTRUCTOR))
                 .isInstanceOf(AuthorizationException.class)
-                .hasMessage("El usuario del token ya no existe");
+                .hasMessage("authorization.user-not-found");
     }
 
     @Test

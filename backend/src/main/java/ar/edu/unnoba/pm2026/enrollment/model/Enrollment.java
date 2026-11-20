@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.enrollment.model;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.user.model.Student;
@@ -7,7 +8,6 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.Objects;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -65,7 +65,7 @@ public class Enrollment {
             return;
         }
         if (student == null) {
-            throw new ValidationException("Estudiante no puede ser nulo");
+            throw new ValidationException(ErrorCode.ENROLLMENT_STUDENT_REQUIRED);
         }
         Student previousStudent = this.student;
         this.student = student;
@@ -80,7 +80,7 @@ public class Enrollment {
             return;
         }
         if (course == null) {
-            throw new ValidationException("Curso no puede ser nulo");
+            throw new ValidationException(ErrorCode.ENROLLMENT_COURSE_REQUIRED);
         }
         Course previousCourse = this.course;
         this.course = course;

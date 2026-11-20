@@ -26,6 +26,6 @@ public enum Role {
         return Arrays.stream(values())
                 .filter(role -> role.claimValue.equals(claimValue))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Rol desconocido en el token: " + claimValue));
+                .orElseThrow(() -> new IllegalArgumentException("Unknown role in token: " + claimValue));
     }
 }

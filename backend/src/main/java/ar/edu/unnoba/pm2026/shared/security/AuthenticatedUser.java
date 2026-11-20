@@ -1,6 +1,7 @@
 package ar.edu.unnoba.pm2026.shared.security;
 
 import ar.edu.unnoba.pm2026.auth.exception.AuthorizationException;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import java.util.Objects;
 
 // Usuario resuelto desde el token valido: es el que usan los controladores y los
@@ -8,12 +9,12 @@ import java.util.Objects;
 public record AuthenticatedUser(Long id, String email, Role role) {
 
     // El administrador siempre pasa; los demas solo sobre lo que les pertenece.
-    public void requireOwnership(Long ownerId, String message) {
+    public void requireOwnership(Long ownerId, ErrorCode code) {
         if (role == Role.ADMINISTRATOR) {
             return;
         }
         if (!Objects.equals(id, ownerId)) {
-            throw new AuthorizationException(message);
+            throw new AuthorizationException(code);
         }
     }
 }

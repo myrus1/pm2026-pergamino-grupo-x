@@ -6,6 +6,7 @@ import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.service.CourseService;
 import ar.edu.unnoba.pm2026.enrollment.dto.StudentCourseResponse;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.model.Student;
@@ -51,7 +52,7 @@ public class StudentCatalogService {
     StudentCourseResponse getCourse(Long studentId, Long courseId, LocalDate today) {
         Course course = courseService.getById(courseId);
         if (course.getStatus() != CourseStatus.PUBLISHED) {
-            throw new ResourceNotFoundException("course.not-found", "Curso no encontrado con id " + courseId);
+            throw new ResourceNotFoundException(ErrorCode.COURSE_NOT_FOUND, courseId);
         }
         return responseOf(course, studentService.getById(studentId), today);
     }

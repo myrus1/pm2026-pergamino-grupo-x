@@ -3,6 +3,7 @@ package ar.edu.unnoba.pm2026.user.model;
 import ar.edu.unnoba.pm2026.shared.security.Role;
 import ar.edu.unnoba.pm2026.course.model.Course;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -10,7 +11,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -50,11 +50,11 @@ public class Instructor extends User {
 
     public void validateSpecialty(Specialty specialty) {
         if (specialty == null) {
-            throw new ValidationException("especialidad no puede ser nula");
+            throw new ValidationException(ErrorCode.INSTRUCTOR_SPECIALTY_REQUIRED);
         }
         if (specialties.stream().noneMatch(own -> own == specialty
                 || (own.getId() != null && own.getId().equals(specialty.getId())))) {
-            throw new ValidationException("instructor debe tener la especialidad del curso");
+            throw new ValidationException(ErrorCode.INSTRUCTOR_SPECIALTY_MISMATCH);
         }
     }
 

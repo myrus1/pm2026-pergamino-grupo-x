@@ -74,7 +74,7 @@ class AdministratorServiceTest {
 
         assertThatThrownBy(() -> administratorService.getById(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessage("Administrador no encontrado con id 99");
+                .hasMessage("administrator.not-found");
     }
 
     @Test
@@ -99,7 +99,7 @@ class AdministratorServiceTest {
     void deleteDeSiMismoLanzaConflictoYNoBorra() {
         assertThatThrownBy(() -> administratorService.delete(3L, ADA))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("Un administrador no puede eliminarse a si mismo");
+                .hasMessage("administrator.self-deletion");
         verify(administratorRepository, never()).deleteById(any());
     }
 
@@ -127,7 +127,7 @@ class AdministratorServiceTest {
 
         assertThatThrownBy(() -> administratorService.create(Fixtures.administrator(null)))
                 .isInstanceOf(BusinessRuleException.class)
-                .hasMessage("Ya existe un administrador con el email eva@example.com");
+                .hasMessage("administrator.email-taken");
         verify(administratorRepository, never()).save(any());
     }
 }

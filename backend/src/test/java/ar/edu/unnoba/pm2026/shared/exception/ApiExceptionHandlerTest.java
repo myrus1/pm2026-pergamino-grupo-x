@@ -21,7 +21,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -117,6 +116,56 @@ class ApiExceptionHandlerTest {
     }
 
     @Test
+    void elEspanolEsElIdiomaPorDefecto() throws Exception {
+        mockMvc.perform(get("/test/errors/not-found"))
+                .andExpect(jsonPath("$.detail").value("No se encontro el recurso"));
+
+        mockMvc.perform(get("/test/errors/not-found").header("Accept-Language", "es"))
+                .andExpect(jsonPath("$.detail").value("No se encontro el recurso"));
+
+        mockMvc.perform(get("/test/errors/business").header("Accept-Language", "es-AR"))
+                .andExpect(jsonPath("$.detail").value("El curso esta lleno"));
+    }
+
+    @Test
+    void AcceptLanguageEnDevuelveLosMensajesEnIngles() throws Exception {
+        mockMvc.perform(get("/test/errors/not-found").header("Accept-Language", "en"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("resource.not-found"))
+                .andExpect(jsonPath("$.detail").value("Resource not found"));
+
+        mockMvc.perform(get("/test/errors/business").header("Accept-Language", "en"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("enrollment.course-full"))
+                .andExpect(jsonPath("$.detail").value("The course is full"));
+    }
+
+    @Test
+    void unIdiomaRegionalUsaElBundleDeSuIdioma() throws Exception {
+        mockMvc.perform(get("/test/errors/not-found").header("Accept-Language", "en-US"))
+                .andExpect(jsonPath("$.detail").value("Resource not found"));
+    }
+
+    @Test
+    void unIdiomaNoSoportadoCaeAlEspanol() throws Exception {
+        mockMvc.perform(get("/test/errors/not-found").header("Accept-Language", "fr"))
+                .andExpect(jsonPath("$.detail").value("No se encontro el recurso"));
+    }
+
+    @Test
+    void losErroresDeValidacionTambienSeTraducen() throws Exception {
+        mockMvc.perform(post("/test/errors/validated")
+                        .header("Accept-Language", "en")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("request.validation"))
+                .andExpect(jsonPath("$.errors[0].field").value("name"))
+                .andExpect(jsonPath("$.errors[0].message").value("Field 'name' is required"))
+                .andExpect(jsonPath("$.detail").value("Field 'name' is required"));
+    }
+
+    @Test
     void erroresDeIntegridadSeMuestranSinDetallesTecnicos() throws Exception {
         mockMvc.perform(get("/test/errors/conflict"))
                 .andExpect(status().isConflict())
@@ -149,7 +198,7 @@ class ApiExceptionHandlerTest {
 
         @GetMapping("/test/errors/not-found")
         void notFound() {
-            throw new ResourceNotFoundException("No se encontro el recurso");
+            throw new ResourceNotFoundException(ErrorCode.RESOURCE_NOT_FOUND);
         }
 
         @PostMapping(value = "/test/errors/validated", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -178,22 +227,22 @@ class ApiExceptionHandlerTest {
 
         @GetMapping("/test/errors/unauthenticated")
         void unauthenticated() {
-            throw new UnauthenticatedException("Token invalido");
+            throw new UnauthenticatedException(ErrorCode.AUTHENTICATION_UNAUTHENTICATED);
         }
 
         @GetMapping("/test/errors/forbidden")
         void forbidden() {
-            throw new ForbiddenException("Sin permisos");
+            throw new ForbiddenException(ErrorCode.AUTHORIZATION_FORBIDDEN);
         }
 
         @GetMapping("/test/errors/business")
         void business() {
-            throw new BusinessRuleException("enrollment.course-full", "El curso esta lleno");
+            throw new BusinessRuleException(ErrorCode.ENROLLMENT_COURSE_FULL);
         }
 
         @GetMapping("/test/errors/validation")
         void validation() {
-            throw new ValidationException("Datos invalidos");
+            throw new ValidationException(ErrorCode.REQUEST_VALIDATION);
         }
 
         @GetMapping("/test/errors/conflict")
@@ -202,7 +251,7 @@ class ApiExceptionHandlerTest {
         }
     }
 
-    record RequiredBody(@NotBlank(message = "El campo 'name' es obligatorio") String name) {
+    record RequiredBody(@NotBlank String name) {
     }
 
     @TestConfiguration

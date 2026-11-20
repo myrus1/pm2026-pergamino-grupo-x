@@ -115,7 +115,7 @@ class AuthenticationServiceImplTest {
 
         assertThatThrownBy(() -> authenticationService.authenticate(credentials("nadie@example.com", "secret")))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Email o contraseña incorrectos");
+                .hasMessage("authentication.invalid-credentials");
     }
 
     @Test
@@ -127,7 +127,7 @@ class AuthenticationServiceImplTest {
         assertThatThrownBy(() -> authenticationService
                 .authenticate(new Student(null, null, "ana@example.com", "otra", null)))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Email o contraseña incorrectos");
+                .hasMessage("authentication.invalid-credentials");
         assertThat(logins(Role.STUDENT, "failure")).isEqualTo(1);
         assertThat(logins(Role.STUDENT, "success")).isZero();
     }
@@ -141,7 +141,7 @@ class AuthenticationServiceImplTest {
         assertThatThrownBy(() -> authenticationService
                 .authenticate(new Administrator(null, null, "ada@example.com", "otra")))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Email o contraseña incorrectos");
+                .hasMessage("authentication.invalid-credentials");
     }
 
     @Test
@@ -151,7 +151,7 @@ class AuthenticationServiceImplTest {
 
         assertThatThrownBy(() -> authenticationService.authenticate(credentials("iris@example.com", "otra")))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Email o contraseña incorrectos");
+                .hasMessage("authentication.invalid-credentials");
     }
 
     @Test
@@ -161,7 +161,7 @@ class AuthenticationServiceImplTest {
 
         assertThatThrownBy(() -> authenticationService.authenticate(credentials("viejo@example.com", "clave123")))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Email o contraseña incorrectos");
+                .hasMessage("authentication.invalid-credentials");
     }
 
     // Login unico (#27): POST /api/auth/token
@@ -224,7 +224,7 @@ class AuthenticationServiceImplTest {
 
         assertThatThrownBy(() -> authenticationService.authenticate("ana@example.com", "otra"))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Email o contraseña incorrectos");
+                .hasMessage("authentication.invalid-credentials");
         assertThat(logins(Role.STUDENT, "failure")).isEqualTo(1);
         assertThat(logins(Role.STUDENT, "success")).isZero();
     }
@@ -235,7 +235,7 @@ class AuthenticationServiceImplTest {
 
         assertThatThrownBy(() -> authenticationService.authenticate("nadie@example.com", "secret"))
                 .isInstanceOf(AuthenticationException.class)
-                .hasMessage("Email o contraseña incorrectos");
+                .hasMessage("authentication.invalid-credentials");
     }
 
     @Test

@@ -86,7 +86,7 @@ class EnrollmentTest {
 
         assertThatThrownBy(() -> enrollment.setStudent(null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Estudiante no puede ser nulo");
+                .hasMessage("enrollment.student.required");
     }
 
     @Test
@@ -95,6 +95,6 @@ class EnrollmentTest {
 
         assertThatThrownBy(() -> enrollment.setCourse(null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("Curso no puede ser nulo");
+                .hasMessage("enrollment.course.required");
     }
 }

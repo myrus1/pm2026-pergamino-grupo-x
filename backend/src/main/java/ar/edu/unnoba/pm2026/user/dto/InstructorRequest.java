@@ -15,7 +15,7 @@ public class InstructorRequest {
     @NotBlank
     private String lastName;
     @NotBlank
-    @Email(message = "El campo 'email' debe tener un formato valido")
+    @Email
     private String email;
     @NotBlank
     private String password;

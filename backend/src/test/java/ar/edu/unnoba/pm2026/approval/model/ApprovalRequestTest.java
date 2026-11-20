@@ -47,7 +47,7 @@ class ApprovalRequestTest {
 
         assertThatThrownBy(() -> new ApprovalRequest(course, null))
                 .isInstanceOf(ApprovalRequestException.class)
-                .hasMessage("Solo se puede solicitar la aprobacion de un curso en borrador");
+                .hasMessage("approval-request.course-not-draft");
         assertThat(course.getStatus()).isEqualTo(sqlState);
     }
 
@@ -55,7 +55,7 @@ class ApprovalRequestTest {
     void solicitarAprobacionRechazaCursoNulo() {
         assertThatThrownBy(() -> new ApprovalRequest(null, null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("El curso no puede ser nulo");
+                .hasMessage("approval-request.course.required");
     }
 
     @Test
@@ -104,7 +104,7 @@ class ApprovalRequestTest {
 
         assertThatThrownBy(() -> request.reject(admin, null))
                 .isInstanceOf(ApprovalRequestException.class)
-                .hasMessage("La solicitud ya fue resuelta");
+                .hasMessage("approval-request.already-resolved");
         assertThat(request.getStatus()).isEqualTo(ApprovalStatus.APPROVED);
         assertThat(course.getStatus()).isEqualTo(CourseStatus.PUBLISHED);
     }
@@ -115,7 +115,7 @@ class ApprovalRequestTest {
 
         assertThatThrownBy(() -> request.approve(null, null))
                 .isInstanceOf(ValidationException.class)
-                .hasMessage("El administrador no puede ser nulo");
+                .hasMessage("approval-request.administrator.required");
         assertThat(request.getStatus()).isEqualTo(ApprovalStatus.SUBMITTED);
     }
 }

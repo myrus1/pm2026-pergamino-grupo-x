@@ -51,7 +51,7 @@ class ObservabilityIntegrationTest {
                     .andExpect(status().isUnauthorized())
                     .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                     .andExpect(jsonPath("$.detail").value("Token invalido o vencido"))
-                    .andExpect(jsonPath("$.code").value("authentication.failed"))
+                    .andExpect(jsonPath("$.code").value("authentication.invalid-token"))
                     .andExpect(jsonPath("$.instance").value(path));
         }
 

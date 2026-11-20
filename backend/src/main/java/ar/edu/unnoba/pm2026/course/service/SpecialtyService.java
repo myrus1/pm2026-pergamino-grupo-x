@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.course.service;
 
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.course.repository.SpecialtyRepository;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -25,8 +26,7 @@ public class SpecialtyService {
     @Transactional(readOnly = true)
     public Specialty getById(Long id) {
         return specialtyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("specialty.not-found",
-                        "Especialidad no encontrada con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.SPECIALTY_NOT_FOUND, id));
     }
 
     public Specialty save(Specialty specialty) {

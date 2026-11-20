@@ -1,5 +1,6 @@
 package ar.edu.unnoba.pm2026.shared.web;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -10,8 +11,7 @@ public record DateRange(LocalDate from, LocalDate to) {
 
     public DateRange {
         if (from != null && to != null && from.isAfter(to)) {
-            throw new ValidationException("request.invalid-date-range",
-                    "La fecha 'fromDate' no puede ser posterior a 'toDate'");
+            throw new ValidationException(ErrorCode.REQUEST_INVALID_DATE_RANGE);
         }
     }
 

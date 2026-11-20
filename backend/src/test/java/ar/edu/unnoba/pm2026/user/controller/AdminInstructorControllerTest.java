@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.user.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -74,8 +76,7 @@ class AdminInstructorControllerTest {
 
     @Test
     void getByIdInexistenteResponde404() throws Exception {
-        when(instructorService.getDetail(99L)).thenThrow(new ResourceNotFoundException("instructor.not-found",
-                "Instructor no encontrado con id 99"));
+        when(instructorService.getDetail(99L)).thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         mockMvc.perform(get("/admin/instructors/99")).andExpect(status().isNotFound());
     }
@@ -104,7 +105,7 @@ class AdminInstructorControllerTest {
     @Test
     void getCoursesDeInstructorInexistenteResponde404() throws Exception {
         when(courseService.getByInstructorAndStatus(99L, CourseStatus.PUBLISHED))
-                .thenThrow(new ResourceNotFoundException("Instructor no encontrado con id 99"));
+                .thenThrow(new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, 99L));
 
         mockMvc.perform(get("/admin/instructors/99/courses")).andExpect(status().isNotFound());
     }

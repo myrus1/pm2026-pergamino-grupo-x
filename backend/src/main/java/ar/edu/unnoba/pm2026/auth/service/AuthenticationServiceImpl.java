@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.auth.service;
 
 import ar.edu.unnoba.pm2026.auth.dto.AuthenticationResult;
 import ar.edu.unnoba.pm2026.auth.exception.AuthenticationException;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.observability.BusinessMetrics;
 import ar.edu.unnoba.pm2026.shared.security.JwtTokenUtil;
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
@@ -45,12 +46,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         User registeredUser = userRepository.findByEmail(email).orElse(null);
         if (registeredUser == null) {
             // Sin usuario no hay rol con el que etiquetar la metrica de login fallido
-            throw new AuthenticationException("Email o contraseña incorrectos");
+            throw new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_CREDENTIALS);
         }
         Role role = registeredUser.getRole();
         if (!isPasswordValid(password, registeredUser.getPassword())) {
             businessMetrics.loginFailed(role);
-            throw new AuthenticationException("Email o contraseña incorrectos");
+            throw new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_CREDENTIALS);
         }
         businessMetrics.loginSucceeded(role);
         String token = jwtTokenUtil.generateRawToken(registeredUser.getEmail(), role, registeredUser.getId());
@@ -76,7 +77,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         User registeredUser = findUserByEmail.apply(credentials.getEmail());
         if (registeredUser == null || !isPasswordValid(credentials.getPassword(), registeredUser.getPassword())) {
             businessMetrics.loginFailed(role);
-            throw new AuthenticationException("Email o contraseña incorrectos");
+            throw new AuthenticationException(ErrorCode.AUTHENTICATION_INVALID_CREDENTIALS);
         }
         businessMetrics.loginSucceeded(role);
         return jwtTokenUtil.generateToken(registeredUser.getEmail(), role, registeredUser.getId());

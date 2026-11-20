@@ -6,6 +6,7 @@ import ar.edu.unnoba.pm2026.course.model.CourseStatus;
 import ar.edu.unnoba.pm2026.course.model.Specialty;
 import ar.edu.unnoba.pm2026.enrollment.exception.CourseEnrollmentException;
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ValidationException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
@@ -19,7 +20,6 @@ import lombok.Getter;
 import lombok.Setter;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -64,10 +64,10 @@ public class Student extends User {
 
     Enrollment applyCourse(Course course, LocalDate enrollmentDate) {
         if (course == null) {
-            throw new ValidationException("curso no puede ser nulo");
+            throw new ValidationException(ErrorCode.ENROLLMENT_COURSE_REQUIRED);
         }
         if (enrollmentDate == null) {
-            throw new ValidationException("La fecha de inscripcion no puede ser nula");
+            throw new ValidationException(ErrorCode.ENROLLMENT_DATE_REQUIRED);
         }
         CourseEnrollmentException rejection = rejectionFor(course, enrollmentDate);
         if (rejection != null) {
@@ -86,8 +86,7 @@ public class Student extends User {
     public BigDecimal priceFor(Course course, LocalDate date) {
         BigDecimal basePrice = course.getBasePrice();
         if (basePrice == null) {
-            throw new CourseEnrollmentException("enrollment.course-price-missing",
-                    "No se establecio el precio base del curso");
+            throw new CourseEnrollmentException(ErrorCode.ENROLLMENT_COURSE_PRICE_MISSING);
         }
         if (hasPreviousEnrollmentForSpecialtyInMonth(course, date)) {
             return basePrice.multiply(FULL_PRICE_FACTOR).setScale(2, RoundingMode.HALF_UP);
@@ -104,25 +103,22 @@ public class Student extends User {
     // La primera regla que no se cumple, o null si se puede inscribir (mismo orden de siempre)
     private CourseEnrollmentException rejectionFor(Course course, LocalDate enrollmentDate) {
         if (course.getStatus() != CourseStatus.PUBLISHED) {
-            return new CourseEnrollmentException("enrollment.course-not-published", "El curso no esta publicado");
+            return new CourseEnrollmentException(ErrorCode.ENROLLMENT_COURSE_NOT_PUBLISHED);
         }
         if (course.getStartDate() == null || !enrollmentDate.isBefore(course.getStartDate())) {
-            return new CourseEnrollmentException("enrollment.registration-closed",
-                    "La inscripcion debe ser antes de que comience el curso");
+            return new CourseEnrollmentException(ErrorCode.ENROLLMENT_REGISTRATION_CLOSED);
         }
         if (!course.hasAvailableCapacity()) {
-            return new CourseEnrollmentException("enrollment.course-full", "El curso esta lleno");
+            return new CourseEnrollmentException(ErrorCode.ENROLLMENT_COURSE_FULL);
         }
         if (course.getSpecialty() == null) {
-            return new CourseEnrollmentException("enrollment.course-specialty-missing",
-                    "Especialidad del curso no definida");
+            return new CourseEnrollmentException(ErrorCode.ENROLLMENT_COURSE_SPECIALTY_MISSING);
         }
         if (isEnrolledIn(course)) {
-            return new CourseEnrollmentException("enrollment.already-enrolled", "Estudiante inscripto en el curso");
+            return new CourseEnrollmentException(ErrorCode.ENROLLMENT_ALREADY_ENROLLED);
         }
         if (course.getBasePrice() == null) {
-            return new CourseEnrollmentException("enrollment.course-price-missing",
-                    "No se establecio el precio base del curso");
+            return new CourseEnrollmentException(ErrorCode.ENROLLMENT_COURSE_PRICE_MISSING);
         }
         return null;
     }

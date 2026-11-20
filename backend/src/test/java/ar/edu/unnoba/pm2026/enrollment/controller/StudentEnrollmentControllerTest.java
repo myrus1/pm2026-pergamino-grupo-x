@@ -1,5 +1,7 @@
 package ar.edu.unnoba.pm2026.enrollment.controller;
 
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -81,7 +83,7 @@ class StudentEnrollmentControllerTest {
     @Test
     void enrollAUnCursoLlenoResponde409() throws Exception {
         when(enrollmentService.enrollStudent(7L, ANA))
-                .thenThrow(new CourseEnrollmentException("enrollment.course-full", "El curso esta lleno"));
+                .thenThrow(new CourseEnrollmentException(ErrorCode.ENROLLMENT_COURSE_FULL));
 
         mockMvc.perform(post("/student/enrollments").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"courseId\":7}"))
@@ -91,8 +93,7 @@ class StudentEnrollmentControllerTest {
 
     @Test
     void enrollAUnCursoInexistenteResponde404() throws Exception {
-        when(enrollmentService.enrollStudent(99L, ANA)).thenThrow(new ResourceNotFoundException(
-                "Curso no encontrado con id 99"));
+        when(enrollmentService.enrollStudent(99L, ANA)).thenThrow(new ResourceNotFoundException(ErrorCode.COURSE_NOT_FOUND, 99L));
 
         mockMvc.perform(post("/student/enrollments").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"courseId\":99}"))

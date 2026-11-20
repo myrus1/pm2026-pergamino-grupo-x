@@ -12,6 +12,7 @@ import ar.edu.unnoba.pm2026.user.dto.InstructorDetailResponse;
 import ar.edu.unnoba.pm2026.user.dto.InstructorSummaryResponse;
 import ar.edu.unnoba.pm2026.user.model.Instructor;
 import ar.edu.unnoba.pm2026.user.repository.InstructorRepository;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import java.util.Comparator;
 import java.util.List;
@@ -41,8 +42,7 @@ public class InstructorService extends UserService<Instructor> {
     @Transactional(readOnly = true)
     public Instructor getById(Long id) {
         return instructorRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("instructor.not-found",
-                        "Instructor no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.INSTRUCTOR_NOT_FOUND, id));
     }
 
     @Transactional(readOnly = true)

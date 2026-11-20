@@ -2,6 +2,7 @@ package ar.edu.unnoba.pm2026.user.service;
 
 import ar.edu.unnoba.pm2026.enrollment.model.Enrollment;
 import ar.edu.unnoba.pm2026.shared.security.PasswordEncoder;
+import ar.edu.unnoba.pm2026.shared.exception.ErrorCode;
 import ar.edu.unnoba.pm2026.shared.exception.ResourceNotFoundException;
 import ar.edu.unnoba.pm2026.user.dto.StudentDetailResponse;
 import ar.edu.unnoba.pm2026.user.model.Student;
@@ -30,8 +31,7 @@ public class StudentService extends UserService<Student> {
     @Transactional(readOnly = true)
     public Student getById(Long id) {
         return studentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("student.not-found",
-                        "Estudiante no encontrado con id " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(ErrorCode.STUDENT_NOT_FOUND, id));
     }
 
     // TP6: GET /admin/students/{id}. Las inscripciones son LAZY, por eso se arma aca y no en el controller.
