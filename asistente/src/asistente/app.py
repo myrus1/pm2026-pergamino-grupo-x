@@ -35,7 +35,7 @@ from fastapi.responses import JSONResponse
 from mcp.server.transport_security import TransportSecuritySettings
 
 from asistente.agente import (
-    MAX_TURNOS_HISTORIAL, PENDIENTES, AsistenteSaturado, ClienteHerramientas, Modelo,
+    MAX_TURNOS_HISTORIAL, PENDIENTES, AsistenteNoConfigurado, AsistenteSaturado, ClienteHerramientas, Modelo,
     ModeloOpenAI, confirmar, ejecutar,
 )
 from asistente.cliente_mcp import ClienteMcpHttp
@@ -45,6 +45,7 @@ from asistente.transcripcion import transcribir
 
 MAX_AUDIO = 10 * 1024 * 1024
 MENSAJE_SATURADO = "El asistente está saturado, probá en un minuto."
+MENSAJE_NO_CONFIGURADO = "El asistente no está configurado."
 MENSAJE_NO_ENTENDI = "No te entendí, probá de nuevo."
 AFIRMATIVOS = frozenset({"si", "dale", "confirmo", "borralo"})
 
@@ -162,6 +163,8 @@ def crear_app(settings: Settings | None = None) -> FastAPI:
             return JSONResponse(await _voz(
                 audio, historial, pendiente_id, confirmar_, authorization,
                 transcriptor, modelo, herramientas))
+        except AsistenteNoConfigurado:
+            return JSONResponse({"detail": MENSAJE_NO_CONFIGURADO}, status_code=503)
         except AsistenteSaturado:
             return JSONResponse({"detail": MENSAJE_SATURADO}, status_code=503)
 

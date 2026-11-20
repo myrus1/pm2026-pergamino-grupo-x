@@ -59,6 +59,10 @@ class AsistenteSaturado(Exception):
     """El modelo o la transcripción devolvieron 429."""
 
 
+class AsistenteNoConfigurado(Exception):
+    """Falta la API key del modelo o de la transcripción."""
+
+
 class Modelo(Protocol):
     async def responder(self, mensajes: list[dict], herramientas: list[dict]) -> dict: ...
 
@@ -66,15 +70,25 @@ class Modelo(Protocol):
 class ModeloOpenAI:
     def __init__(self, settings: Settings, *, http_client=None):
         self._modelo = settings.llm_model
-        self._cliente = openai.AsyncOpenAI(
-            base_url=settings.llm_base_url, api_key=settings.llm_api_key,
-            http_client=http_client,
-        )
+        self._settings = settings
+        self._http_client = http_client
+        self._cliente: openai.AsyncOpenAI | None = None
+
+    def _obtener_cliente(self) -> openai.AsyncOpenAI:
+        # Lazy: AsyncOpenAI falla al construirse con la key vacía.
+        if self._cliente is None:
+            if not self._settings.llm_api_key:
+                raise AsistenteNoConfigurado()
+            self._cliente = openai.AsyncOpenAI(
+                base_url=self._settings.llm_base_url, api_key=self._settings.llm_api_key,
+                http_client=self._http_client,
+            )
+        return self._cliente
 
     async def responder(self, mensajes: list[dict], herramientas: list[dict]) -> dict:
         extra = {"tools": herramientas, "tool_choice": "auto"} if herramientas else {}
         try:
-            r = await self._cliente.chat.completions.create(
+            r = await self._obtener_cliente().chat.completions.create(
                 model=self._modelo, messages=mensajes, **extra)
         except openai.RateLimitError as e:
             raise AsistenteSaturado() from e

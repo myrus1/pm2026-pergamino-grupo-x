@@ -220,3 +220,32 @@ async def test_transcribir_groq(monkeypatch):
     assert capturado["cliente"]["base_url"] == "https://api.groq.com/openai/v1"
     with pytest.raises(AsistenteSaturado):
         await transcripcion.transcribir(b"zz", "limite.webm", "audio/webm", settings=s)
+
+
+@pytest.fixture
+def real():
+    PENDIENTES.clear()
+    with TestClient(crear_app(Settings())) as c:  # keys vacías, dependencias reales
+        yield c
+
+
+def test_real_sin_audio_400_con_keys_vacias(real):
+    r = real.post("/voz")
+    assert r.status_code == 400
+    assert r.json() == {"detail": "Falta el audio."}
+
+
+def test_real_modelo_sin_key_503():
+    app = crear_app(Settings())
+    app.dependency_overrides[obtener_transcriptor] = lambda: Transcriptor()
+    app.dependency_overrides[obtener_herramientas] = lambda: Herramientas()
+    with TestClient(app) as c:
+        r = c.post("/voz", files=audio())
+    assert r.status_code == 503
+    assert r.json() == {"detail": "El asistente no está configurado."}
+
+
+def test_real_transcripcion_sin_key_503(real):
+    r = real.post("/voz", files=audio())
+    assert r.status_code == 503
+    assert r.json() == {"detail": "El asistente no está configurado."}
