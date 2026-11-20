@@ -31,6 +31,8 @@ MENSAJE_CORTE = "Hice lo que pude; el pedido era muy largo."
 MENSAJE_NO_VALE = "Esa confirmación ya no vale."
 MAX_TURNOS_HISTORIAL = 6
 MENSAJE_UNA_CONTRASENA = "Una alta con contraseña por pedido; pedí la siguiente aparte."
+MENSAJE_INICIAR_SESION = "Necesitás iniciar sesión para eso."
+MENSAJE_LLAMADA_INVALIDA = "No pude procesar el pedido, probá de nuevo."
 
 # Herramientas cuyo resultado puede traer `contrasena`. Solo una por pedido: el contrato
 # tiene un único `secreto` y una segunda contraseña se perdería.
@@ -63,6 +65,10 @@ class AsistenteNoConfigurado(Exception):
     """Falta la API key del modelo o de la transcripción."""
 
 
+class AsistenteFallo(Exception):
+    """El modelo o la transcripción fallaron por otro motivo (key inválida, 400, red...)."""
+
+
 class Modelo(Protocol):
     async def responder(self, mensajes: list[dict], herramientas: list[dict]) -> dict: ...
 
@@ -92,6 +98,8 @@ class ModeloOpenAI:
                 model=self._modelo, messages=mensajes, **extra)
         except openai.RateLimitError as e:
             raise AsistenteSaturado() from e
+        except openai.APIError as e:
+            raise AsistenteFallo() from e
         return r.choices[0].message.model_dump(exclude_none=True)
 
 
@@ -125,7 +133,7 @@ def esquema_openai(h: Herramienta) -> dict:
 
 def _system_prompt(rol: Rol | None, hoy: datetime.date) -> str:
     quien = rol or "visitante sin sesión"
-    return (
+    texto = (
         "Sos el asistente de voz de la plataforma de cursos. Respondé en castellano, breve "
         "(una o dos oraciones).\n"
         f"Hoy es {hoy.isoformat()}. El usuario es: {quien}.\n"
@@ -133,6 +141,13 @@ def _system_prompt(rol: Rol | None, hoy: datetime.date) -> str:
         "No muestres contraseñas: el sistema se las muestra al usuario por su cuenta.\n"
         "Usá solo las herramientas que tenés disponibles."
     )
+    if rol is None:
+        texto += (
+            "\nEl usuario no inició sesión: solo tenés las herramientas públicas (ver cursos, "
+            "especialidades y registrarse). Si pide otra cosa, respondé exactamente: "
+            f"'{MENSAJE_INICIAR_SESION}'"
+        )
+    return texto
 
 
 def _mensajes_historial(historial: list[dict]) -> list[dict]:
@@ -221,9 +236,17 @@ async def ejecutar(
 
     for _ in range(MAX_LLAMADAS):
         msg = await modelo.responder(mensajes, esquemas)
-        tool_calls = msg.get("tool_calls") or []
-        if not tool_calls:
+        crudas = msg.get("tool_calls") or []
+        if not crudas:
             return contrato(msg.get("content") or "")
+        # Una llamada sin nombre no se puede ejecutar ni devolver al modelo; sin id se le pone uno.
+        tool_calls = [
+            {**c, "id": c.get("id") or f"call_{i}"}
+            for i, c in enumerate(crudas)
+            if isinstance(c, dict) and (c.get("function") or {}).get("name")
+        ]
+        if not tool_calls:
+            return contrato(msg.get("content") or MENSAJE_LLAMADA_INVALIDA)
         mensajes.append({"role": "assistant", "content": msg.get("content"),
                          "tool_calls": [
                              {"id": c.get("id"), "type": "function",
@@ -236,8 +259,9 @@ async def ejecutar(
             nombre = (call.get("function") or {}).get("name")
             h = disponibles.get(nombre)
             if h is None:
-                mensajes.append(_mensaje_tool(call_id, {"ok": False,
-                                                        "mensaje": MENSAJE_NO_DISPONIBLE}))
+                mensaje = (MENSAJE_INICIAR_SESION if rol is None and nombre in REGISTRO
+                           else MENSAJE_NO_DISPONIBLE)
+                mensajes.append(_mensaje_tool(call_id, {"ok": False, "mensaje": mensaje}))
                 continue
             args = _args_de(call)
             if args is None:
@@ -281,11 +305,15 @@ def _guardar_pendiente(h: Herramienta, args: dict, token: str | None) -> tuple[s
 async def confirmar(
     pendiente_id: str, token: str | None, herramientas: ClienteHerramientas,
 ) -> dict:
-    entrada = PENDIENTES.pop(pendiente_id, None)
+    entrada = PENDIENTES.get(pendiente_id)
     if entrada is None:
         return _contrato(MENSAJE_NO_VALE)
     nombre, args, hash_token, vence = entrada
-    if not hmac.compare_digest(hash_token, _hash_token(token)) or vence <= _ahora():
+    # El hash se revisa antes de sacar el pendiente: un token ajeno no puede cancelarlo.
+    if not hmac.compare_digest(hash_token, _hash_token(token)):
+        return _contrato(MENSAJE_NO_VALE)
+    PENDIENTES.pop(pendiente_id, None)
+    if vence <= _ahora():
         return _contrato(MENSAJE_NO_VALE)
     # Defensa extra: la herramienta tiene que seguir siendo un borrado del rol del token.
     h = {x.nombre: x for x in para_rol(rol_del_token(token))}.get(nombre)

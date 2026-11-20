@@ -26,6 +26,7 @@ from contextlib import asynccontextmanager
 
 import datetime
 import json
+import logging
 import re
 import unicodedata
 
@@ -35,8 +36,8 @@ from fastapi.responses import JSONResponse
 from mcp.server.transport_security import TransportSecuritySettings
 
 from asistente.agente import (
-    MAX_TURNOS_HISTORIAL, PENDIENTES, AsistenteNoConfigurado, AsistenteSaturado, ClienteHerramientas, Modelo,
-    ModeloOpenAI, confirmar, ejecutar,
+    MAX_TURNOS_HISTORIAL, PENDIENTES, AsistenteFallo, AsistenteNoConfigurado, AsistenteSaturado,
+    ClienteHerramientas, Modelo, ModeloOpenAI, confirmar, ejecutar,
 )
 from asistente.cliente_mcp import ClienteMcpHttp
 from asistente.config import Settings, cargar
@@ -47,6 +48,44 @@ MAX_AUDIO = 10 * 1024 * 1024
 MENSAJE_SATURADO = "El asistente está saturado, probá en un minuto."
 MENSAJE_NO_CONFIGURADO = "El asistente no está configurado."
 MENSAJE_NO_ENTENDI = "No te entendí, probá de nuevo."
+MENSAJE_FALLO = "El asistente tuvo un problema, probá de nuevo."
+MENSAJE_ERROR_INTERNO = "Error interno del asistente."
+
+log = logging.getLogger(__name__)
+
+
+class ErroresInternos:
+    """Convierte una excepción no manejada en un JSON 500.
+
+    Se registra ANTES que CORSMiddleware, así queda adentro y la respuesta de error sale con
+    `Access-Control-Allow-Origin`. (El handler de `Exception` de Starlette vive en
+    ServerErrorMiddleware, afuera de CORS, y su 500 no tendría ese header.) Se loguea solo el
+    tipo de la excepción: nunca el cuerpo del pedido ni el mensaje, que podría traer datos.
+    """
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        empezo = False
+
+        async def enviar(mensaje):
+            nonlocal empezo
+            if mensaje["type"] == "http.response.start":
+                empezo = True
+            await send(mensaje)
+
+        try:
+            await self.app(scope, receive, enviar)
+        except Exception as e:
+            log.error("Error interno en %s: %s", scope.get("path"), type(e).__name__)
+            if empezo:
+                raise
+            await JSONResponse({"detail": MENSAJE_ERROR_INTERNO}, status_code=500)(
+                scope, receive, send)
 AFIRMATIVOS = frozenset({"si", "dale", "confirmo", "borralo"})
 
 
@@ -139,6 +178,8 @@ def crear_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="Asistente de voz", lifespan=lifespan)
     app.state.settings = settings
+    # Orden: el último agregado queda afuera. CORS envuelve a ErroresInternos.
+    app.add_middleware(ErroresInternos)
     app.add_middleware(
         CORSMiddleware, allow_origins=list(settings.allowed_origins),
         allow_methods=["POST"], allow_headers=["Authorization", "Content-Type"],
@@ -167,6 +208,8 @@ def crear_app(settings: Settings | None = None) -> FastAPI:
             return JSONResponse({"detail": MENSAJE_NO_CONFIGURADO}, status_code=503)
         except AsistenteSaturado:
             return JSONResponse({"detail": MENSAJE_SATURADO}, status_code=503)
+        except AsistenteFallo:
+            return JSONResponse({"detail": MENSAJE_FALLO}, status_code=502)
 
     # La sub-app ya expone /mcp; se monta al final para que /salud y demas rutas ganen.
     app.mount("/", mcp_app)

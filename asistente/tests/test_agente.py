@@ -9,7 +9,8 @@ import pytest
 import respx
 
 from asistente.agente import (
-    PENDIENTES, AsistenteSaturado, ModeloOpenAI, confirmar, ejecutar, rol_del_token,
+    PENDIENTES, AsistenteFallo, AsistenteSaturado, ModeloOpenAI, confirmar, ejecutar,
+    rol_del_token,
 )
 from asistente.cliente_mcp import ClienteMcpHttp
 from asistente.app import crear_app
@@ -412,3 +413,99 @@ async def test_cliente_mcp_http_llama_y_reenvia_token(respx_mock):
     assert res == {"ok": True, "datos": [{"id": 1}], "total": 1}
     assert ruta.calls.last.request.headers["authorization"] == "Bearer t"
     assert mal["ok"] is False
+
+
+# --- Correcciones de la revisión final ---
+
+
+async def test_token_ajeno_no_cancela_el_pendiente_del_dueno():
+    res, _ = await correr(ModeloGuionado(pide(("borrar_alumno", {"id": 5}))), ADMIN)
+    pid = res["pendiente"]["id"]
+    otro_admin = jwt({"sub": "otro@x.com", "rol": "ADMINISTRADOR"})
+    cliente = ClienteFalso()
+    conf = await confirmar(pid, otro_admin, cliente)
+    assert conf["respuesta"] == "Esa confirmación ya no vale."
+    assert pid in PENDIENTES
+    conf = await confirmar(pid, ADMIN, cliente)
+    assert cliente.llamadas == [("borrar_alumno", {"id": 5})]
+    assert conf["acciones"][0]["ok"] is True
+    assert pid not in PENDIENTES
+
+
+async def test_sin_sesion_pide_iniciar_sesion():
+    publicas = {h.nombre for h in registro.REGISTRO.values() if "PUBLICO" in h.roles}
+    modelo = ModeloGuionado(pide(("listar_alumnos", {})),
+                            dice("Necesitás iniciar sesión para eso."))
+    res, cliente = await correr(modelo, None, texto="listá los alumnos")
+    # Solo se ofrecen herramientas públicas.
+    assert modelo.nombres_ofrecidos(0) == publicas
+    assert "listar_alumnos" not in modelo.nombres_ofrecidos(0)
+    # El prompt de un visitante tiene la frase.
+    system = modelo.llamadas[0][0][0]
+    assert system["role"] == "system"
+    assert "Necesitás iniciar sesión para eso." in system["content"]
+    # La herramienta pedida no se ejecuta y el modelo recibe la frase como resultado.
+    assert cliente.llamadas == []
+    ultimo = modelo.llamadas[1][0][-1]
+    assert ultimo["role"] == "tool"
+    assert "Necesitás iniciar sesión para eso." in ultimo["content"]
+    assert res["respuesta"] == "Necesitás iniciar sesión para eso."
+
+
+async def test_con_sesion_no_agrega_la_frase_de_login():
+    modelo = ModeloGuionado(pide(("listar_alumnos", {})), dice("no"))
+    await correr(modelo, ALUMNO)
+    assert "iniciar sesión" not in modelo.llamadas[0][0][0]["content"]
+    assert "herramienta no disponible para tu rol" in modelo.llamadas[1][0][-1]["content"]
+
+
+async def test_tool_call_sin_id_usa_uno_generado():
+    msg = pide(("listar_especialidades", {}))
+    del msg["tool_calls"][0]["id"]
+    modelo = ModeloGuionado(msg, dice("listo"))
+    res, cliente = await correr(modelo, ALUMNO)
+    assert res["respuesta"] == "listo"
+    assert cliente.llamadas == [("listar_especialidades", {})]
+    asistente_msg, tool_msg = modelo.llamadas[1][0][-2:]
+    assert asistente_msg["tool_calls"][0]["id"] == "call_0"
+    assert tool_msg["tool_call_id"] == "call_0"
+
+
+async def test_tool_call_sin_nombre_se_ignora():
+    msg = pide(("x", {}))
+    msg["tool_calls"][0]["function"].pop("name")
+    res, cliente = await correr(ModeloGuionado(msg), ALUMNO)
+    assert res["respuesta"] == "No pude procesar el pedido, probá de nuevo."
+    assert cliente.llamadas == []
+
+
+async def test_tool_call_sin_nombre_junto_a_una_valida():
+    msg = pide(("x", {}), ("listar_especialidades", {}))
+    msg["tool_calls"][0]["function"]["name"] = None
+    modelo = ModeloGuionado(msg, dice("ok"))
+    res, cliente = await correr(modelo, ALUMNO)
+    assert res["respuesta"] == "ok"
+    assert cliente.llamadas == [("listar_especialidades", {})]
+    enviados = modelo.llamadas[1][0][-2]["tool_calls"]
+    assert [c["function"]["name"] for c in enviados] == ["listar_especialidades"]
+
+
+@pytest.mark.parametrize("status", [400, 401, 500])
+async def test_modelo_openai_otro_error_es_fallo(status):
+    def handler(request):
+        return httpx2.Response(status, json={"error": {"message": "tool_use_failed"}})
+
+    with pytest.raises(AsistenteFallo):
+        await _modelo_con(handler).responder([{"role": "user", "content": "x"}], [])
+
+
+async def test_modelo_openai_sin_conexion_es_fallo():
+    def handler(request):
+        raise httpx2.ConnectError("sin red", request=request)
+
+    http = httpx2.AsyncClient(transport=httpx2.MockTransport(handler))
+    settings = Settings(llm_base_url="http://llm.test/v1", llm_model="m", llm_api_key="k")
+    modelo = ModeloOpenAI(settings, http_client=http)
+    modelo._obtener_cliente().max_retries = 0
+    with pytest.raises(AsistenteFallo):
+        await modelo.responder([{"role": "user", "content": "x"}], [])

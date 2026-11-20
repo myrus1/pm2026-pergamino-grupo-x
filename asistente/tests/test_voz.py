@@ -6,7 +6,7 @@ import openai
 import pytest
 from fastapi.testclient import TestClient
 
-from asistente.agente import PENDIENTES, AsistenteSaturado
+from asistente.agente import PENDIENTES, AsistenteFallo, AsistenteSaturado
 from asistente.app import (
     crear_app, obtener_herramientas, obtener_modelo, obtener_transcriptor,
 )
@@ -249,3 +249,68 @@ def test_real_transcripcion_sin_key_503(real):
     r = real.post("/voz", files=audio())
     assert r.status_code == 503
     assert r.json() == {"detail": "El asistente no está configurado."}
+
+
+# --- Errores del modelo/transcripción y errores internos ---
+
+ORIGEN = {"Origin": "http://localhost:5173"}
+
+
+def test_fallo_del_modelo_502_con_cors(ctx):
+    c, t, m, h = ctx
+
+    async def falla(mensajes, herramientas):
+        raise AsistenteFallo()
+    m.responder = falla
+    r = c.post("/voz", files=audio(), headers=ORIGEN)
+    assert r.status_code == 502
+    assert r.json() == {"detail": "El asistente tuvo un problema, probá de nuevo."}
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_fallo_de_transcripcion_502(ctx):
+    c, t, m, h = ctx
+    t.error = AsistenteFallo()
+    r = c.post("/voz", files=audio(), headers=ORIGEN)
+    assert r.status_code == 502
+    assert r.json() == {"detail": "El asistente tuvo un problema, probá de nuevo."}
+    assert m.llamadas == 0
+
+
+def test_error_inesperado_500_json_con_cors(ctx):
+    c, t, m, h = ctx
+    t.error = RuntimeError("boom con datos privados")
+    r = c.post("/voz", files=audio(), headers=ORIGEN)
+    assert r.status_code == 500
+    assert r.json() == {"detail": "Error interno del asistente."}
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "boom" not in r.text
+
+
+def test_error_inesperado_no_loguea_el_mensaje(ctx, caplog):
+    c, t, m, h = ctx
+    t.error = RuntimeError("secreto123")
+    c.post("/voz", files=audio(), headers=ORIGEN)
+    assert "RuntimeError" in caplog.text
+    assert "secreto123" not in caplog.text
+
+
+async def test_transcribir_otro_error_es_fallo(monkeypatch):
+    import httpx
+    from asistente import transcripcion
+
+    class FakeTr:
+        async def create(self, **kw):
+            raise openai.BadRequestError(
+                "audio muy corto",
+                response=httpx.Response(400, request=httpx.Request("POST", "http://x")),
+                body=None)
+
+    class FakeCliente:
+        def __init__(self, **kw):
+            self.audio = type("A", (), {"transcriptions": FakeTr()})()
+
+    monkeypatch.setattr(transcripcion.openai, "AsyncOpenAI", FakeCliente)
+    with pytest.raises(AsistenteFallo):
+        await transcripcion.transcribir(
+            b"z", "a.webm", "audio/webm", settings=Settings(groq_api_key="k"))

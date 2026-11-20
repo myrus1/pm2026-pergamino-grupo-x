@@ -61,7 +61,12 @@ Los tests no usan red ni claves: `uv run pytest`.
 3. En **Variables** cargá `GROQ_API_KEY`, `BACKEND_URL` (la URL pública del backend) y `ALLOWED_ORIGINS`
    (la URL del front). El resto tiene valores por defecto. No cargues `PORT`: lo pone Railway.
 4. En **Settings → Networking** generá un dominio público y comprobá `https://<dominio>/salud`.
-5. En el front, apuntá la URL del asistente a ese dominio.
+5. En el servicio del front en Railway, cargá la variable `VITE_ASISTENTE_URL` con ese dominio
+   (`https://<dominio>`, sin barra final) y redesplegá el front. Es una variable de **build**: Vite la
+   incrusta al compilar, el `Dockerfile` del front la recibe con `ARG VITE_ASISTENTE_URL` y, sin ella,
+   el botón del asistente no aparece. Cambiarla exige un nuevo deploy.
+6. `ALLOWED_ORIGINS` del asistente tiene que ser el origen exacto del front (`https://<front>`, sin
+   barra final); si no coincide, el navegador bloquea los pedidos por CORS.
 
 El `Dockerfile` parte de `python:3.12-slim`, instala `uv`, corre `uv sync --frozen --no-dev` y arranca
 `uvicorn` con un solo worker en `${PORT:-8000}`. El build real lo hace Railway: en esta etapa no se probó con Docker.
