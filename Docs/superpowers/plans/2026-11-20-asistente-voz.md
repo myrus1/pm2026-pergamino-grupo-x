@@ -64,7 +64,7 @@ Respuesta 200:
 {
   "transcripcion": "string|null",
   "respuesta": "string",
-  "acciones": [{"herramienta": "string", "ok": true}],
+  "acciones": [{"herramienta": "string", "ok": true, "tipo": "lectura|escritura|borrado"}],
   "datos": {"filas": [{}], "total": 0} | null,
   "deshacer": {"metodo": "DELETE", "ruta": "/students/57", "descripcion": "string"} | null,
   "pendiente": {"id": "string", "descripcion": "string"} | null,
@@ -304,7 +304,7 @@ Algoritmo de `ejecutar` (el que la firma no determina):
    - por cada `tool_call`:
      - si no está en `para_rol(rol)`, se agrega un resultado de error "herramienta no disponible para tu rol";
      - si es `borrado`, se guarda en `PENDIENTES`, se corta el loop y se devuelve `pendiente` con la descripción "¿Confirmás <nombre legible> con <args>?";
-     - si es cualquier otra, `await herramientas.llamar(...)`. Se agrega a `acciones`. Si es una lista, se guarda como `datos`. Si la herramienta tiene `deshacer` y salió bien, se calcula `deshacer`. Si el resultado trae `contrasena`, se mueve a `secreto` y se borra del texto que ve el modelo.
+     - si es cualquier otra, `await herramientas.llamar(...)`. Se agrega a `acciones`. Si es una lista, se guarda como `datos`. Si la herramienta tiene `deshacer` y salió bien, se calcula `deshacer` (solo si el rol del token puede ejecutar el borrado inverso: para `registrar_alumno` e instructores, solo ADMINISTRADOR; el instructor puede deshacer `crear_curso`). Si el resultado trae `contrasena`, se mueve a `secreto` y se borra del texto que ve el modelo.
 3. Al llegar a 5 vueltas, la respuesta es "Hice lo que pude; el pedido era muy largo." con las acciones hechas.
 
 - [ ] **Step 1: Tests con fakes de `Modelo` (respuestas guionadas) y de `ClienteHerramientas`:**
@@ -422,7 +422,7 @@ Comportamiento:
   - `secreto`, con un botón Copiar y el aviso "se muestra una sola vez";
   - `pendiente`, con Sí y No (Sí llama a `enviarVoz({ pendienteId, confirmar: true })`);
   - `deshacer`, con un botón que desaparece a los 10 segundos y llama a `apiFetch(ruta, { method: metodo })`, seguido de un toast.
-- **Refresco:** si alguna acción tiene `ok` y su herramienta no es de lectura (eso lo indica `deshacer`/`pendiente`/`secreto`, o el campo `acciones`), o después de confirmar o deshacer, se llama a `alCambiar`. Eso incrementa `refrescos` en `Layout` y vuelve a montar la página.
+- **Refresco:** si alguna acción tiene `ok` y `tipo !== 'lectura'`, o después de confirmar o deshacer, se llama a `alCambiar`. Eso incrementa `refrescos` en `Layout` y vuelve a montar la página.
 - **Errores:** se muestran en el panel, sin modal.
 - **Diseño:** sigue `src/index.css` (colores, radios y tipografía existentes), sin estilos nuevos de otra paleta.
 
