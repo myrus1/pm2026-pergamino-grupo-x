@@ -1,0 +1,30 @@
+[project]
+name = "asistente"
+version = "0.1.0"
+description = "Asistente de voz (FastAPI + MCP)"
+authors = [
+    { name = "Alejandro Buccolini", email = "alejandrobuccolini@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.165.0",
+    "httpx>=0.28.1",
+    "mcp>=2.3.0",
+    "openai>=3.57.0",
+    "python-multipart>=0.0.34",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "respx>=0.23.1",
+]
