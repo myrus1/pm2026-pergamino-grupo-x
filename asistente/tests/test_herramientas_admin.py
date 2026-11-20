@@ -142,7 +142,8 @@ async def test_ver_alumno_dos_llamadas():
     respx.get(f"{BASE}/admin/students/5/courses").mock(
         return_value=httpx.Response(200, json=[{"id": 1}]))
     res = await REGISTRO["ver_alumno"].funcion("t", 5)
-    assert res == {"ok": True, "datos": {"id": 5, "name": "Juan", "cursos": [{"id": 1}]}}
+    assert res == {"ok": True, "datos": {"id": 5, "name": "Juan", "cursos": [{"id": 1}],
+                                         "total_cursos": 1}}
 
 
 @respx.mock
@@ -160,7 +161,7 @@ async def test_ver_curso_admin_incluye_alumnos():
     respx.get(f"{BASE}/admin/courses/7/students").mock(
         return_value=httpx.Response(200, json=[{"studentId": 1}]))
     res = await REGISTRO["ver_curso_admin"].funcion("t", 7)
-    assert res["datos"] == {"id": 7, "alumnos": [{"studentId": 1}]}
+    assert res["datos"] == {"id": 7, "alumnos": [{"studentId": 1}], "total_alumnos": 1}
 
 
 @respx.mock
@@ -194,3 +195,13 @@ async def test_listados_rutas():
         return_value=httpx.Response(200, json={"id": 4}))
     await REGISTRO["ver_instructor"].funcion("t", 4)
     assert r.called
+
+
+@respx.mock
+async def test_sublista_tope_20_con_total():
+    respx.get(f"{BASE}/admin/courses/7").mock(
+        return_value=httpx.Response(200, json={"id": 7}))
+    respx.get(f"{BASE}/admin/courses/7/students").mock(
+        return_value=httpx.Response(200, json=[{"studentId": i} for i in range(25)]))
+    res = await REGISTRO["ver_curso_admin"].funcion("t", 7)
+    assert len(res["datos"]["alumnos"]) == 20 and res["datos"]["total_alumnos"] == 25

@@ -25,7 +25,8 @@ async def _detalle_con_lista(token: str | None, ruta: str, clave: str) -> dict:
     lista = resultado(await _get(token, f"{ruta}/{clave[1]}"))
     if not lista["ok"]:
         return lista
-    datos = {**(detalle.datos or {}), clave[0]: lista["datos"]}
+    datos = {**(detalle.datos or {}), clave[0]: lista["datos"],
+             f"total_{clave[0]}": lista["total"]}
     return {"ok": True, "datos": datos}
 
 
