@@ -201,6 +201,32 @@ async def test_contrasena_va_a_secreto():
         {"herramienta": "registrar_alumno", "ok": True, "tipo": "escritura"}]
 
 
+async def test_una_contrasena_por_pedido():
+    clave1, clave2 = "Primera123", "Segunda456"
+    resultados = iter([
+        {"ok": True, "datos": {"id": 1}, "total": 1, "contrasena": clave1},
+        {"ok": True, "datos": {"id": 2}, "total": 1, "contrasena": clave2},
+    ])
+
+    class Cliente(ClienteFalso):
+        async def llamar(self, nombre, args):
+            self.llamadas.append((nombre, args))
+            return next(resultados)
+
+    a1 = {"nombre": "Ana", "apellido": "Gómez", "dni": "1", "email": "a@x.com"}
+    a2 = {"nombre": "Beto", "apellido": "Ruiz", "dni": "2", "email": "b@x.com"}
+    modelo = ModeloGuionado(
+        pide(("registrar_alumno", a1)), pide(("registrar_alumno", a2)), dice("listo"))
+    cliente = Cliente()
+    res, _ = await correr(modelo, None, cliente)
+    assert cliente.llamadas == [("registrar_alumno", a1)]
+    assert res["secreto"] == {"etiqueta": "Contraseña de Ana Gómez", "valor": clave1}
+    assert len(res["acciones"]) == 1
+    ultimo = modelo.llamadas[2][0][-1]
+    assert ultimo["role"] == "tool"
+    assert "Una alta con contraseña por pedido; pedí la siguiente aparte." in ultimo["content"]
+
+
 async def test_sin_token_rol_none():
     assert rol_del_token(None) is None
     modelo = ModeloGuionado(dice("hola"))

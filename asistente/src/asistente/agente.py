@@ -30,6 +30,13 @@ MENSAJE_NO_DISPONIBLE = "herramienta no disponible para tu rol"
 MENSAJE_CORTE = "Hice lo que pude; el pedido era muy largo."
 MENSAJE_NO_VALE = "Esa confirmación ya no vale."
 MAX_TURNOS_HISTORIAL = 6
+MENSAJE_UNA_CONTRASENA = "Una alta con contraseña por pedido; pedí la siguiente aparte."
+
+# Herramientas cuyo resultado puede traer `contrasena`. Solo una por pedido: el contrato
+# tiene un único `secreto` y una segunda contraseña se perdería.
+GENERAN_CONTRASENA = frozenset({
+    "registrar_alumno", "registrar_instructor", "crear_instructor", "crear_administrador",
+})
 
 ROLES_DEL_TOKEN = frozenset(r for r in get_args(Rol) if r != "PUBLICO")
 
@@ -225,6 +232,10 @@ async def ejecutar(
                 continue
             if h.tipo == "borrado":
                 return contrato(*_guardar_pendiente(h, args, token))
+            if secreto and h.nombre in GENERAN_CONTRASENA:
+                mensajes.append(_mensaje_tool(call_id, {
+                    "ok": False, "mensaje": MENSAJE_UNA_CONTRASENA}))
+                continue
             if llamadas >= MAX_LLAMADAS:
                 return contrato(MENSAJE_CORTE)
             llamadas += 1
