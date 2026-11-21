@@ -24,3 +24,8 @@ proyecto-pm-2026
 # Salidas de builds locales
 backend/target
 target
+
+# Asistente por voz (el servicio tiene su propio Dockerfile)
+asistente
+**/.venv
+**/.env

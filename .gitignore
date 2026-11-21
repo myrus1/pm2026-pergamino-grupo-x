@@ -1,2 +1,7 @@
 .env
 .idea/
+
+# Asistente por voz
+asistente/.venv/
+**/.env
+.mcp.json

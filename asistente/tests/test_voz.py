@@ -1,0 +1,345 @@
+import base64
+import datetime
+import json
+import time
+
+import httpx
+import openai
+import pytest
+from fastapi.testclient import TestClient
+
+from asistente.backend import ResultadoApi
+from asistente.agente import PENDIENTES, AsistenteFallo, AsistenteSaturado
+from asistente.app import (
+    crear_app, obtener_herramientas, obtener_modelo, obtener_transcriptor,
+)
+from asistente.config import Settings
+
+CLAVES = {"transcripcion", "respuesta", "acciones", "datos", "deshacer", "pendiente", "secreto", "pantalla"}
+
+
+class Transcriptor:
+    def __init__(self, texto="hola", error=None):
+        self.texto, self.error, self.llamadas = texto, error, []
+
+    async def __call__(self, audio, nombre, tipo):
+        self.llamadas.append((audio, nombre, tipo))
+        if self.error:
+            raise self.error
+        return self.texto
+
+
+class Modelo:
+    def __init__(self):
+        self.llamadas = 0
+
+    async def responder(self, mensajes, herramientas):
+        self.llamadas += 1
+        self.mensajes = mensajes
+        return {"role": "assistant", "content": "Hecho."}
+
+
+class Herramientas:
+    def __init__(self):
+        self.llamadas = []
+
+    async def llamar(self, nombre, args):
+        self.llamadas.append((nombre, args))
+        return {"ok": True}
+
+
+@pytest.fixture
+def ctx():
+    PENDIENTES.clear()
+    app = crear_app(Settings())
+    t, m, h = Transcriptor(), Modelo(), Herramientas()
+    app.dependency_overrides[obtener_transcriptor] = lambda: t
+    app.dependency_overrides[obtener_modelo] = lambda: m
+    app.dependency_overrides[obtener_herramientas] = lambda: h
+    with TestClient(app) as c:
+        yield c, t, m, h
+    PENDIENTES.clear()
+
+
+def audio(contenido=b"abc"):
+    return {"audio": ("a.webm", contenido, "audio/webm")}
+
+
+def test_voz_devuelve_contrato(ctx):
+    c, t, m, h = ctx
+    r = c.post("/voz", files=audio())
+    assert r.status_code == 200
+    assert set(r.json()) == CLAVES
+    assert r.json()["transcripcion"] == "hola"
+    assert r.json()["respuesta"] == "Hecho."
+    assert t.llamadas == [(b"abc", "a.webm", "audio/webm")]
+
+
+def test_audio_grande_400(ctx):
+    c, t, m, h = ctx
+    r = c.post("/voz", files=audio(b"0" * (10 * 1024 * 1024 + 1)))
+    assert r.status_code == 400
+    assert r.json() == {"detail": "El audio es demasiado largo."}
+    assert t.llamadas == []
+
+
+def test_silencio_no_llama_modelo(ctx):
+    c, t, m, h = ctx
+    t.texto = "   "
+    r = c.post("/voz", files=audio())
+    assert r.status_code == 200
+    assert r.json()["respuesta"] == "No te entendí, probá de nuevo."
+    assert r.json()["transcripcion"] == ""
+    assert set(r.json()) == CLAVES
+    assert m.llamadas == 0
+
+
+def token_admin():
+    claims = base64.urlsafe_b64encode(b'{"sub":"a@x.com","rol":"ADMINISTRADOR"}').rstrip(b"=")
+    return f"Bearer eyJhbGciOiJIUzI1NiJ9.{claims.decode()}.firma"
+
+
+def pendiente_de(token, nombre="borrar_alumno", args=None):
+    from asistente.agente import _hash_token
+    PENDIENTES["p1"] = (nombre, args or {"id": 5}, _hash_token(token),
+                        datetime.datetime.now(datetime.UTC) + datetime.timedelta(minutes=5))
+
+
+def test_si_por_voz_confirma(ctx):
+    c, t, m, h = ctx
+    tk = token_admin()
+    pendiente_de(tk)
+    t.texto = "Sí, dale"
+    r = c.post("/voz", files=audio(), data={"pendiente_id": "p1"},
+               headers={"Authorization": tk})
+    assert r.status_code == 200
+    assert h.llamadas == [("borrar_alumno", {"id": 5})]
+    assert m.llamadas == 0
+    assert r.json()["transcripcion"] == "Sí, dale"
+    assert set(r.json()) == CLAVES
+
+
+def test_confirmar_sin_audio(ctx):
+    c, t, m, h = ctx
+    tk = token_admin()
+    pendiente_de(tk)
+    r = c.post("/voz", data={"pendiente_id": "p1", "confirmar": "true"},
+               headers={"Authorization": tk})
+    assert r.status_code == 200
+    assert t.llamadas == []
+    assert h.llamadas == [("borrar_alumno", {"id": 5})]
+    assert r.json()["transcripcion"] is None
+
+
+def test_otra_cosa_descarta_pendiente(ctx):
+    c, t, m, h = ctx
+    tk = token_admin()
+    pendiente_de(tk)
+    t.texto = "mostrame los cursos"
+    r = c.post("/voz", files=audio(), data={"pendiente_id": "p1"},
+               headers={"Authorization": tk})
+    assert r.status_code == 200
+    assert "p1" not in PENDIENTES
+    assert h.llamadas == []
+    assert m.llamadas == 1
+
+
+def test_sin_audio_ni_confirmar_400(ctx):
+    c, *_ = ctx
+    r = c.post("/voz", data={"pendiente_id": "x"})
+    assert r.status_code == 400
+    assert r.json() == {"detail": "Falta el audio."}
+
+
+@pytest.mark.parametrize("valor", ["no es json", '{"a": 1}'])
+def test_historial_invalido_400(ctx, valor):
+    c, *_ = ctx
+    r = c.post("/voz", files=audio(), data={"historial": valor})
+    assert r.status_code == 400
+    assert r.json() == {"detail": "historial inválido"}
+
+
+def test_historial_se_recorta_a_6(ctx):
+    c, t, m, h = ctx
+    hist = [{"rol": "usuario", "texto": f"t{i}"} for i in range(10)]
+    c.post("/voz", files=audio(), data={"historial": json.dumps(hist)})
+    textos = [x["content"] for x in m.mensajes if x["role"] == "user"]
+    assert textos == ["t4", "t5", "t6", "t7", "t8", "t9", "hola"]
+
+
+def test_saturado_503(ctx):
+    c, t, m, h = ctx
+    t.error = AsistenteSaturado()
+    r = c.post("/voz", files=audio())
+    assert r.status_code == 503
+    assert r.json() == {"detail": "El asistente está saturado, probá en un minuto."}
+
+
+def test_cors_origen_permitido(ctx):
+    c, *_ = ctx
+    r = c.options("/voz", headers={
+        "Origin": "http://localhost:5173",
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "authorization",
+    })
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_cors_origen_no_permitido(ctx):
+    c, *_ = ctx
+    r = c.options("/voz", headers={
+        "Origin": "http://malo.com", "Access-Control-Request-Method": "POST"})
+    assert "access-control-allow-origin" not in r.headers
+
+
+@pytest.fixture(autouse=True)
+def pista_sin_backend(monkeypatch):
+    from asistente import transcripcion
+    monkeypatch.setattr(transcripcion, "_cache", (time.monotonic(), []))
+
+
+async def test_transcribir_groq(monkeypatch):
+    from asistente import transcripcion
+    capturado = {}
+
+    class FakeTr:
+        async def create(self, **kw):
+            capturado.update(kw)
+            if kw["file"][0] == "limite.webm":
+                raise openai.RateLimitError(
+                    "x", response=__import__("httpx").Response(
+                        429, request=__import__("httpx").Request("POST", "http://x")),
+                    body=None)
+
+            class R:
+                text = "  hola mundo \n"
+            return R()
+
+    class FakeCliente:
+        def __init__(self, **kw):
+            capturado["cliente"] = kw
+            self.audio = type("A", (), {"transcriptions": FakeTr()})()
+
+    monkeypatch.setattr(transcripcion.openai, "AsyncOpenAI", FakeCliente)
+    monkeypatch.setattr(transcripcion, "_cache", (0.0, []))
+
+    async def cursos(*a, **kw):
+        return ResultadoApi(True, 200, [
+            {"title": "Plan de Marketing", "status": "PUBLISHED"},
+            {"title": "Borrador secreto", "status": "DRAFT"}], None, None)
+    monkeypatch.setattr(transcripcion.backend, "llamar", cursos)
+    s = Settings(groq_api_key="k")
+    assert await transcripcion.transcribir(b"zz", "a.webm", "audio/webm", settings=s) == "hola mundo"
+    assert capturado["model"] == "whisper-large-v3"
+    assert "inscribime" in capturado["prompt"]
+    assert "Plan de Marketing" in capturado["prompt"]
+    assert "Borrador secreto" not in capturado["prompt"]
+    assert capturado["language"] == "es"
+    assert capturado["file"] == ("a.webm", b"zz", "audio/webm")
+    assert capturado["cliente"]["base_url"] == "https://api.groq.com/openai/v1"
+    with pytest.raises(AsistenteSaturado):
+        await transcripcion.transcribir(b"zz", "limite.webm", "audio/webm", settings=s)
+
+
+@pytest.fixture
+def real():
+    PENDIENTES.clear()
+    with TestClient(crear_app(Settings())) as c:  # keys vacías, dependencias reales
+        yield c
+
+
+def test_real_sin_audio_400_con_keys_vacias(real):
+    r = real.post("/voz")
+    assert r.status_code == 400
+    assert r.json() == {"detail": "Falta el audio."}
+
+
+def test_real_modelo_sin_key_503():
+    app = crear_app(Settings())
+    app.dependency_overrides[obtener_transcriptor] = lambda: Transcriptor()
+    app.dependency_overrides[obtener_herramientas] = lambda: Herramientas()
+    with TestClient(app) as c:
+        r = c.post("/voz", files=audio())
+    assert r.status_code == 503
+    assert r.json() == {"detail": "El asistente no está configurado."}
+
+
+def test_real_transcripcion_sin_key_503(real):
+    r = real.post("/voz", files=audio())
+    assert r.status_code == 503
+    assert r.json() == {"detail": "El asistente no está configurado."}
+
+
+# --- Errores del modelo/transcripción y errores internos ---
+
+ORIGEN = {"Origin": "http://localhost:5173"}
+
+
+def test_fallo_del_modelo_502_con_cors(ctx):
+    c, t, m, h = ctx
+
+    async def falla(mensajes, herramientas):
+        raise AsistenteFallo()
+    m.responder = falla
+    r = c.post("/voz", files=audio(), headers=ORIGEN)
+    assert r.status_code == 502
+    assert r.json() == {"detail": "El asistente tuvo un problema, probá de nuevo."}
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+
+def test_fallo_de_transcripcion_502(ctx):
+    c, t, m, h = ctx
+    t.error = AsistenteFallo()
+    r = c.post("/voz", files=audio(), headers=ORIGEN)
+    assert r.status_code == 502
+    assert r.json() == {"detail": "El asistente tuvo un problema, probá de nuevo."}
+    assert m.llamadas == 0
+
+
+def test_error_inesperado_500_json_con_cors(ctx):
+    c, t, m, h = ctx
+    t.error = RuntimeError("boom con datos privados")
+    r = c.post("/voz", files=audio(), headers=ORIGEN)
+    assert r.status_code == 500
+    assert r.json() == {"detail": "Error interno del asistente."}
+    assert r.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "boom" not in r.text
+
+
+def test_error_inesperado_no_loguea_el_mensaje(ctx, caplog):
+    c, t, m, h = ctx
+    t.error = RuntimeError("secreto123")
+    c.post("/voz", files=audio(), headers=ORIGEN)
+    assert "RuntimeError" in caplog.text
+    assert "secreto123" not in caplog.text
+
+
+async def test_transcribir_otro_error_es_fallo(monkeypatch):
+    import httpx
+    from asistente import transcripcion
+
+    class FakeTr:
+        async def create(self, **kw):
+            raise openai.BadRequestError(
+                "audio muy corto",
+                response=httpx.Response(400, request=httpx.Request("POST", "http://x")),
+                body=None)
+
+    class FakeCliente:
+        def __init__(self, **kw):
+            self.audio = type("A", (), {"transcriptions": FakeTr()})()
+
+    monkeypatch.setattr(transcripcion.openai, "AsyncOpenAI", FakeCliente)
+    with pytest.raises(AsistenteFallo):
+        await transcripcion.transcribir(
+            b"z", "a.webm", "audio/webm", settings=Settings(groq_api_key="k"))
+
+
+async def test_pista_sin_backend_usa_solo_vocabulario(monkeypatch):
+    from asistente import transcripcion
+    monkeypatch.setattr(transcripcion, "_cache", (0.0, []))
+
+    async def caido(*a, **kw):
+        raise httpx.ConnectError("sin red")
+    monkeypatch.setattr(transcripcion.backend, "llamar", caido)
+    assert await transcripcion.pista(Settings()) == transcripcion.VOCABULARIO

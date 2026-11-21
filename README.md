@@ -82,6 +82,13 @@ Si en lugar de la base de Aiven usás una PostgreSQL en el host y `DB_URL` apunt
 docker run --rm --network host --env-file .env pm2026-backend
 ```
 
+## Asistente por voz (extra)
+
+En `asistente/` hay un servicio aparte (Python + FastAPI) que recibe un audio, lo transcribe con Groq y ejecuta
+las acciones contra este backend con el token de quien habla. También expone las herramientas como servidor MCP
+para usarlas desde Claude Code (`.mcp.json.example`). Cómo conseguir la clave gratis, las variables, el despliegue
+en Railway y cómo cambiar de modelo están en [`asistente/README.md`](asistente/README.md).
+
 ## Tests
 
 ```bash
