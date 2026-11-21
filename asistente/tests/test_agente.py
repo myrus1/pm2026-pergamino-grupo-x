@@ -233,7 +233,7 @@ async def test_sin_token_rol_none():
     modelo = ModeloGuionado(dice("hola"))
     await correr(modelo, None)
     publicas = {h.nombre for h in registro.REGISTRO.values() if "PUBLICO" in h.roles}
-    assert modelo.nombres_ofrecidos() == publicas
+    assert modelo.nombres_ofrecidos() - {"ir_a"} == publicas
 
 
 async def test_rol_del_token_mapea_claims():
@@ -272,9 +272,10 @@ async def test_confirmar_revisa_el_rol_de_nuevo():
 async def test_contrato_completo():
     modelo = ModeloGuionado(dice("hola"))
     res, _ = await correr(modelo, None)
-    assert set(res) == {"respuesta", "acciones", "datos", "deshacer", "pendiente", "secreto"}
+    assert set(res) == {"respuesta", "acciones", "datos", "deshacer", "pendiente", "secreto",
+                        "pantalla"}
     assert res == {"respuesta": "hola", "acciones": [], "datos": None, "deshacer": None,
-                   "pendiente": None, "secreto": None}
+                   "pendiente": None, "secreto": None, "pantalla": None}
 
 
 async def test_datos_de_la_ultima_lista():
@@ -438,7 +439,7 @@ async def test_sin_sesion_pide_iniciar_sesion():
                             dice("Necesitás iniciar sesión para eso."))
     res, cliente = await correr(modelo, None, texto="listá los alumnos")
     # Solo se ofrecen herramientas públicas.
-    assert modelo.nombres_ofrecidos(0) == publicas
+    assert modelo.nombres_ofrecidos(0) - {"ir_a"} == publicas
     assert "listar_alumnos" not in modelo.nombres_ofrecidos(0)
     # El prompt de un visitante tiene la frase.
     system = modelo.llamadas[0][0][0]
@@ -509,3 +510,72 @@ async def test_modelo_openai_sin_conexion_es_fallo():
     modelo._obtener_cliente().max_retries = 0
     with pytest.raises(AsistenteFallo):
         await modelo.responder([{"role": "user", "content": "x"}], [])
+
+
+async def test_system_prompt_dice_que_rol_hace_lo_que_no_tiene():
+    modelo = ModeloGuionado(dice("ok"))
+    await correr(modelo, ALUMNO, texto="creá un curso")
+    sistema = modelo.llamadas[0][0][0]["content"]
+    assert "crear_curso" in sistema
+    linea = next(l for l in sistema.splitlines() if "crear_curso" in l)
+    assert "INSTRUCTOR" in linea
+    # Lo que el alumno sí puede hacer no aparece como ajeno.
+    assert "inscribirme" not in sistema
+
+
+# --- Pantalla que acompaña la acción ---
+
+
+async def test_pantalla_de_la_herramienta_usada():
+    res, _ = await correr(ModeloGuionado(pide(("ver_curso", {"curso_id": 7})), dice("ahí está")),
+                          ALUMNO)
+    assert res["pantalla"] == {"nombre": "curso", "id": 7}
+
+
+async def test_pantalla_despues_de_crear_curso():
+    modelo = ModeloGuionado(pide(("crear_curso", {"titulo": "Plan de Marketing"})), dice("listo"))
+    res, _ = await correr(modelo, INSTRUCTOR)
+    assert res["pantalla"] == {"nombre": "mis_cursos", "id": None}
+
+
+async def test_sin_pantalla_si_la_herramienta_fallo():
+    cliente = ClienteFalso({"ver_curso": {"ok": False, "mensaje": "no existe"}})
+    res, _ = await correr(ModeloGuionado(pide(("ver_curso", {"curso_id": 7})), dice("no")),
+                          ALUMNO, cliente)
+    assert res["pantalla"] is None
+
+
+async def test_ir_a_abre_pantalla_del_rol_sin_llamar_al_backend():
+    modelo = ModeloGuionado(pide(("ir_a", {"pantalla": "solicitudes"})), dice("te llevo"))
+    res, cliente = await correr(modelo, ADMIN)
+    assert cliente.llamadas == []
+    assert res["pantalla"] == {"nombre": "solicitudes", "id": None}
+    assert "ir_a" in modelo.nombres_ofrecidos()
+
+
+async def test_ir_a_pantalla_de_otro_rol_no_navega():
+    modelo = ModeloGuionado(pide(("ir_a", {"pantalla": "administradores"})), dice("no puedo"))
+    res, _ = await correr(modelo, ALUMNO)
+    assert res["pantalla"] is None
+    assert '"ok": false' in modelo.llamadas[1][0][-1]["content"]
+
+
+async def test_ir_a_curso_sin_id_no_navega():
+    res, _ = await correr(ModeloGuionado(pide(("ir_a", {"pantalla": "curso"})), dice("cuál?")),
+                          ALUMNO)
+    assert res["pantalla"] is None
+
+
+async def test_ir_a_ofrece_solo_las_pantallas_del_rol():
+    modelo = ModeloGuionado(dice("ok"))
+    await correr(modelo, ALUMNO)
+    ir_a = next(t for t in modelo.llamadas[0][1] if t["function"]["name"] == "ir_a")
+    opciones = ir_a["function"]["parameters"]["properties"]["pantalla"]["enum"]
+    assert opciones == ["catalogo", "curso", "mis_inscripciones"]
+
+
+async def test_confirmar_borrado_lleva_a_la_lista():
+    res, _ = await correr(ModeloGuionado(pide(("borrar_instructor", {"id": 3}))), ADMIN)
+    cliente = ClienteFalso({"borrar_instructor": {"ok": True, "datos": None, "total": 0}})
+    conf = await confirmar(res["pendiente"]["id"], ADMIN, cliente)
+    assert conf["pantalla"] == {"nombre": "instructores", "id": None}

@@ -149,7 +149,8 @@ async def _voz(audio, historial, pendiente_id, confirmar_, token, transcriptor, 
         datos, audio.filename or "audio", audio.content_type or "application/octet-stream")
     if not texto.strip():
         return {"transcripcion": texto.strip(), "respuesta": MENSAJE_NO_ENTENDI, "acciones": [],
-                "datos": None, "deshacer": None, "pendiente": None, "secreto": None}
+                "datos": None, "deshacer": None, "pendiente": None, "secreto": None,
+                "pantalla": None}
     if pendiente_id:
         if _es_afirmativo(texto):
             return {"transcripcion": texto, **await confirmar(pendiente_id, token, herramientas)}

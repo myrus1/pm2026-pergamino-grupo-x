@@ -1,18 +1,21 @@
 import base64
 import datetime
 import json
+import time
 
+import httpx
 import openai
 import pytest
 from fastapi.testclient import TestClient
 
+from asistente.backend import ResultadoApi
 from asistente.agente import PENDIENTES, AsistenteFallo, AsistenteSaturado
 from asistente.app import (
     crear_app, obtener_herramientas, obtener_modelo, obtener_transcriptor,
 )
 from asistente.config import Settings
 
-CLAVES = {"transcripcion", "respuesta", "acciones", "datos", "deshacer", "pendiente", "secreto"}
+CLAVES = {"transcripcion", "respuesta", "acciones", "datos", "deshacer", "pendiente", "secreto", "pantalla"}
 
 
 class Transcriptor:
@@ -189,6 +192,12 @@ def test_cors_origen_no_permitido(ctx):
     assert "access-control-allow-origin" not in r.headers
 
 
+@pytest.fixture(autouse=True)
+def pista_sin_backend(monkeypatch):
+    from asistente import transcripcion
+    monkeypatch.setattr(transcripcion, "_cache", (time.monotonic(), []))
+
+
 async def test_transcribir_groq(monkeypatch):
     from asistente import transcripcion
     capturado = {}
@@ -212,9 +221,19 @@ async def test_transcribir_groq(monkeypatch):
             self.audio = type("A", (), {"transcriptions": FakeTr()})()
 
     monkeypatch.setattr(transcripcion.openai, "AsyncOpenAI", FakeCliente)
+    monkeypatch.setattr(transcripcion, "_cache", (0.0, []))
+
+    async def cursos(*a, **kw):
+        return ResultadoApi(True, 200, [
+            {"title": "Plan de Marketing", "status": "PUBLISHED"},
+            {"title": "Borrador secreto", "status": "DRAFT"}], None, None)
+    monkeypatch.setattr(transcripcion.backend, "llamar", cursos)
     s = Settings(groq_api_key="k")
     assert await transcripcion.transcribir(b"zz", "a.webm", "audio/webm", settings=s) == "hola mundo"
-    assert capturado["model"] == "whisper-large-v3-turbo"
+    assert capturado["model"] == "whisper-large-v3"
+    assert "inscribime" in capturado["prompt"]
+    assert "Plan de Marketing" in capturado["prompt"]
+    assert "Borrador secreto" not in capturado["prompt"]
     assert capturado["language"] == "es"
     assert capturado["file"] == ("a.webm", b"zz", "audio/webm")
     assert capturado["cliente"]["base_url"] == "https://api.groq.com/openai/v1"
@@ -314,3 +333,13 @@ async def test_transcribir_otro_error_es_fallo(monkeypatch):
     with pytest.raises(AsistenteFallo):
         await transcripcion.transcribir(
             b"z", "a.webm", "audio/webm", settings=Settings(groq_api_key="k"))
+
+
+async def test_pista_sin_backend_usa_solo_vocabulario(monkeypatch):
+    from asistente import transcripcion
+    monkeypatch.setattr(transcripcion, "_cache", (0.0, []))
+
+    async def caido(*a, **kw):
+        raise httpx.ConnectError("sin red")
+    monkeypatch.setattr(transcripcion.backend, "llamar", caido)
+    assert await transcripcion.pista(Settings()) == transcripcion.VOCABULARIO

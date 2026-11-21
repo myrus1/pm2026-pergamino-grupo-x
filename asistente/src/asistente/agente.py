@@ -17,6 +17,7 @@ import openai
 from mcp.server.mcpserver.tools.base import Tool
 
 from asistente import herramientas as _herramientas  # noqa: F401  (puebla REGISTRO)
+from asistente import pantallas
 from asistente.cliente_mcp import ClienteHerramientas  # noqa: F401  (se re-exporta)
 from asistente.config import Settings
 from asistente.herramientas.registro import (
@@ -139,7 +140,9 @@ def _system_prompt(rol: Rol | None, hoy: datetime.date) -> str:
         f"Hoy es {hoy.isoformat()}. El usuario es: {quien}.\n"
         "No inventes datos: si te falta un dato para usar una herramienta, pedíselo al usuario.\n"
         "No muestres contraseñas: el sistema se las muestra al usuario por su cuenta.\n"
-        "Usá solo las herramientas que tenés disponibles."
+        "Usá solo las herramientas que tenés disponibles.\n"
+        "La app abre sola la pantalla de lo que hagas; si solo pide ir a una pantalla, "
+        f"usá {pantallas.IR_A}. No describas la pantalla: decí en una oración qué hiciste."
     )
     if rol is None:
         texto += (
@@ -147,7 +150,27 @@ def _system_prompt(rol: Rol | None, hoy: datetime.date) -> str:
             "especialidades y registrarse). Si pide otra cosa, respondé exactamente: "
             f"'{MENSAJE_INICIAR_SESION}'"
         )
+    else:
+        texto += _acciones_de_otros_roles(rol)
     return texto
+
+
+def _acciones_de_otros_roles(rol: Rol) -> str:
+    """Lista lo que hacen otros roles, para que el modelo no diga que el sistema no puede."""
+    propias = {h.nombre for h in para_rol(rol)}
+    por_rol: dict[str, list[str]] = {}
+    for h in REGISTRO.values():
+        if h.nombre in propias:
+            continue
+        for otro in sorted(h.roles):
+            por_rol.setdefault(otro, []).append(h.nombre)
+    if not por_rol:
+        return ""
+    lineas = [f"- {otro}: {', '.join(nombres)}" for otro, nombres in sorted(por_rol.items())]
+    return (
+        "\nSi pide algo que no está en tus herramientas, no digas que el sistema no lo permite: "
+        "explicá que lo hace otro rol y cuál. Acciones de otros roles:\n" + "\n".join(lineas)
+    )
 
 
 def _mensajes_historial(historial: list[dict]) -> list[dict]:
@@ -182,9 +205,10 @@ def _pasado(nombre: str) -> str:
 
 
 def _contrato(respuesta: str, acciones: list[dict] | None = None, datos=None, deshacer=None,
-              pendiente=None, secreto=None) -> dict:
+              pendiente=None, secreto=None, pantalla=None) -> dict:
     return {"respuesta": respuesta, "acciones": acciones or [], "datos": datos,
-            "deshacer": deshacer, "pendiente": pendiente, "secreto": secreto}
+            "deshacer": deshacer, "pendiente": pendiente, "secreto": secreto,
+            "pantalla": pantalla}
 
 
 def _accion(h: Herramienta, ok: bool) -> dict:
@@ -221,18 +245,19 @@ async def ejecutar(
     rol = rol_del_token(token)
     disponibles = {h.nombre: h for h in para_rol(rol)}
     esquemas = [esquema_openai(h) for h in disponibles.values()]
+    esquemas.append(pantallas.esquema_ir_a(rol))
     mensajes = [{"role": "system", "content": _system_prompt(rol, hoy)},
                 *_mensajes_historial(historial),
                 {"role": "user", "content": texto}]
 
     acciones: list[dict] = []
-    datos = deshacer = secreto = None
+    datos = deshacer = secreto = pantalla = None
     llamadas = 0
 
     def contrato(respuesta: str, pendiente=None) -> dict:
         if secreto and secreto["valor"] in respuesta:
             respuesta = respuesta.replace(secreto["valor"], "********")
-        return _contrato(respuesta, acciones, datos, deshacer, pendiente, secreto)
+        return _contrato(respuesta, acciones, datos, deshacer, pendiente, secreto, pantalla)
 
     for _ in range(MAX_LLAMADAS):
         msg = await modelo.responder(mensajes, esquemas)
@@ -257,6 +282,14 @@ async def ejecutar(
         for call in tool_calls:
             call_id = call.get("id")
             nombre = (call.get("function") or {}).get("name")
+            if nombre == pantallas.IR_A:
+                args = _args_de(call) or {}
+                destino = pantallas.armar(rol, args.get("pantalla"), args.get("curso_id"))
+                if destino:
+                    pantalla = destino
+                mensajes.append(_mensaje_tool(call_id, {"ok": True} if destino else {
+                    "ok": False, "mensaje": "pantalla no disponible para tu rol o falta curso_id"}))
+                continue
             h = disponibles.get(nombre)
             if h is None:
                 mensaje = (MENSAJE_INICIAR_SESION if rol is None and nombre in REGISTRO
@@ -286,6 +319,8 @@ async def ejecutar(
                 res["contrasena"] = "generada; el sistema se la muestra al usuario"
             if ok and isinstance(res.get("datos"), list):
                 datos = {"filas": res["datos"], "total": res.get("total", len(res["datos"]))}
+            if ok:
+                pantalla = pantallas.de_herramienta(rol, h.nombre, args) or pantalla
             if ok and h.deshacer and rol in ROLES_DESHACER.get(h.nombre, {"ADMINISTRADOR"}):
                 deshacer = h.deshacer(args, res) or deshacer
             mensajes.append(_mensaje_tool(call_id, res))
@@ -325,4 +360,5 @@ async def confirmar(
         respuesta = f"Listo: {_con_args(_pasado(nombre), args)}."
     else:
         respuesta = res.get("mensaje") or "No se pudo completar."
-    return _contrato(respuesta, [_accion(h, ok)])
+    pantalla = pantallas.de_herramienta(rol_del_token(token), nombre, args) if ok else None
+    return _contrato(respuesta, [_accion(h, ok)], pantalla=pantalla)
