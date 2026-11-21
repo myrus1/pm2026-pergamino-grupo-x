@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "pm2026": {
+      "type": "http",
+      "url": "http://localhost:8000/mcp",
+      "headers": {
+        "Authorization": "Bearer ${PM2026_TOKEN}"
+      }
+    }
+  }
+}
