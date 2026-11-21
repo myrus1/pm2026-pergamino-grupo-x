@@ -6,8 +6,13 @@ los sigue decidiendo el backend: el asistente nunca usa un token propio.
 
 - `GET /salud`: devuelve `{"estado": "ok"}`.
 - `POST /voz`: multipart con `audio`, `historial`, `pendiente_id` y `confirmar`, más el header `Authorization`.
-- `/mcp`: las mismas herramientas como servidor MCP (Streamable HTTP, sin estado). Lista todas las
-  herramientas; si el rol no puede usar una, el backend responde 403 con el token del pedido.
+- `/mcp`: servidor MCP (Streamable HTTP, sin estado) con las tres cosas que define el protocolo:
+  - **Tools:** las mismas herramientas que usa `/voz`. Lista todas; si el rol no puede usar una, el
+    backend responde 403 con el token del pedido.
+  - **Resource** `pm2026://cursos`: el catálogo de cursos publicados, en JSON. Es de solo lectura y no
+    necesita sesión.
+  - **Prompts:** pedidos armados que se eligen de una lista: `resumen_recaudacion`,
+    `recomendar_curso` (con `tema`) y `revisar_solicitudes`. Ninguno pide cambiar datos.
 
 Si faltan las claves, `/voz` responde `503` con "El asistente no está configurado.". Si Groq responde 429
 (límite de uso), responde `503` con "El asistente está saturado, probá en un minuto.".
@@ -27,7 +32,7 @@ Copiá `.env.example` como `.env` dentro de `asistente/` y completá `GROQ_API_K
 
 | Variable | Por defecto | Para qué sirve |
 | --- | --- | --- |
-| `GROQ_API_KEY` | (vacía) | Transcripción (`whisper-large-v3-turbo`, en español). Obligatoria. |
+| `GROQ_API_KEY` | (vacía) | Transcripción (`whisper-large-v3`, en español). Obligatoria. |
 | `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | API compatible con OpenAI del modelo que usa las herramientas. |
 | `LLM_MODEL` | `openai/gpt-oss-120b` | Modelo. |
 | `LLM_API_KEY` | `GROQ_API_KEY` | Clave del modelo; si falta se usa la de Groq. |
@@ -111,3 +116,23 @@ de herramientas: si el asistente no las llama, probá con otro.
 
 Para un servicio desplegado, cambiá la URL por `https://<dominio>/mcp`. Por el MCP las herramientas de borrado
 no piden confirmación: la confirmación es parte del flujo de `/voz`.
+
+## Ver el MCP por dentro (MCP Inspector)
+
+El [MCP Inspector](https://github.com/modelcontextprotocol/inspector) es el cliente oficial para probar
+servidores MCP: lista las tools, el resource y los prompts, los ejecuta con un formulario y muestra cada
+mensaje del protocolo (`initialize`, `tools/list`, `tools/call`...). No usa el modelo ni Groq.
+
+1. Con el backend y el asistente corriendo, sacá un token con `POST /api/auth/token`.
+2. Desde la raíz del repositorio:
+
+   ```bash
+   PM2026_TOKEN=<accessToken> sh asistente/scripts/inspector.sh
+   ```
+
+   Para el servicio de Railway, pasá la URL: `sh asistente/scripts/inspector.sh https://<dominio>/mcp`.
+3. Abrí la URL que imprime (`http://127.0.0.1:6274?MCP_INSPECTOR_API_TOKEN=...`) y activá el servidor
+   `pm2026`. En **Tools**, **Resources** y **Prompts** está cada cosa; en **Protocol**, los mensajes.
+
+El script arma la configuración en una carpeta temporal y la borra al salir, así el token no queda
+guardado. Para mostrarlo, conviene usar herramientas de lectura: los borrados no piden confirmación.
