@@ -1,3 +1,5 @@
+import json
+
 import httpx
 import httpx2
 import respx
@@ -46,3 +48,40 @@ async def test_llamada_reenvia_token(respx_mock):
     assert not resultado.is_error
     assert ruta.called
     assert ruta.calls.last.request.headers["authorization"] == "Bearer t"
+
+
+async def test_ofrece_los_prompts():
+    async with Client(crear_mcp()) as cliente:
+        prompts = (await cliente.list_prompts()).prompts
+        armado = await cliente.get_prompt("recomendar_curso", {"tema": "Python"})
+
+    assert {p.name for p in prompts} == {
+        "resumen_recaudacion", "recomendar_curso", "revisar_solicitudes"}
+    texto = armado.messages[0].content.text
+    assert "Python" in texto
+    assert "buscar_cursos" in texto
+
+
+@respx.mock(assert_all_mocked=False)
+async def test_recurso_catalogo_solo_publicados(respx_mock):
+    respx_mock.get(f"{BASE}/api/courses").mock(return_value=httpx.Response(200, json=[
+        {"id": 1, "title": "Java", "basePrice": 100, "status": "PUBLISHED", "instructorId": 3},
+        {"id": 2, "title": "Borrador secreto", "status": "DRAFT"},
+    ]))
+    async with Client(crear_mcp()) as cliente:
+        recursos = (await cliente.list_resources()).resources
+        leido = await cliente.read_resource("pm2026://cursos")
+
+    assert [str(r.uri) for r in recursos] == ["pm2026://cursos"]
+    cursos = json.loads(leido.contents[0].text)
+    assert [c["title"] for c in cursos] == ["Java"]
+    assert "instructorId" not in cursos[0]
+
+
+@respx.mock(assert_all_mocked=False)
+async def test_recurso_catalogo_backend_caido(respx_mock):
+    respx_mock.get(f"{BASE}/api/courses").mock(return_value=httpx.Response(503))
+    async with Client(crear_mcp()) as cliente:
+        leido = await cliente.read_resource("pm2026://cursos")
+
+    assert json.loads(leido.contents[0].text)["ok"] is False
